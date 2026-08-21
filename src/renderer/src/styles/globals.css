@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── 主题变量：暗色默认，亮色可切换（CSS 变量驱动，对应 config.theme） ── */
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --bg-elev: #171a21;
+  --bg-hover: #1f2430;
+  --border: #262b36;
+  --fg: #e6e9ef;
+  --fg-dim: #9aa3b2;
+  --accent: #3b82f6;
+  --accent-soft: rgba(59, 130, 246, 0.15);
+  --danger: #ef4444;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f7f8fa;
+  --bg-elev: #ffffff;
+  --bg-hover: #eef0f4;
+  --border: #e3e6ec;
+  --fg: #1c2330;
+  --fg-dim: #5c6675;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --danger: #dc2626;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── 滚动条 ── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-dim);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── 通用组件类 ── */
+@layer components {
+  .panel {
+    @apply bg-[var(--bg-elev)] border border-[var(--border)] rounded-lg;
+  }
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--fg-dim)]
+      hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer
+      disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-[var(--accent)] text-white hover:bg-[var(--accent)] hover:text-white hover:opacity-90;
+  }
+  .input {
+    @apply bg-[var(--bg)] border border-[var(--border)] rounded-md px-2.5 py-1.5
+      text-[var(--fg)] outline-none focus:border-[var(--accent)] transition-colors;
+  }
+  .kbd {
+    @apply px-1 rounded bg-[var(--bg-hover)] border border-[var(--border)] text-[11px] text-[var(--fg-dim)];
+  }
+}

@@ -1,0 +1,24 @@
+appId: com.taghit.app
+productName: TagHit
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - resources/**
+  - package.json
+asarUnpack:
+  - resources/**
+  - node_modules/better-sqlite3/**
+npmRebuild: true
+win:
+  target:
+    - nsis
+mac:
+  target:
+    - dmg
+  category: public.app-category.productivity
+linux:
+  target:
+    - AppImage
+  category: Utility

@@ -1,0 +1,37 @@
+{
+  "image": {
+    "formats": ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "tiff"],
+    "fields": [
+      { "name": "width", "type": "integer", "description": "图像宽度(像素)" },
+      { "name": "height", "type": "integer", "description": "图像高度(像素)" },
+      { "name": "format", "type": "string", "description": "图像格式" },
+      { "name": "color_space", "type": "string", "description": "色彩空间" }
+    ]
+  },
+  "video": {
+    "formats": ["mp4", "mov", "avi", "mkv", "webm"],
+    "fields": [
+      { "name": "width", "type": "integer", "description": "视频宽度(像素)" },
+      { "name": "height", "type": "integer", "description": "视频高度(像素)" },
+      { "name": "duration_ms", "type": "integer", "description": "时长(毫秒)" },
+      { "name": "codec", "type": "string", "description": "编码格式" },
+      { "name": "fps", "type": "number", "description": "帧率" },
+      { "name": "bitrate", "type": "integer", "description": "比特率" }
+    ]
+  },
+  "audio": {
+    "formats": ["mp3", "wav", "flac", "aac", "ogg"],
+    "fields": [
+      { "name": "duration_ms", "type": "integer", "description": "时长(毫秒)" },
+      { "name": "sample_rate", "type": "integer", "description": "采样率" },
+      { "name": "channels", "type": "integer", "description": "声道数" },
+      { "name": "bitrate", "type": "integer", "description": "比特率" }
+    ]
+  },
+  "document": {
+    "formats": ["pdf"],
+    "fields": [
+      { "name": "page_count", "type": "integer", "description": "页数" }
+    ]
+  }
+}

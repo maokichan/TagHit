@@ -1,0 +1,9 @@
+{
+  "name": "hello",
+  "version": "0.1.0",
+  "description": "示例插件：演示 Node 宿主 + 声明式权限清单（fs 只读）",
+  "entry": "index.cjs",
+  "permissions": {
+    "fs": true
+  }
+}
