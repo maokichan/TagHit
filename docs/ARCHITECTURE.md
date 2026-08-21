@@ -1,13 +1,13 @@
 # TagHit（Electron 重构版）— 项目进展与架构文档
 
-> 记录时间：2026-08-22
+> 记录时间：2026-08-23
 > 本文档描述 `d:\PROJECT\TagHit` 的现状、代码思路与设计决策，供继续开发前对齐认知使用。
 
 ---
 
 ## 一、项目定位
 
-TagHit 是一个**多源内容标记与管理系统**（"第二大脑"）：把本地媒体文件、网页剪藏、书签、笔记碎片统一纳入一套标签体系，通过搜索与 AI 辅助实现跨来源的内容发现。
+TagHit 是一个**多源内容标记与管理系统**：把本地媒体文件、网页剪藏、书签、笔记碎片统一纳入一套标签体系，通过搜索与 AI 辅助实现跨来源的内容发现。
 
 目标用户：媒体从业者（管理海量素材）与个人知识管理用户。核心原则：**离线优先、键盘即速度、来源透明、归档意识、插件生态是长期核心**。
 
@@ -15,7 +15,7 @@ TagHit 是一个**多源内容标记与管理系统**（"第二大脑"）：把�
 
 ## 二、为什么从 Tauri 重构到 Electron
 
-（决策依据，来自旧项目 `Managment/TagHit` 的文档与复盘）
+（决策依据，来自已冻结的旧项目 `../freeze/TagHit` 的文档与复盘）
 
 旧项目：Tauri 2 + Vue 3 + Rust。其致命矛盾：
 
@@ -76,7 +76,7 @@ TagHit/
     │   │   ├── workspace/        #     workspace.dao + scan（分块异步扫描）
     │   │   ├── search/           #     parser（DSL）+ search.service
     │   │   ├── metadata/         #     extractor（image-size / ffprobe）
-    │   │   └── thumbnail/        #     thumbnail.service（骨架，视频抽帧待接）
+    │   │   └── thumbnail/        #     thumbnail.service（缩略图目录/落盘/判存；抓帧在渲染层缩略图管线）
     │   ├── plugins/              #   插件宿主（registry/runtime/host）
     │   └── ipc/                  #   类型安全 IPC 注册（每域一个文件 + util）
     ├── preload/index.ts          # contextBridge 暴露 window.api（ESM -> index.mjs）
@@ -132,7 +132,7 @@ TagHit/
 ### 6.2 main/db —— 数据层
 
 - **双连接**：`AppDb { write, read }`，WAL 模式下扫描持有写锁时读不阻塞（吸取旧版"扫描卡死 UI"教训）。
-- **版本化迁移**：`MIGRATIONS[]` 按版本顺序执行，`schema_version` 表跟踪。V1 = schema.sql（内联 `?raw`，避免运行时缺文件）；V2 = 新增 `workspace_tag` 声明表 + 全量回填。
+- **版本化迁移**：`MIGRATIONS[]` 按版本顺序执行，`schema_version` 表跟踪。V1 = schema.sql（内联 `?raw`，避免运行时缺文件）；V2 = 新增 `workspace_tag` 声明表 + 全量回填；V3 = `workspace.cover_path`（工作区封面，见 §八）。
 - **schema 要点**：`item` 全局独立实体（无 workspace_id）+ `workspace_item` 关联；`item_tag` 关联**按工作区隔离**（正倒排双索引）；`item_metadata` EAV 长尾表；标签定义全局唯一。
 
 ### 6.3 标签作用域模型（2026-08-22 与用户确认）
@@ -189,7 +189,7 @@ TagHit/
 - **VSCode 式活动栏（2026-08-22 重构完成）**：左右两条竖向图标条（`ActivityBar.vue`，永久可见，宽 44px）；左 = 路径/标签两个独立工具面板（`PathsPanel`/`TagsPanel`，替代原合并侧栏），右 = 媒体信息（`InfoPanel`）/插件（`PluginsPanel`）；**每侧同时只开一个面板**（点当前图标关闭，点其他图标切换，互斥单开）；面板宽 256px 固定。
 - **条目选中联动**：工作区网格中单击卡片 = 选中（高亮 + 右侧信息面板展示元数据，`itemStore.select` 异步补全 EAV），双击或信息面板"打开详情"按钮进入详情页；主页全局搜索结果保持单击打开详情。
 - **开始界面（2026-08-23）**：居中三元素（搜索框 → `TagHit` 标题 → 工作区栏）；工作区栏右侧"新建"按钮点击展开内联输入行（输入名称 + 创建/取消，Enter 创建）；工作区卡片带封面（内部自动取图/用户自选，可全局关闭）。
-- **工作区标签页**：主区 = 顶部搜索栏（过滤当前工作区）+ 缩略图网格（瀑布流/网格/列表三模式，CSS columns/grid）。
+- **工作区标签页**：主区 = 顶部搜索栏（过滤当前工作区）+ 虚拟化缩略图网格（瀑布流 JS 列分配 / 网格 / 列表，见 §八 虚拟化）。
 - **设置页**：外观（主题/布局）· 媒体（ffmpeg/缩略图参数/排除规则）· 工作区管理（重命名/删除/路径）· 统一标签管理（全局池 + 声明 + 层级）。
 - **守卫坑**：`App.vue` 曾 watch `route.params.id`，误伤 `/item/:id`（条目路由也用 `:id`）导致点开条目被重定向回主页；**必须限定 `route.name === 'workspace'` 才触发守卫**。
 - **条目详情（2026-08-23 重构）**：整体左中右三区——**左**：媒体内容按**原始分辨率**显示（超出可视区自动等比缩小，无滚动条）；**中**（内容页内固定列）：**媒体信息**（原右侧边栏的"媒体信息"工具移入此处）+ **标签挂载**；**右**：右侧活动栏保留（仅**插件**工具，媒体信息不再作为边栏工具出现在详情页）。"返回"= 关闭当前条目标签回到活动标签。媒体经 `taghit-file://` 预览；标签挂载只列当前工作区已声明标签；工作区上下文优先取 `route.query.workspace`（全局搜索结果），否则用当前活动工作区标签。
@@ -212,7 +212,7 @@ TagHit/
 | `taghit-file://` 图片加载失败 | `standard: true` 空 host 不路由到 handler | opaque scheme（见 §6.5） |
 | 点开条目被重定向回主页 | 守卫 watch `route.params.id` 误伤条目路由 | 限定 `route.name==='workspace'` |
 | 瀑布流卡片全部整行占满（"每图一行一列"） | `ItemCard` 根自带 `relative`，父级再传 `absolute` → Tailwind 中 `relative` 后声明胜出，绝对定位失效回退文档流 | 瀑布流外包一层绝对定位容器，卡片不再接收定位类 |
-| 网格卡顿/内存暴涨 | 网格直接加载**原图**（无缩略图），视口内多张全分辨率图同时解码 | 懒缩略图管线（见 §6.11）；`loading="lazy"` 只省流量不解码内存 |
+| 网格卡顿/内存暴涨 | 网格直接加载**原图**（无缩略图），视口内多张全分辨率图同时解码 | 懒缩略图管线（见 §八 懒缩略图）；`loading="lazy"` 只省流量不解码内存 |
 | 视频缩略图 canvas 污染 | opaque scheme 无 CORS → drawImage 后 toBlob 抛 SecurityError | 协议加 `corsEnabled` + `Access-Control-Allow-Origin: *`，媒体元素 `crossOrigin='anonymous'` |
 | 视频 seek 慢/整文件下载 | 协议不处理 Range | handler 解析 `Range` 头返回 206 切片 + `Accept-Ranges` |
 | 缩略图缓存目录无效 | `process.env.TAGHIT_DATA_DIR` 从未设置，`join('', 'thumbnails')` 写错位置 | 改用 `app.getPath('userData')/thumbnails` |
@@ -241,10 +241,10 @@ TagHit/
 - **网格分页加载**（2026-08-22）：每页 120 条，滚动触底自动加载 + "加载更多"按钮（修复大库"内容在库但显示不下"）
 - **拖拽优化**（2026-08-22）：标签栏与活动栏拖拽均有插入指示线视觉反馈；活动栏图标顺序可拖拽调整并持久化（localStorage）
 - **路径移除确认 + 缺失语义**（2026-08-22）：原生确认框；移除路径即脱离条目；仅"目录在、文件没"才标缺失
+- **详情页与主页重构**（2026-08-23）：条目详情左中右三区——左：媒体**自然尺寸**预览（超出可视区自动等比缩小，无滚动条）；中：媒体信息 + 标签挂载（原边栏"媒体信息"工具移入内容页）；右：右侧活动栏保留（仅插件）。**进入详情 = 新开条目标签**（工作区双击 / 全局搜索点击 / 信息面板打开详情，`openItem`，不占用当前标签）。主页居中三元素（搜索框 → TagHit 标题 → 工作区栏），"新建"按钮内联输入，**点击工作区 = 当前标签变为该工作区**，`"+"` 每次新开一个干净首页；主题新增 **system**（`prefers-color-scheme` 实时解析并监听系统切换，`ui.ts: matchMedia`）
 - 类型检查、electron-vite 构建、dev 启动全部通过
 
 ⬜ 未完成 / 待办：
-- 视频缩略图（ffmpeg 抽帧，`ThumbnailService` 已留接口）
 - 拖出文件到其他程序（`webContents.startDrag`）
 - 打包分发验证（`npm run build:win`）
 - better-sqlite3 升级到 13.x 以消除本机三步安装的别扭
@@ -257,10 +257,9 @@ TagHit/
 
 ## 九、下一步建议顺序
 
-1. 视频缩略图（ffmpeg 抽帧）
-2. 拖出文件（webContents.startDrag）
-3. 打包验证 + better-sqlite3 升级
-4. 活动栏细节打磨（宽度拖拽 / 快捷键 / 插件图标动态注册）
-5. 排序与筛选进阶（日期范围 / 多标签组合 / 全局搜索排序）
-6. i18n 讨论与落地
-7. P1/P2 功能逐项推进（剪藏 / AI / 全文搜索 / 导入导出）
+1. 拖出文件（webContents.startDrag）
+2. 打包验证 + better-sqlite3 升级
+3. 活动栏细节打磨（宽度拖拽 / 快捷键 / 插件图标动态注册）
+4. 排序与筛选进阶（日期范围 / 多标签组合 / 全局搜索排序）
+5. i18n 讨论与落地
+6. P1/P2 功能逐项推进（剪藏 / AI / 全文搜索 / 导入导出）
