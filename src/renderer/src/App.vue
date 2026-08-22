@@ -22,7 +22,8 @@ onMounted(() => {
   tabStore.ensureHome()
 })
 
-// 守卫：仅对"工作区标签页"与"条目标签页"生效（条目详情用 :id，需区分 route.name）
+// 守卫：路由必须与标签页状态一致（标签驱动路由，路由是标签的投影）。
+// 覆盖 workspace / item / start 三类路由；仅 workspace/item 用 :id，需区分 route.name。
 watch(
   () => [route.name, route.params.id] as const,
   ([name, id]) => {
@@ -41,11 +42,26 @@ watch(
       if (tab?.kind === 'item') {
         if (tabStore.activeKey !== key) tabStore.setActive(key)
       } else {
-        // 无对应条目标签（例如手动改 URL）→ 回到活动标签
+        // 无对应条目标签（例如手动改 URL / 侧键后退到无标签路由）→ 回到活动标签
         const active = tabStore.activeTab
         if (active?.kind === 'workspace') router.replace(`/workspace/${active.workspaceId}`)
         else if (active?.kind === 'settings') router.replace('/settings')
         else if (active?.kind === 'item')
+          router.replace(
+            `/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`
+          )
+        else router.replace('/')
+      }
+    } else if (name === 'start') {
+      // 主页只在"激活标签是 home"时显示；鼠标侧键后退等 URL 跳转不得进入主页
+      const active = tabStore.activeTab
+      if (active?.kind === 'home') {
+        tabStore.setActive(active.key)
+      } else if (active) {
+        // 当前激活标签不是主页 → 纠正回该标签对应路由（停留在原页面，而非回主页）
+        if (active.kind === 'workspace') router.replace(`/workspace/${active.workspaceId}`)
+        else if (active.kind === 'settings') router.replace('/settings')
+        else if (active.kind === 'item')
           router.replace(
             `/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`
           )

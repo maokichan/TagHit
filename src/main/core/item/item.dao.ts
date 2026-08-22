@@ -1,11 +1,6 @@
-import { dirname } from 'path'
-import { existsSync } from 'fs'
 import type { AppDb } from '../../db/connection'
 import type { Tag } from '@shared/types/tag'
-import type { Item, ItemFilter, ItemMetadata, ItemWithTags } from '@shared/types/item'
-import type { AppConfig } from '@shared/types/config'
-import { isUnderPath } from '../workspace/workspace.dao'
-import { isThumbPath } from '../thumbnail/thumbnail.service'
+import type { Item, ItemMetadata, ItemStatus } from '@shared/types/item'
 
 interface ItemRow {
   id: number
@@ -41,31 +36,25 @@ function rowToItem(row: ItemRow): Item {
   }
 }
 
-export function resolveMediaType(extension: string | null, config: AppConfig): string {
-  if (!extension) return 'other'
-  return config.fileFormatMap[extension.toLowerCase()] ?? 'other'
-}
-
-/** 排序字段白名单 → 安全列名（防注入，只允许固定映射） */
-const SORT_COLUMNS: Record<string, string> = {
-  updatedAt: 'i.updated_at',
-  name: 'i.title',
-  size: 'i.size',
-  modifiedAt: 'i.file_modified_at',
-  addedAt: 'i.created_at',
-  type: 'i.extension'
-}
-
-function buildOrderBy(sortBy: string | undefined, sortDir: 'asc' | 'desc' | undefined): string {
-  const col = sortBy ? SORT_COLUMNS[sortBy] : undefined
-  if (!col) return 'i.updated_at DESC'
-  const dir = sortDir === 'asc' ? 'ASC' : 'DESC'
-  // 附加 updated_at 作稳定次级排序
-  return `${col} ${dir}, i.updated_at DESC`
+/** 列表查询参数（纯数据访问，不含业务映射；排序列由 service 白名单解析后传入） */
+export interface ListOptions {
+  workspaceId: number
+  tagIds?: number[]
+  /** service 已按 mediaType 换算好的扩展名列表（空/缺省 = 不过滤类别） */
+  extList?: string[]
+  keyword?: string
+  status?: ItemStatus
+  dateFrom?: string
+  dateTo?: string
+  /** 白名单解析后的安全列名（如 'i.updated_at'），非法值由 service 兜底 */
+  orderBy: string
+  orderDir: 'asc' | 'desc'
+  limit: number
+  offset: number
 }
 
 /** 取一批 item 的宽高（item_metadata EAV，用于比例瀑布流/列表展示） */
-function dimsForItems(db: AppDb, itemIds: number[]): Map<number, { width: number | null; height: number | null }> {
+function loadDims(db: AppDb, itemIds: number[]): Map<number, { width: number | null; height: number | null }> {
   const map = new Map<number, { width: number | null; height: number | null }>()
   if (itemIds.length === 0) return map
   const placeholders = itemIds.map(() => '?').join(',')
@@ -85,7 +74,7 @@ function dimsForItems(db: AppDb, itemIds: number[]): Map<number, { width: number
 }
 
 /** 取一批 item 在工作区内的标签（倒排查询） */
-function tagsForItems(db: AppDb, workspaceId: number, itemIds: number[]): Map<number, Tag[]> {
+function loadTags(db: AppDb, workspaceId: number, itemIds: number[]): Map<number, Tag[]> {
   const map = new Map<number, Tag[]>()
   if (itemIds.length === 0) return map
   const placeholders = itemIds.map(() => '?').join(',')
@@ -106,7 +95,7 @@ function tagsForItems(db: AppDb, workspaceId: number, itemIds: number[]): Map<nu
 }
 
 /** 取一批 item 在【任意工作区】的标签（全局搜索结果用） */
-function tagsForItemsGlobal(db: AppDb, itemIds: number[]): Map<number, Tag[]> {
+function loadTagsGlobal(db: AppDb, itemIds: number[]): Map<number, Tag[]> {
   const map = new Map<number, Tag[]>()
   if (itemIds.length === 0) return map
   const placeholders = itemIds.map(() => '?').join(',')
@@ -126,6 +115,29 @@ function tagsForItemsGlobal(db: AppDb, itemIds: number[]): Map<number, Tag[]> {
   return map
 }
 
+/** 标签倒排交集：命中全部 tagIds 的 item_id 列表（workspaceId 为空 = 跨工作区） */
+export function listByTagIntersection(
+  db: AppDb,
+  workspaceId: number | null,
+  tagIds: number[]
+): number[] {
+  if (tagIds.length === 0) return []
+  const sets: Set<number>[] = []
+  for (const tagId of tagIds) {
+    const rows = workspaceId == null
+      ? (db.read
+          .prepare('SELECT item_id FROM item_tag WHERE tag_id = ?')
+          .all(tagId) as { item_id: number }[])
+      : (db.read
+          .prepare('SELECT item_id FROM item_tag WHERE workspace_id = ? AND tag_id = ?')
+          .all(workspaceId, tagId) as { item_id: number }[])
+    sets.push(new Set(rows.map((r) => r.item_id)))
+  }
+  const [first, ...rest] = sets
+  if (!first) return []
+  return [...first].filter((id) => rest.every((s) => s.has(id)))
+}
+
 export const itemDao = {
   getById(db: AppDb, id: number): Item | null {
     const row = db.read.prepare('SELECT * FROM item WHERE id = ?').get(id) as ItemRow | undefined
@@ -133,51 +145,46 @@ export const itemDao = {
   },
 
   /**
-   * 列出某工作区内的条目，支持标签交集 / 媒体类别 / 关键词 / 状态过滤，分页。
+   * 列出某工作区内的条目（原始行，不含业务映射——媒体类型/原图策略由 ItemService 组装）。
    */
-  list(db: AppDb, filter: ItemFilter, config: AppConfig): { items: ItemWithTags[]; total: number } {
+  list(db: AppDb, opts: ListOptions): { items: Item[]; total: number } {
     const where: string[] = [
       'i.id IN (SELECT item_id FROM workspace_item WHERE workspace_id = ?)'
     ]
-    const params: unknown[] = [filter.workspaceId]
+    const params: unknown[] = [opts.workspaceId]
 
-    if (filter.tagIds && filter.tagIds.length > 0) {
-      for (const tagId of filter.tagIds) {
+    if (opts.tagIds && opts.tagIds.length > 0) {
+      for (const tagId of opts.tagIds) {
         where.push(
           'i.id IN (SELECT item_id FROM item_tag WHERE workspace_id = ? AND tag_id = ?)'
         )
-        params.push(filter.workspaceId, tagId)
+        params.push(opts.workspaceId, tagId)
       }
     }
 
-    if (filter.mediaType) {
-      const exts = Object.entries(config.fileFormatMap)
-        .filter(([, v]) => v === filter.mediaType)
-        .map(([k]) => k)
-      if (exts.length > 0) {
-        where.push(`i.extension IN (${exts.map(() => '?').join(',')})`)
-        params.push(...exts)
-      }
+    if (opts.extList && opts.extList.length > 0) {
+      where.push(`i.extension IN (${opts.extList.map(() => '?').join(',')})`)
+      params.push(...opts.extList)
     }
 
-    if (filter.keyword) {
+    if (opts.keyword) {
       where.push('i.title LIKE ?')
-      params.push(`%${filter.keyword}%`)
+      params.push(`%${opts.keyword}%`)
     }
 
-    if (filter.dateFrom) {
+    if (opts.dateFrom) {
       where.push('(i.file_modified_at IS NULL OR i.file_modified_at >= ?)')
-      params.push(filter.dateFrom)
+      params.push(opts.dateFrom)
     }
 
-    if (filter.dateTo) {
+    if (opts.dateTo) {
       where.push('(i.file_modified_at IS NULL OR i.file_modified_at <= ?)')
-      params.push(filter.dateTo)
+      params.push(opts.dateTo)
     }
 
-    if (filter.status) {
+    if (opts.status) {
       where.push('i.status = ?')
-      params.push(filter.status)
+      params.push(opts.status)
     }
 
     const whereSql = where.join(' AND ')
@@ -187,82 +194,51 @@ export const itemDao = {
       }
     ).c
 
-    const limit = filter.limit ?? 200
-    const offset = filter.offset ?? 0
-    const orderBy = buildOrderBy(filter.sortBy, filter.sortDir)
+    const dir = opts.orderDir === 'asc' ? 'ASC' : 'DESC'
     const rows = db.read
       .prepare(
-        `SELECT i.* FROM item i WHERE ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
+        `SELECT i.* FROM item i WHERE ${whereSql} ORDER BY ${opts.orderBy} ${dir}, i.updated_at DESC LIMIT ? OFFSET ?`
       )
-      .all(...params, limit, offset) as ItemRow[]
+      .all(...params, opts.limit, opts.offset) as ItemRow[]
 
-    const items = rows.map((r) => rowToItem(r))
-    const tagMap = tagsForItems(db, filter.workspaceId, items.map((i) => i.id))
-    const dims = dimsForItems(db, items.map((i) => i.id))
-    const result: ItemWithTags[] = items.map((i) => ({
-      ...i,
-      mediaType: resolveMediaType(i.extension, config),
-      tags: tagMap.get(i.id) ?? [],
-      width: dims.get(i.id)?.width ?? null,
-      height: dims.get(i.id)?.height ?? null,
-      // 仅暴露缩略图路径；原图直出 → null（渲染层懒生成缩略图，避免全分辨率解码）
-      previewUri: isThumbPath(i.previewUri) ? i.previewUri : null
-    }))
-
-    return { items: result, total }
+    return { items: rows.map((r) => rowToItem(r)), total }
   },
 
   /**
-   * 全局搜索（跨工作区）：不限定工作区，标签命中=条目在任一工作区拥有该标签。
+   * 全局搜索（跨工作区）：原始行 + 条目所属工作区 id（供详情上下文）。
    */
   listGlobal(
     db: AppDb,
-    filter: {
-      tagIds?: number[]
-      mediaType?: string
-      keyword?: string
-      dateFrom?: string
-      dateTo?: string
-      limit?: number
-      offset?: number
-      sortBy?: string
-      sortDir?: 'asc' | 'desc'
-    },
-    config: AppConfig
-  ): { items: ItemWithTags[]; total: number } {
+    opts: Omit<ListOptions, 'workspaceId'> & { tagIds?: number[] }
+  ): { items: Item[]; total: number; workspaceIds: Map<number, number[]> } {
     const where: string[] = []
     const params: unknown[] = []
 
-    if (filter.tagIds && filter.tagIds.length > 0) {
-      for (const tagId of filter.tagIds) {
+    if (opts.tagIds && opts.tagIds.length > 0) {
+      for (const tagId of opts.tagIds) {
         where.push('i.id IN (SELECT item_id FROM item_tag WHERE tag_id = ?)')
         params.push(tagId)
       }
     }
 
-    if (filter.mediaType) {
-      const exts = Object.entries(config.fileFormatMap)
-        .filter(([, v]) => v === filter.mediaType)
-        .map(([k]) => k)
-      if (exts.length > 0) {
-        where.push(`i.extension IN (${exts.map(() => '?').join(',')})`)
-        params.push(...exts)
-      }
+    if (opts.extList && opts.extList.length > 0) {
+      where.push(`i.extension IN (${opts.extList.map(() => '?').join(',')})`)
+      params.push(...opts.extList)
     }
 
-    if (filter.keyword) {
+    if (opts.keyword) {
       where.push('i.title LIKE ?')
-      params.push(`%${filter.keyword}%`)
+      params.push(`%${opts.keyword}%`)
     }
 
-    if (filter.dateFrom) {
+    if (opts.dateFrom) {
       where.push('(i.file_modified_at IS NULL OR i.file_modified_at >= ?)')
-      params.push(filter.dateFrom)
+      params.push(opts.dateFrom)
     }
 
-    if (filter.dateTo) {
+    if (opts.dateTo) {
       where.push('(i.file_modified_at IS NULL OR i.file_modified_at <= ?)')
-      params.push(filter.dateTo)
+      params.push(opts.dateTo)
     }
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
@@ -270,21 +246,17 @@ export const itemDao = {
       db.read.prepare(`SELECT COUNT(*) AS c FROM item i ${whereSql}`).get(...params) as { c: number }
     ).c
 
-    const limit = filter.limit ?? 200
-    const offset = filter.offset ?? 0
-    const orderBy = buildOrderBy(filter.sortBy, filter.sortDir)
+    const dir = opts.orderDir === 'asc' ? 'ASC' : 'DESC'
     const rows = db.read
       .prepare(
-        `SELECT i.* FROM item i ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
+        `SELECT i.* FROM item i ${whereSql} ORDER BY ${opts.orderBy} ${dir}, i.updated_at DESC LIMIT ? OFFSET ?`
       )
-      .all(...params, limit, offset) as ItemRow[]
+      .all(...params, opts.limit, opts.offset) as ItemRow[]
 
     const items = rows.map((r) => rowToItem(r))
-    const tagMap = tagsForItemsGlobal(db, items.map((i) => i.id))
-    const dims = dimsForItems(db, items.map((i) => i.id))
 
     // 附带条目所属工作区（全局搜索结果点击进详情用）
-    const wsMap = new Map<number, number[]>()
+    const workspaceIds = new Map<number, number[]>()
     if (items.length > 0) {
       const placeholders = items.map(() => '?').join(',')
       const wsRows = db.read
@@ -293,29 +265,16 @@ export const itemDao = {
         )
         .all(...items.map((i) => i.id)) as { item_id: number; workspace_id: number }[]
       for (const r of wsRows) {
-        wsMap.set(r.item_id, [...(wsMap.get(r.item_id) ?? []), r.workspace_id])
+        workspaceIds.set(r.item_id, [...(workspaceIds.get(r.item_id) ?? []), r.workspace_id])
       }
     }
 
-    const result: ItemWithTags[] = items.map((i) => ({
-      ...i,
-      mediaType: resolveMediaType(i.extension, config),
-      tags: tagMap.get(i.id) ?? [],
-      width: dims.get(i.id)?.width ?? null,
-      height: dims.get(i.id)?.height ?? null,
-      previewUri: isThumbPath(i.previewUri) ? i.previewUri : null,
-      workspaceIds: wsMap.get(i.id) ?? []
-    }))
-    return { items: result, total }
+    return { items, total, workspaceIds }
   },
 
-  getWithTags(db: AppDb, id: number, workspaceId: number, config: AppConfig): ItemWithTags | null {
-    const item = itemDao.getById(db, id)
-    if (!item) return null
-    const tags = tagsForItems(db, workspaceId, [id]).get(id) ?? []
-    const metadata = itemDao.listMetadata(db, id)
-    return { ...item, mediaType: resolveMediaType(item.extension, config), tags, metadata }
-  },
+  loadTags,
+  loadTagsGlobal,
+  loadDims,
 
   listMetadata(db: AppDb, itemId: number): ItemMetadata[] {
     const rows = db.read
@@ -421,18 +380,11 @@ export const itemDao = {
     return 'added'
   },
 
-  /**
-   * 扫描收尾：本工作区关联但本次未出现的条目，按现实状态处理：
-   *  - 已不在任何配置路径下（路径被移除/收窄）→ 从工作区脱离（保留全局条目/标签/元数据）
-   *  - 仍在配置路径内但文件未出现：所在目录还存在 → 标记 missing（已 missing 则保持）；目录也没了 → 脱离
-   * 目录存在性按父目录批量缓存判存，避免逐文件 stat。
-   */
-  finalizeScanStatus(
+  /** 扫描收尾用：本工作区关联的全部条目（id + source_uri + status） */
+  listWorkspaceItemUris(
     db: AppDb,
-    workspaceId: number,
-    seenUris: Set<string>,
-    currentPaths: string[]
-  ): { markedMissing: number; detached: number } {
+    workspaceId: number
+  ): { id: number; sourceUri: string | null; status: string }[] {
     const rows = db.read
       .prepare(
         `SELECT i.id AS id, i.source_uri AS source_uri, i.status AS status FROM item i
@@ -440,46 +392,30 @@ export const itemDao = {
          WHERE wi.workspace_id = ?`
       )
       .all(workspaceId) as { id: number; source_uri: string | null; status: string }[]
+    return rows.map((r) => ({ id: r.id, sourceUri: r.source_uri, status: r.status }))
+  },
 
-    const toMissing: number[] = []
-    const toDetach: number[] = []
-    const dirExistsCache = new Map<string, boolean>()
-
-    for (const r of rows) {
-      if (r.source_uri && seenUris.has(r.source_uri)) continue // 本次已见，upsert 已置 active
-      if (!r.source_uri) {
-        toDetach.push(r.id)
-        continue
-      }
-      const underPath = currentPaths.some((p) => isUnderPath(r.source_uri as string, p))
-      if (!underPath) {
-        toDetach.push(r.id) // 已不在任何配置路径 → 脱离（含历史遗留的 missing 条目）
-        continue
-      }
-      // 在路径内但本次未见：目录还在 → 缺失（已是 missing 则保持）；目录也没了 → 脱离
-      const dir = dirname(r.source_uri)
-      let exists = dirExistsCache.get(dir)
-      if (exists === undefined) {
-        exists = existsSync(dir)
-        dirExistsCache.set(dir, exists)
-      }
-      if (exists) {
-        if (r.status !== 'missing') toMissing.push(r.id)
-      } else {
-        toDetach.push(r.id)
-      }
-    }
-
-    if (toMissing.length === 0 && toDetach.length === 0) return { markedMissing: 0, detached: 0 }
+  /** 批量标记 missing */
+  markMissing(db: AppDb, workspaceId: number, itemIds: number[]): number {
+    if (itemIds.length === 0) return 0
     const update = db.write.prepare("UPDATE item SET status = 'missing', updated_at = ? WHERE id = ?")
-    const detach = db.write.prepare('DELETE FROM workspace_item WHERE workspace_id = ? AND item_id = ?')
     const tx = db.write.transaction(() => {
       const now = new Date().toISOString()
-      for (const id of toMissing) update.run(now, id)
-      for (const id of toDetach) detach.run(workspaceId, id)
+      for (const id of itemIds) update.run(now, id)
     })
     tx()
-    return { markedMissing: toMissing.length, detached: toDetach.length }
+    return itemIds.length
+  },
+
+  /** 批量从工作区脱离（保留全局条目/标签/元数据，可重加路径恢复） */
+  detachItems(db: AppDb, workspaceId: number, itemIds: number[]): number {
+    if (itemIds.length === 0) return 0
+    const detach = db.write.prepare('DELETE FROM workspace_item WHERE workspace_id = ? AND item_id = ?')
+    const tx = db.write.transaction(() => {
+      for (const id of itemIds) detach.run(workspaceId, id)
+    })
+    tx()
+    return itemIds.length
   },
 
   /** 孤儿条目数：已无任何工作区关联的全局条目（脱离路径后残留） */

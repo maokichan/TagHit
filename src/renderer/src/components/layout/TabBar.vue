@@ -116,13 +116,13 @@ function showIndicator(i: number): boolean {
         v-for="(tab, i) in tabStore.tabs"
         :key="tab.key"
         draggable="true"
-        class="group flex items-center gap-2 px-3 h-6 rounded text-[12px] cursor-pointer select-none
-               border border-transparent hover:bg-[var(--bg-hover)] transition-colors
+        class="group relative flex items-center gap-2 px-3 h-6 rounded text-[12px] cursor-pointer select-none
+               border transition-colors
                flex-1 basis-0 min-w-16 max-w-52"
         :class="[
           tabStore.activeKey === tab.key
-            ? 'bg-[var(--bg-hover)] text-[var(--fg)] border-[var(--border)]'
-            : 'text-[var(--fg-dim)]',
+            ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium border-[var(--accent)]/40 shadow-sm'
+            : 'text-[var(--fg-dim)] border-transparent hover:bg-[var(--bg-hover)]',
           dragIndex === i ? 'opacity-40' : '',
           showIndicator(i) ? 'border-l-2 border-l-[var(--accent)]' : ''
         ]"
@@ -134,6 +134,11 @@ function showIndicator(i: number): boolean {
         @drop="onDrop(i, $event)"
         @dragend="onDragEnd"
       >
+        <!-- 活动标签顶部指示条（高亮增强） -->
+        <span
+          v-if="tabStore.activeKey === tab.key"
+          class="absolute top-0 left-2 right-2 h-[2px] rounded-full bg-[var(--accent)]"
+        />
         <span class="truncate flex-1 text-center">{{ tab.title }}</span>
         <button
           class="opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)] rounded p-0.5 cursor-pointer shrink-0"

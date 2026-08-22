@@ -18,7 +18,10 @@ const api: TaghitApi = {
   item: {
     list: (filter) => ipcRenderer.invoke(IPC.item.list, filter),
     get: (id, workspaceId) => ipcRenderer.invoke(IPC.item.get, { id, workspaceId }),
-    updateTags: (req) => ipcRenderer.invoke(IPC.item.updateTags, req)
+    updateTags: (req) => ipcRenderer.invoke(IPC.item.updateTags, req),
+    readText: (itemId) => ipcRenderer.invoke(IPC.item.readText, { itemId }),
+    openWithSystem: (itemId) => ipcRenderer.invoke(IPC.item.openWithSystem, { itemId }),
+    listSortKeys: () => ipcRenderer.invoke(IPC.item.listSortKeys)
   },
   tag: {
     list: () => ipcRenderer.invoke(IPC.tag.list),

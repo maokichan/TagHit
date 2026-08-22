@@ -17,7 +17,10 @@ export const IPC = {
   item: {
     list: 'item:list',
     get: 'item:get',
-    updateTags: 'item:updateTags'
+    updateTags: 'item:updateTags',
+    readText: 'item:readText',
+    openWithSystem: 'item:openWithSystem',
+    listSortKeys: 'item:listSortKeys'
   },
   tag: {
     list: 'tag:list',

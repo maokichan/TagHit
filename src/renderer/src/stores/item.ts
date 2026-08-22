@@ -131,6 +131,11 @@ export const useItemStore = defineStore('item', () => {
     filter.value.tagIds = list.includes(tagId) ? list.filter((id) => id !== tagId) : [...list, tagId]
   }
 
+  /** 清空全部标签筛选 */
+  function clearTagFilters(): void {
+    filter.value.tagIds = []
+  }
+
   function setKeyword(kw: string): void {
     filter.value.keyword = kw
   }
@@ -160,6 +165,7 @@ export const useItemStore = defineStore('item', () => {
     clearSelection,
     patchPreview,
     toggleTagFilter,
+    clearTagFilters,
     setKeyword,
     setMediaType,
     toggleSortDir

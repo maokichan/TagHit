@@ -3,6 +3,7 @@ import { join } from 'path'
 import type { PluginCallRequest, PluginInfo } from '@shared/types/plugin'
 import { scanPluginDir, resolveEntry, loadPluginModule, type LoadedPlugin } from './registry'
 import { createPluginContext, type PluginContext, type PluginExports } from './runtime'
+import { logger } from '../core/logger'
 
 interface RegisteredPlugin extends LoadedPlugin {
   exports?: PluginExports
@@ -50,7 +51,7 @@ export class PluginHost {
     } catch (err) {
       const reg = this.plugins.get(plugin.name) as RegisteredPlugin
       reg.error = err instanceof Error ? err.message : String(err)
-      console.error(`[plugin] ${plugin.name} 加载失败:`, reg.error)
+      logger.error('plugin', `加载失败: ${plugin.name}`, reg.error)
     }
   }
 

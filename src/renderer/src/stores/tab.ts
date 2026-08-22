@@ -59,8 +59,16 @@ export const useTabStore = defineStore('tab', () => {
     }
   }
 
-  /** "+"：新建一个全新的主页标签（每次都是新的首页） */
+  /**
+   * "+"：主页单例（2026-08-23 用户决策）——已有主页标签则激活它，没有才新建。
+   * 主页只在"没有多余标签页"或"新建标签页"时出现，其他情况下不被随意访问。
+   */
   function openNewHome(): void {
+    const existing = tabs.value.find((t) => t.kind === 'home')
+    if (existing) {
+      activeKey.value = existing.key
+      return
+    }
     const tab = newHomeTab()
     tabs.value.push(tab)
     activeKey.value = tab.key

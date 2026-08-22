@@ -32,6 +32,12 @@ export interface TaghitApi {
     list(filter: ItemFilter): Promise<{ items: ItemWithTags[]; total: number }>
     get(id: number, workspaceId: number): Promise<ItemWithTags | null>
     updateTags(req: UpdateTagsRequest): Promise<ItemWithTags | null>
+    /** 读取文本条目内容（L2 文本预览；非文本/超限返回 null） */
+    readText(itemId: number): Promise<{ text: string } | null>
+    /** 用系统关联应用打开条目（L0/L1 兜底） */
+    openWithSystem(itemId: number): Promise<void>
+    /** 可用排序键（排序白名单单一事实来源在 ItemService，渲染层驱动式渲染下拉） */
+    listSortKeys(): Promise<Array<{ key: string; label: string }>>
   }
   tag: {
     list(): Promise<Tag[]>

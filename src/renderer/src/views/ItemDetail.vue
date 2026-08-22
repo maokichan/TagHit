@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
 import { taghitFileUrl } from '@shared/url'
 import type { ItemWithTags } from '@shared/types/item'
 import { useTabStore } from '../stores/tab'
 import { useTagStore } from '../stores/tag'
 import TagChip from '../components/common/TagChip.vue'
+
+/** 文本可预览扩展名（官方功能：L2 静态预览，与主进程 TEXT_EXTS 一致） */
+const TEXT_EXTENSIONS = new Set([
+  'txt', 'md', 'markdown', 'json', 'js', 'ts', 'jsx', 'tsx',
+  'css', 'html', 'htm', 'xml', 'yml', 'yaml', 'ini', 'log', 'csv', 'mjs', 'cjs'
+])
 
 const props = defineProps<{ id: string }>()
 const route = useRoute()
@@ -16,6 +21,9 @@ const tagStore = useTagStore()
 
 const item = ref<ItemWithTags | null>(null)
 const error = ref('')
+const textContent = ref<string | null>(null)
+const textLoading = ref(false)
+const systemError = ref('')
 
 // 工作区上下文：优先取路由 query（全局搜索结果带入），否则用当前活动工作区标签
 const workspaceId = computed(() => {
@@ -28,6 +36,39 @@ const mediaSrc = computed(() => {
   if (!item.value?.sourceUri) return null
   return taghitFileUrl(item.value.sourceUri)
 })
+
+/** 是否可文本预览（document 类且扩展名在文本集合内） */
+const isTextPreviewable = computed(() => {
+  const ext = item.value?.extension?.toLowerCase()
+  return item.value?.mediaType === 'document' && ext != null && TEXT_EXTENSIONS.has(ext)
+})
+
+// 条目变化时加载/清空文本预览
+watch(isTextPreviewable, async (previewable) => {
+  if (previewable && item.value) {
+    textLoading.value = true
+    try {
+      textContent.value = (await window.api.item.readText(item.value.id))?.text ?? null
+    } catch {
+      textContent.value = null
+    } finally {
+      textLoading.value = false
+    }
+  } else {
+    textContent.value = null
+  }
+})
+
+/** 用系统关联应用打开（L0/L1 预览兜底：组织归 TagHit，打开归系统） */
+async function openWithSystem(): Promise<void> {
+  if (!item.value) return
+  systemError.value = ''
+  try {
+    await window.api.item.openWithSystem(item.value.id)
+  } catch (e) {
+    systemError.value = e instanceof Error ? e.message : String(e)
+  }
+}
 
 async function load(): Promise<void> {
   error.value = ''
@@ -42,17 +83,6 @@ onMounted(async () => {
   await load()
   if (workspaceId.value != null) await tagStore.refreshForWorkspace(workspaceId.value)
 })
-
-/** 返回 = 关闭当前条目标签，回到活动标签 */
-function closeDetail(): void {
-  tabStore.close(`item:${props.id}`)
-  const active = tabStore.activeTab
-  if (active?.kind === 'workspace') router.push(`/workspace/${active.workspaceId}`)
-  else if (active?.kind === 'settings') router.push('/settings')
-  else if (active?.kind === 'item')
-    router.push(`/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`)
-  else router.push('/')
-}
 
 async function toggleTag(tagId: number): Promise<void> {
   if (!item.value || workspaceId.value == null) return
@@ -101,8 +131,8 @@ const rows = computed(() => {
     </div>
 
     <template v-else-if="item">
-      <!-- 左：媒体内容（按原始分辨率显示，超出可视区自动等比缩小，无滚动条） -->
-      <div class="flex-1 min-w-0 h-full flex items-center justify-center p-4 overflow-hidden bg-black/40">
+      <!-- 左：媒体内容（靠左，自动缩放适应最大边界；无固定背景容器，图片/视频融入页面） -->
+      <div class="flex-1 min-w-0 h-full flex items-center justify-start p-4 overflow-hidden">
         <img
           v-if="item.mediaType === 'image' && mediaSrc"
           :src="mediaSrc"
@@ -121,19 +151,25 @@ const rows = computed(() => {
           controls
           class="w-full max-w-xl"
         />
-        <span v-else class="text-[var(--fg-dim)] text-sm">无可预览内容</span>
+        <div v-else-if="isTextPreviewable" class="w-full h-full overflow-auto p-4">
+          <pre
+            class="text-[12px] leading-relaxed whitespace-pre-wrap break-all font-mono text-left"
+          >{{ textLoading ? '加载中…' : (textContent ?? '（文件过大或无法读取）') }}</pre>
+        </div>
+        <div v-else class="flex flex-col items-center gap-3">
+          <span class="text-[var(--fg-dim)] text-sm">无可预览内容</span>
+          <button class="btn" title="用系统关联应用打开此文件" @click="openWithSystem">
+            在系统中打开
+          </button>
+          <span v-if="systemError" class="text-[11px] text-[var(--danger)]">{{ systemError }}</span>
+        </div>
       </div>
 
       <!-- 右：媒体信息 + 标签（内容页内，替代右侧边栏的"媒体信息"工具） -->
       <div class="w-72 shrink-0 h-full overflow-y-auto border-l border-[var(--border)] bg-[var(--bg-elev)]">
         <div class="px-3 py-3">
-          <div class="flex items-center gap-2 mb-3">
-            <button class="btn" title="关闭此页（返回）" @click="closeDetail">
-              <ArrowLeft :size="14" /> 返回
-            </button>
-            <div class="text-[12px] font-medium truncate flex-1" :title="item.title">
-              {{ item.title }}
-            </div>
+          <div class="text-[13px] font-medium truncate mb-3" :title="item.title">
+            {{ item.title }}
           </div>
 
           <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">媒体信息</div>

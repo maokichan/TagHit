@@ -1,6 +1,6 @@
 {
   "name": "taghit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "TagHit — 多源内容标记与管理系统（Electron 重构版）",
   "main": "./out/main/index.js",
   "author": "TagHit",

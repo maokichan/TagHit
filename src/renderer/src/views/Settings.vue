@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Check, ImagePlus, Link2, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { useUiStore } from '../stores/ui'
 import { useWorkspaceStore } from '../stores/workspace'
 import { useTagStore } from '../stores/tag'
 import type { AppConfig } from '@shared/types/config'
+import type { LayoutMode } from '@shared/types/config'
+import SchemaControl from '../components/settings/SchemaControl.vue'
+import { listFeatures } from '../features/registry'
 
 const uiStore = useUiStore()
 const workspaceStore = useWorkspaceStore()
@@ -13,6 +16,20 @@ const tagStore = useTagStore()
 const config = ref<AppConfig | null>(null)
 const excludeText = ref('')
 const saved = ref(false)
+
+/** 挂载 settings 的功能组件（设置页按组件分类渲染；显示相关：layout / showTitles） */
+const settingsFeatures = computed(() => listFeatures('settings'))
+
+/** 由设置项 key 读当前值（读写均收敛在 uiStore，面板与设置页共享同一份状态） */
+function settingValue(key: string): unknown {
+  if (key === 'layoutMode') return uiStore.layoutMode
+  if (key === 'showTitles') return uiStore.showTitles
+  return undefined
+}
+function setSetting(key: string, value: unknown): void {
+  if (key === 'layoutMode') void uiStore.setLayoutMode(value as LayoutMode)
+  else if (key === 'showTitles') void uiStore.toggleShowTitles()
+}
 
 // 统一标签管理
 const newTagName = ref('')
@@ -49,12 +66,6 @@ const themes = [
   { key: 'dark', label: '暗色' },
   { key: 'light', label: '亮色' },
   { key: 'system', label: '跟随系统' }
-] as const
-
-const layouts = [
-  { key: 'masonry', label: '瀑布流' },
-  { key: 'grid', label: '网格' },
-  { key: 'list', label: '列表' }
 ] as const
 
 // ── 工作区管理 ──
@@ -171,31 +182,27 @@ async function onDeclareSelect(tagId: number): Promise<void> {
             </div>
           </div>
           <div>
-            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">网格布局</div>
-            <div class="flex gap-1.5">
-              <button
-                v-for="l in layouts"
-                :key="l.key"
-                class="btn"
-                :class="uiStore.layoutMode === l.key ? 'btn-primary' : ''"
-                @click="uiStore.setLayoutMode(l.key)"
-              >
-                {{ l.label }}
-              </button>
-            </div>
-          </div>
-          <div>
-            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">卡片标题</div>
-            <button class="btn" @click="uiStore.toggleShowTitles()">
-              {{ uiStore.showTitles ? '显示标题' : '隐藏标题' }}
-            </button>
-          </div>
-          <div>
             <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">开始界面封面</div>
             <button class="btn" @click="uiStore.toggleWorkspaceCovers()">
               {{ uiStore.showWorkspaceCovers ? '显示封面' : '隐藏封面' }}
             </button>
           </div>
+        </div>
+      </section>
+
+      <!-- 显示（功能组件设置分区：由注册表渲染，与显示面板共享同一份配置） -->
+      <section v-if="settingsFeatures.length" class="panel p-4">
+        <div class="text-sm font-medium mb-3">显示</div>
+        <div class="flex flex-wrap items-start gap-6">
+          <template v-for="f in settingsFeatures" :key="f.id">
+            <div v-for="s in f.settings ?? []" :key="s.key">
+              <SchemaControl
+                :schema="s"
+                :model-value="settingValue(s.key)"
+                @update:model-value="setSetting(s.key, $event)"
+              />
+            </div>
+          </template>
         </div>
       </section>
 

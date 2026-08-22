@@ -29,7 +29,7 @@
     ]
   },
   "document": {
-    "formats": ["pdf"],
+    "formats": ["pdf", "txt", "md", "markdown", "json", "js", "ts", "mjs", "cjs", "css", "html", "xml", "yml", "yaml", "csv", "log"],
     "fields": [
       { "name": "page_count", "type": "integer", "description": "页数" }
     ]

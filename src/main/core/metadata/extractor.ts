@@ -6,6 +6,7 @@ import type { AppDb } from '../../db/connection'
 import type { AppConfig } from '@shared/types/config'
 import type { Item } from '@shared/types/item'
 import { itemDao } from '../item/item.dao'
+import { logger } from '../logger'
 
 const execFileAsync = promisify(execFile)
 
@@ -109,7 +110,7 @@ export async function extractMetadataForItem(
       entries = await extractFfprobe(item.sourceUri, deriveFfprobePath(config.ffmpegPath), category)
     }
   } catch (err) {
-    console.warn(`[metadata] 提取失败: ${item.sourceUri}`, err instanceof Error ? err.message : err)
+    logger.warn('metadata', `提取失败: ${item.sourceUri}`, err instanceof Error ? err.message : err)
     return
   }
   if (Object.keys(entries).length > 0) {

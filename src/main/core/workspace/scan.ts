@@ -8,10 +8,13 @@ import { workspaceDao } from './workspace.dao'
 import { itemDao } from '../item/item.dao'
 import { extractMetadataForItem } from '../metadata/extractor'
 import { hashFileFirst64Kb } from '../hash'
+import { logger } from '../logger'
 
 export interface ScanOptions {
   incremental?: boolean
   onProgress?: (progress: ScanProgress) => void
+  /** 扫描收尾的缺失/脱离语义判定（决策在 WorkspaceService.finalizeScan，P0.5 起） */
+  onFinalize?: (seenUris: Set<string>, currentPaths: string[]) => Promise<{ markedMissing: number; detached: number }> | { markedMissing: number; detached: number }
   signal?: AbortSignal
 }
 
@@ -64,8 +67,9 @@ export async function scanWorkspace(
   workspaceId: number,
   options: ScanOptions = {}
 ): Promise<ScanResult> {
-  const { incremental = false, onProgress, signal } = options
+  const { incremental = false, onProgress, onFinalize, signal } = options
   const startedAt = Date.now()
+  logger.info('scan', `开始扫描 workspace#${workspaceId} (${incremental ? '增量' : '全量'})`)
 
   const workspace = workspaceDao.getById(db, workspaceId)
   if (!workspace) throw new Error('工作区不存在')
@@ -171,13 +175,11 @@ export async function scanWorkspace(
   }
 
   // 缺失标记 / 路径脱离（语义：路径外或目录消失 → 脱离；目录在文件没 → 缺失）
+  // P0.5 起决策在 WorkspaceService.finalizeScan（existsSync/isUnderPath 判定不再入 DAO）
   onProgress?.({ workspaceId, phase: 'finalize', processed: files.length, total: files.length, current: null })
-  const { markedMissing, detached } = itemDao.finalizeScanStatus(
-    db,
-    workspaceId,
-    seenUris,
-    paths.map((p) => p.path)
-  )
+  const { markedMissing, detached } = onFinalize
+    ? await onFinalize(seenUris, paths.map((p) => p.path))
+    : { markedMissing: 0, detached: 0 }
 
   // 图片宽高回填：历史条目缺少 width/height 时补 image-size（快），让比例瀑布流立即生效；
   // 视频/音频依赖 ffprobe（慢），仅随"新增/变更"提取
@@ -227,7 +229,7 @@ export async function scanWorkspace(
       itemDao.deleteOrphans(db, Math.min(BATCH_SIZE, left))
       await new Promise((r) => setImmediate(r)) // 让出事件循环
     }
-    console.log(`[scan] 孤儿条目超过阈值，已清理 ${orphans} 条`)
+    logger.warn('scan', `孤儿条目超过阈值，已清理 ${orphans} 条`)
   }
 
   const result: ScanResult = {
@@ -239,5 +241,9 @@ export async function scanWorkspace(
     durationMs: Date.now() - startedAt
   }
   workspaceDao.recordScanHistory(db, workspaceId, incremental ? 'incremental' : 'full', result)
+  logger.info(
+    'scan',
+    `扫描完成 workspace#${workspaceId}: +${result.filesAdded} ~${result.filesUpdated} 缺失${result.filesMarkedMissing} 脱离${result.filesDetached} 错误${result.errors} (${result.durationMs}ms)`
+  )
   return result
 }

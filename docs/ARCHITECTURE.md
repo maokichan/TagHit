@@ -2,6 +2,7 @@
 
 > 记录时间：2026-08-23
 > 本文档描述 `d:\PROJECT\TagHit` 的现状、代码思路与设计决策，供继续开发前对齐认知使用。
+> 文档索引：插件 RFC [PLUGIN-ARCH.md](PLUGIN-ARCH.md) · API 索引 [API.md](API.md) · 使用指南 [USAGE.md](USAGE.md) · 决策记录 [DECISIONS.md](DECISIONS.md)
 
 ---
 
@@ -64,32 +65,36 @@ TagHit/
     ├── main/                     # Electron 主进程（Node.js）
     │   ├── index.ts              #   入口：窗口、生命周期
     │   ├── protocol.ts           #   taghit-file:// 协议（opaque 形态 + 路径白名单）
-    │   ├── events.ts             #   事件总线（扫描进度等广播到渲染层）
+    │   ├── events.ts             #   事件总线 + 领域事件类型（DomainEventName / EmitFn）
     │   ├── env.d.ts              #   Vite `?raw` 导入类型声明
-    │   ├── services/context.ts   #   依赖容器（db/config/tagService/searchService/...）
+    │   ├── services/context.ts   #   依赖容器（db/config/各 Service/pluginHost，共享实例）
     │   ├── db/                   #   schema.sql + connection(双连接) + migrations
-    │   ├── core/                 #   业务域
-    │   │   ├── config.ts         #     config.json 读写（首启自建默认值）
+    │   ├── core/                 #   业务域（领域服务层 + DAO，规则唯一归属，P0.5 收拢）
+    │   │   ├── config.ts         #     ConfigService（config.json 读写合并）
+    │   │   ├── logger.ts         #     Logger（分级日志：控制台 + {userData}/logs，1MB 滚动）
+    │   │   ├── path-util.ts      #     路径工具（normPath / isUnderPath，消除 DAO 交叉依赖）
     │   │   ├── hash.ts           #     xxHash64（前 64KB）
-    │   │   ├── tag/              #     tag.dao + tag.service（声明机制 + BFS 防环）
-    │   │   ├── item/             #     item.dao（列表/全局搜索/元数据/打标）
-    │   │   ├── workspace/        #     workspace.dao + scan（分块异步扫描）
-    │   │   ├── search/           #     parser（DSL）+ search.service
+    │   │   ├── tag/              #     tag.service（声明机制 + BFS 防环）+ tag.dao
+    │   │   ├── item/             #     item.service（排序白名单 SortKeyRegistry/声明校验/格式映射/原图策略/readText/openWithSystem）+ item.dao
+    │   │   ├── workspace/        #     workspace.service（扫描入口/缺失语义/封面策略/脱离决策）+ workspace.dao + scan
+    │   │   ├── search/           #     parser（DSL）+ search.service（解释/组装；倒排交集下沉 DAO）
     │   │   ├── metadata/         #     extractor（image-size / ffprobe）
-    │   │   └── thumbnail/        #     thumbnail.service（缩略图目录/落盘/判存；抓帧在渲染层缩略图管线）
+    │   │   └── thumbnail/        #     thumbnail.service（缩略图目录/落盘/判存）
     │   ├── plugins/              #   插件宿主（registry/runtime/host）
-    │   └── ipc/                  #   类型安全 IPC 注册（每域一个文件 + util）
+    │   └── ipc/                  #   类型安全 IPC 注册（每域一个文件 + util，薄传输层无业务逻辑）
     ├── preload/index.ts          # contextBridge 暴露 window.api（ESM -> index.mjs）
     └── renderer/                 # Vue 3 前端
         ├── index.html            # 含 CSP（img-src 含 taghit-file:）
         └── src/
-            ├── main.ts           # bootstrap：pinia/router/ui.init
-            ├── App.vue           # 外壳：TabBar + 左/右活动栏 + 工具面板 + 主区 + StatusBar
+            ├── main.ts           # bootstrap：pinia/router/ui.init + 功能组件注册
+            ├── App.vue           # 外壳：TabBar + 左/右活动栏 + 工具面板 + 主区 + StatusBar + 路由守卫
             ├── router/index.ts   # /(主页) /workspace/:id /settings /item/:id
             ├── stores/           # ui / workspace / tab / item / tag
+            ├── features/         # 功能组件（registry + display/mediaType·sort·layout 独立目录）
             ├── views/            # StartScreen / WorkspaceTab / Settings / ItemDetail
             └── components/       # layout(ActivityBar/InfoPanel/PluginsPanel/TabBar/StatusBar)
-                                  # workspace(PathsPanel/TagsPanel) / item / search / common
+                                  # workspace(PathsPanel/TagsPanel/DisplayPanel) / item / search
+                                  # common / settings(SchemaControl)
 ```
 
 ---
@@ -242,13 +247,24 @@ TagHit/
 - **拖拽优化**（2026-08-22）：标签栏与活动栏拖拽均有插入指示线视觉反馈；活动栏图标顺序可拖拽调整并持久化（localStorage）
 - **路径移除确认 + 缺失语义**（2026-08-22）：原生确认框；移除路径即脱离条目；仅"目录在、文件没"才标缺失
 - **详情页与主页重构**（2026-08-23）：条目详情左中右三区——左：媒体**自然尺寸**预览（超出可视区自动等比缩小，无滚动条）；中：媒体信息 + 标签挂载（原边栏"媒体信息"工具移入内容页）；右：右侧活动栏保留（仅插件）。**进入详情 = 新开条目标签**（工作区双击 / 全局搜索点击 / 信息面板打开详情，`openItem`，不占用当前标签）。主页居中三元素（搜索框 → TagHit 标题 → 工作区栏），"新建"按钮内联输入，**点击工作区 = 当前标签变为该工作区**，`"+"` 每次新开一个干净首页；主题新增 **system**（`prefers-color-scheme` 实时解析并监听系统切换，`ui.ts: matchMedia`）
+- **领域服务层收拢（2026-08-23，P0.5）**：新建 `ItemService`/`WorkspaceService`——声明校验（原 ipc/item.ts）、排序白名单 **SortKeyRegistry 单源**（原 item.dao）、格式映射/原图策略（原 item.dao）、缺失语义 existsSync 判定（原 item.dao.finalizeScanStatus）、封面策略（原 workspace.dao.resolveCoverUri）、脱离决策（原 workspace.dao.detachItemsUnderPath）全部收拢入 service；DAO 不再接收 config、不做业务判断；`isUnderPath`/`normPath` 抽离 `path-util.ts` 消除 DAO 交叉依赖；倒排交集 SQL 下沉 `itemDao.listByTagIntersection`；IPC 变薄传输层；领域事件类型（`DomainEventName`/`EmitFn`）注入 service（P1 接插件分发）
+- **Logger 日志服务（2026-08-23）**：分级 debug/info/warn/error；控制台 + `{userData}/logs/taghit.log`（1MB 滚动保留 5 份）；接入扫描/元数据提取/插件宿主
+- **官方功能补强（2026-08-23）**：文本格式（txt/md/json/代码等 18 种）进 fileFormatMap + 详情页文本内联预览（≤2MB，`item:readText`）；`item:openWithSystem` IPC（shell.openPath，L0/L1 专业格式兜底，详情页"在系统中打开"）；排序下拉驱动式渲染（`item:listSortKeys`）
+- **标签筛选入口（2026-08-23）**：TagsPanel 标签点击 = 筛选该标签条目（选中实心高亮/多标签交集，此前无入口是"打标后搜不到"的根源）；SearchBar 展示筛选状态（`筛选：#标签 ✕` + 清除全部）
+- **浏览器式外壳细节（2026-08-23）**：主页单例（`+` 激活已有主页，不再每次新建）；App.vue 守卫拦截 `/` 越权路由（鼠标侧键后退不进入主页，纠正回当前标签路由）；活动标签高亮增强（accent 色系 + 顶部指示条）；详情页右侧信息栏返回按钮删除（退出走标签栏关闭）
+- **功能组件框架（2026-08-23）**：`shared/types/feature.ts`（FeatureManifest/SettingSchema/MountPoint）+ `features/registry.ts` 注册表（宿主按挂载点渲染，不 import 具体组件）；显示组件拆分独立目录（mediaTypeFilter/sort/layout + showTitles 仅设置页）；DisplayPanel 变注册表容器；Settings 新增"显示"分区由注册表渲染（SchemaControl 通用控件，面板与设置页共享同一份配置）
 - 类型检查、electron-vite 构建、dev 启动全部通过
 
 ⬜ 未完成 / 待办：
 - 拖出文件到其他程序（`webContents.startDrag`）
-- 打包分发验证（`npm run build:win`）
+- 打包分发验证（`npm run build:win`）——本次 v0.1.2 首次验证
 - better-sqlite3 升级到 13.x 以消除本机三步安装的别扭
-- 活动栏细节打磨：面板宽度拖拽、快捷键开合、插件图标随注册动态出现
+- **插件 P0/P1**（见 [PLUGIN-ARCH.md](PLUGIN-ARCH.md)）：manifest apiVersion/contributes 校验 → `ctx.app.*` 领域 API 接线 + 事件分发到插件
+- **功能组件其余标准化**（见 [DECISIONS.md](DECISIONS.md) §三）：paths/tags/info/plugins/theme/scanSettings 迁移注册表框架；媒体类型列表数据驱动（fileFormatMap）
+- **筛选/搜索逻辑重做**（用户判定现有实现有问题，细节待确认）
+- **tag 管理详细页**（排在"显示"功能组件讨论之后）
+- **媒体元信息三层显示**（文件类型→格式→格式元信息）与设置项对应
+- 详情页"程序背景"观感处理（右侧边栏底色造成误解，方案待确认）
 - 排序进阶：日期范围筛选、多标签组合筛选 UI、全局搜索也接排序
 - 网页剪藏 / AI 自动标签 / 全文搜索 / 导入导出（旧 P1/P2）
 - **i18n 国际化**（与用户待讨论）

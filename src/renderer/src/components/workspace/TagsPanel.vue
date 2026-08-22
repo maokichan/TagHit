@@ -2,9 +2,11 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { Plus, Trash2 } from 'lucide-vue-next'
 import { useTagStore } from '../../stores/tag'
+import { useItemStore } from '../../stores/item'
 
 const props = defineProps<{ workspaceId: number; side?: 'left' | 'right' }>()
 const tagStore = useTagStore()
+const itemStore = useItemStore()
 
 const newTagName = ref('')
 const tagError = ref('')
@@ -14,6 +16,9 @@ const undeclared = computed(() => {
   const declaredIds = new Set(tagStore.tags.map((t) => t.id))
   return tagStore.allTags.filter((t) => !declaredIds.has(t.id))
 })
+
+/** 当前按标签筛选的状态（点击已声明标签 = 筛选该标签的条目，再点取消） */
+const activeTagFilterIds = computed(() => itemStore.filter.tagIds)
 
 async function refresh(): Promise<void> {
   await tagStore.refreshForWorkspace(props.workspaceId)
@@ -43,22 +48,31 @@ async function createTag(): Promise<void> {
       <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">
         标签（本工作区已声明）
       </div>
+      <div v-if="activeTagFilterIds.length" class="text-[11px] text-[var(--accent)] mb-1.5">
+        已按 {{ activeTagFilterIds.length }} 个标签筛选，点击标签可取消
+      </div>
       <div class="flex flex-wrap gap-1 mb-3">
-        <span
+        <button
           v-for="tag in tagStore.tags"
           :key="tag.id"
-          class="group inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--accent-soft)] text-[var(--accent)] text-[12px]"
-          :title="tag.description ?? ''"
+          class="group inline-flex items-center gap-1 px-2 py-0.5 rounded text-[12px] cursor-pointer transition-colors"
+          :class="
+            activeTagFilterIds.includes(tag.id)
+              ? 'bg-[var(--accent)] text-white shadow-sm'
+              : 'bg-[var(--accent-soft)] text-[var(--accent)] hover:brightness-110'
+          "
+          :title="`${tag.description ?? ''}${activeTagFilterIds.includes(tag.id) ? '（点击取消筛选）' : '（点击筛选此标签的条目）'}`"
+          @click="itemStore.toggleTagFilter(tag.id)"
         >
           #{{ tag.name }}
-          <button
-            class="opacity-0 group-hover:opacity-100 cursor-pointer hover:text-[var(--danger)]"
+          <span
+            class="opacity-0 group-hover:opacity-100 cursor-pointer hover:text-[var(--danger)] inline-flex"
             title="取消声明（不影响已有挂载）"
-            @click="tagStore.undeclare(props.workspaceId, tag.id)"
+            @click.stop="tagStore.undeclare(props.workspaceId, tag.id)"
           >
             <Trash2 :size="11" />
-          </button>
-        </span>
+          </span>
+        </button>
         <span v-if="tagStore.tags.length === 0" class="text-[12px] text-[var(--fg-dim)] w-full">
           未声明任何标签
         </span>
