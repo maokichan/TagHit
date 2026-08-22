@@ -16,6 +16,8 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "postinstall": "electron-builder install-app-deps",
     "build:win": "electron-vite build && electron-builder --win",
+    "release:win": "powershell -ExecutionPolicy Bypass -File scripts/build-release.ps1",
+    "release:win:full": "powershell -ExecutionPolicy Bypass -File scripts/build-release.ps1 -Full",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux"
   },

@@ -40,10 +40,11 @@ npm install
 npm run dev         # 开发模式
 npm run typecheck   # 类型检查
 npm run build       # 构建
-npm run build:win   # 打包 Windows 安装包
+npm run release:win # Windows Release 一键打包（国内镜像 + 跳过资源编辑，普通终端可用）
 ```
 
-> 国内网络下载 Electron 二进制前可先设镜像：`$env:ELECTRON_MIRROR='https://npmmirror.com/mirrors/electron/'`
+> - `npm run release:win:full`：完整打包（需**管理员终端**，可含自定义图标/版本信息，需先在 `electron-builder.yml` 配置 `win.icon`）
+> - 国内网络下载 Electron 二进制前可先设镜像：`$env:ELECTRON_MIRROR='https://npmmirror.com/mirrors/electron/'`
 
 ## 数据
 
