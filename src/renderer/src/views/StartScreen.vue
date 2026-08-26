@@ -104,6 +104,7 @@ const showCovers = computed(() => uiStore.showWorkspaceCovers)
           v-model="globalQuery"
           class="input pl-9 w-full py-2"
           placeholder="全局搜索：@标签 type:image 关键词"
+          data-shortcut="search"
         />
       </div>
 

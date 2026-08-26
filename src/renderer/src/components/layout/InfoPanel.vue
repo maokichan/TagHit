@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ExternalLink, Info } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
 import { useTabStore } from '../../stores/tab'
+import { formatSize } from '../../lib/format'
 
 defineProps<{ side?: 'left' | 'right' }>()
 const router = useRouter()
@@ -12,20 +13,13 @@ const tabStore = useTabStore()
 
 const item = computed(() => itemStore.selected)
 
-function formatBytes(size: number | null): string {
-  if (size == null) return '-'
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 / 1024).toFixed(1)} MB`
-}
-
 const rows = computed(() => {
   const it = item.value
   if (!it) return []
   const base: Array<[string, string]> = [
     ['类型', it.mediaType],
     ['扩展名', it.extension ?? '-'],
-    ['大小', formatBytes(it.size)],
+    ['大小', formatSize(it.size)],
     ['状态', it.status],
     ['修改时间', it.fileModifiedAt ?? '-'],
     ['路径', it.sourceUri ?? '-']

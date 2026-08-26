@@ -40,6 +40,7 @@ function onScan(): void {
           v-model="itemStore.filter.keyword"
           class="input pl-8 w-full"
           placeholder="过滤文件名（关键词）…"
+          data-shortcut="search"
           @input="itemStore.setKeyword(($event.target as HTMLInputElement).value)"
         />
       </div>

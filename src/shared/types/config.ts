@@ -17,6 +17,10 @@ export interface AppConfig {
   showTitles: boolean
   /** 开始界面工作区卡片是否显示封面（自动取工作区内图片或用户指定） */
   showWorkspaceCovers: boolean
+  /** 全局 UI 缩放系数（CSS zoom，作用于整个渲染页：图标/字号/间距/媒体预览等比缩放） */
+  uiScale: number
+  /** 键鼠交互：Ctrl+F（Cmd+F）聚焦搜索框快捷键开关 */
+  enableSearchShortcut: boolean
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -64,5 +68,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   theme: 'dark',
   layoutMode: 'masonry',
   showTitles: true,
-  showWorkspaceCovers: true
+  showWorkspaceCovers: true,
+  uiScale: 1,
+  enableSearchShortcut: true
 }

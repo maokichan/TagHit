@@ -51,24 +51,22 @@
 
 ---
 
-## 四、ItemService（条目域，P0.5 收拢后）
+## 四、ItemService（条目域）
 
 文件：`src/main/core/item/item.service.ts`（新建）｜ 渲染层入口：`window.api.item.*` ｜ 插件入口：`ctx.app.items.*`
 
 | 方法 | 签名 → 返回 | 功能 | 规则/校验 | 触发事件 |
 |---|---|---|---|---|
-| `list` | `(filter: ItemFilter): { items: ItemWithTags[]; total: number }` | 工作区列表 + 过滤 + 分页 | **排序键白名单解析**（SortKeyRegistry，§六）；媒体类型 → 扩展名换算（config.fileFormatMap）；**原图策略**（非缩略图路径 → null）；标签倒排交集（多个 tagIds） | — |
+| `list` | `(filter: ItemFilter): { items: ItemWithTags[]; total: number }` | 工作区列表 + 过滤 + 分页 | **排序键白名单解析**（SortKeyRegistry，§八）；媒体类型 → 扩展名换算（config.fileFormatMap）；**原图策略**（非缩略图路径 → null）；标签倒排交集（多个 tagIds） | — |
 | `get` | `(id, workspaceId): ItemWithTags \| null` | 详情：条目 + 标签 + 元数据 EAV | 附带 `mediaType`、`metadata` | — |
 | `getMetadata` | `(itemId): ItemMetadata[]` | 条目元数据（EAV 展开） | — | — |
 | `updateTags` | `(workspaceId, itemId, add: number[], remove: number[]): void` | 打标/去标 | **声明校验**：add 的每个 tagId 必须已声明到该工作区，否则拒绝 | `item:tagsChanged` |
-
-> 迁移说明（P0.5）：声明校验从 `src/main/ipc/item.ts` 搬入；排序白名单/格式映射/原图策略从 `item.dao.ts` 搬入；DAO 不再接收 `config` 参数。
 
 类型：`src/shared/types/item.ts`（`Item` / `ItemWithTags` / `ItemFilter` / `ItemMetadata` / `UpdateTagsRequest`）
 
 ---
 
-## 五、WorkspaceService（工作区域，P0.5 收拢后）
+## 五、WorkspaceService（工作区域）
 
 文件：`src/main/core/workspace/workspace.service.ts`（新建）｜ 渲染层入口：`window.api.workspace.*` ｜ 插件入口：`ctx.app.workspaces.*`
 
@@ -83,8 +81,6 @@
 | `scan` | `(req: ScanRequest): ScanResult` | 扫描（异步分块，进度走事件） | 无路径则报错；增量模式按大小+mtime 跳过 | `scan:progress` / `scan:completed` |
 | `finalizeScan` | `(workspaceId, seenUris, currentPaths): { markedMissing; detached }` | 扫描收尾缺失判定 | **缺失语义**：不在任何配置路径 → 脱离；目录在文件没 → 标 missing；目录也没 → 脱离（目录存在性 existsSync 在 service 层批量缓存） | — |
 | `setCover` | `(id, coverPath \| null): WorkspaceWithPaths` | 设置封面（null = 自动） | 白名单外图片自动复制进 `{userData}/covers` | — |
-
-> 迁移说明（P0.5）：`scan.ts` 函数收拢为 service 方法；`resolveCoverUri`/`detachItemsUnderPath` 的业务部分从 `workspace.dao.ts` 搬入（DAO 保留纯 SQL）；`isUnderPath`/`normPath` 抽到 `src/main/core/path-util.ts`。
 
 类型：`src/shared/types/workspace.ts`（`Workspace` / `WorkspaceWithPaths` / `WorkspacePath` / `AddPathRequest` / `ScanRequest` / `ScanProgress` / `ScanResult`）
 
@@ -101,8 +97,6 @@
 
 DSL：`@标签 @标签2 type:image >2024-01-01 <2024-12-31 workspace:1 关键词`（支持引号词组）。
 
-> 迁移说明（P0.5）：倒排交集 SQL 下沉为 `itemDao.listByTagIntersection`；service 只做 DSL 解释 + 参数组装 + 结果组装。
-
 类型：`src/shared/types/search.ts`（`SearchRequest` / `SearchResult`）
 
 ---
@@ -116,7 +110,7 @@ DSL：`@标签 @标签2 type:image >2024-01-01 <2024-12-31 workspace:1 关键词
 | `get` | `(): AppConfig` | 当前配置（合并默认值） | — | — |
 | `update` | `(patch: Partial<AppConfig>): AppConfig` | 更新配置（原子写 JSON） | 合并写 `{userData}/config.json` | `config:changed` |
 
-类型：`src/shared/types/config.ts`（`AppConfig`：theme/layoutMode/ffmpegPath/thumbnailMaxWidth/thumbnailQuality/scanExcludePatterns/fileFormatMap/tagDescriptions/showTitles/showWorkspaceCovers）
+类型：`src/shared/types/config.ts`（`AppConfig`：theme/layoutMode/ffmpegPath/thumbnailMaxWidth/thumbnailQuality/scanExcludePatterns/fileFormatMap/tagDescriptions/showTitles/showWorkspaceCovers/uiScale/enableSearchShortcut）
 
 ---
 

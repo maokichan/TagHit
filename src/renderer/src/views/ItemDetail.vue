@@ -5,6 +5,7 @@ import { taghitFileUrl } from '@shared/url'
 import type { ItemWithTags } from '@shared/types/item'
 import { useTabStore } from '../stores/tab'
 import { useTagStore } from '../stores/tag'
+import { formatSize } from '../lib/format'
 import TagChip from '../components/common/TagChip.vue'
 
 /** 文本可预览扩展名（官方功能：L2 静态预览，与主进程 TEXT_EXTS 一致） */
@@ -96,19 +97,12 @@ async function toggleTag(tagId: number): Promise<void> {
   if (updated) item.value = updated
 }
 
-function formatBytes(size: number | null): string {
-  if (size == null) return '-'
-  if (size < 1024) return `${size} B`
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${(size / 1024 / 1024).toFixed(1)} MB`
-}
-
 const rows = computed(() => {
   if (!item.value) return []
   const base: Array<[string, string]> = [
     ['类型', item.value.mediaType],
     ['扩展名', item.value.extension ?? '-'],
-    ['大小', formatBytes(item.value.size)],
+    ['大小', formatSize(item.value.size)],
     ['状态', item.value.status],
     ['修改时间', item.value.fileModifiedAt ?? '-'],
     ['路径', item.value.sourceUri ?? '-']

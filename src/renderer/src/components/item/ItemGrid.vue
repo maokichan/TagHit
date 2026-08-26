@@ -25,6 +25,8 @@ const PAD = 12 // p-3
 const GAP = 12 // gap-3
 const MIN_COL = 180
 const INFO_H = 56 // ItemCard 信息区固定高度（标题+标签一行）
+const LIST_ROW_H = 64 // 列表行高（缩略图 48 + py-2×2），与 ItemCard 行样式一致
+const LIST_GAP = 4 // 列表行距（紧凑，区别于网格/瀑布流的 GAP）
 const MAX_RATIO = 2.2
 const BUFFER = 800 // 视口外预渲染缓冲（像素）
 
@@ -125,8 +127,22 @@ const layout = computed<LayoutResult>(() => {
     return { places, totalH: Math.max(0, maxH - GAP + PAD * 2), cols, colW, cardH: 0, rowH: 0 }
   }
 
-  // 网格 / 列表：均匀单元高度（media 4:3 + 信息区），行切片虚拟化
-  const mediaW = uiStore.layoutMode === 'list' ? w - PAD * 2 : colW
+  // 列表：单列固定行高（文件管理器样式），虚拟化按 1 列行进，与渲染列数一致
+  if (uiStore.layoutMode === 'list') {
+    const rowH = LIST_ROW_H + LIST_GAP
+    const totalRows = items.length
+    return {
+      places: [],
+      totalH: Math.max(0, totalRows * rowH - LIST_GAP + PAD),
+      cols: 1,
+      colW: 0,
+      cardH: 0,
+      rowH
+    }
+  }
+
+  // 网格：均匀单元高度（media 4:3 + 信息区），行切片虚拟化
+  const mediaW = colW
   const cardH = mediaW * (3 / 4) + infoH
   const rowH = cardH + GAP
   const totalRows = Math.ceil(items.length / cols)
@@ -267,7 +283,11 @@ watch(
             @tag-click="emit('tag-click', $event)"
           />
         </div>
-        <div v-else class="flex flex-col gap-3" :style="{ padding: PAD + 'px' }">
+        <div
+          v-else
+          class="flex flex-col"
+          :style="{ padding: PAD + 'px', gap: LIST_GAP + 'px' }"
+        >
           <ItemCard
             v-for="item in rowSlice.slice"
             :key="item.id"

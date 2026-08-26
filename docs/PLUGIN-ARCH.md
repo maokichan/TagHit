@@ -101,6 +101,8 @@ TagHit 的核心原则之一是**插件生态是长期核心**。当前插件宿
 
 ### 5.1 现状：规则错位（用代码指认）
 
+> ✅ **P0.5 已收拢（2026-08-23）**：下表所列错位已按 §5.2 边界归位（`ItemService`/`WorkspaceService` 建立、`SortKeyRegistry` 单源、`path-util` 抽离、DAO 不再接收 config），表格保留作为分层收拢的历史依据。
+
 TagHit 当前业务规则没有唯一归属，散落在三层（这是"实现业务代码与底层功能代码缠在一起"的具体事实）：
 
 | 错位位置 | 内容 | 问题 |
@@ -276,9 +278,9 @@ v2（待决策）：
 
 ### 6.4 v1 落地清单（官方功能，随 P0.5 一并做）
 
-1. **文本格式进内建**：`fileFormatMap` 加 `txt/md/json/js/ts/css/html` → `document`；渲染层加 code viewer（L2，成本极低，缺口最明显）。
-2. **系统打开兜底**：新增 `dialog:openWithSystem`（或 `item:openPath`）IPC，`shell.openPath`——L0/L1 格式双击外部打开。
-3. **epub 列为官方扩展包 P1.5 候选**：解析 `content.opf` 提取作者/页数/封面（纯主进程能力，零渲染层改动）。
+1. ✅ **文本格式进内建**（v0.1.2 落地）：`fileFormatMap` 文本 18 种 → `document`；详情页文本内联预览（≤2MB，`item:readText`）。
+2. ✅ **系统打开兜底**（v0.1.2 落地）：`item:openWithSystem` IPC（`shell.openPath`）——L0/L1 格式双击外部打开。
+3. **epub 列为官方扩展包 P1.5 候选**（未动）：解析 `content.opf` 提取作者/页数/封面（纯主进程能力，零渲染层改动）。
 
 ### 6.5 待决策：预览器贡献点的渲染层机制
 
@@ -506,7 +508,7 @@ TagHit 领域事件 ──→ 插件 onEvent(event, payload)     [host 分发]
 
 | Phase | 内容 | 验收标准 | 依赖 |
 |---|---|---|---|
-| **P0.5 领域服务层收拢** | 新建 `ItemService`/`WorkspaceService`；声明校验/排序（SortKeyRegistry 单源，§5.7）/格式映射/原图策略/缺失语义/封面策略从 DAO+IPC 搬入；`isUnderPath` 抽离；**Logger 日志服务**（§5.9）；**官方功能补强**：文本格式进 fileFormatMap + code viewer（L2）、`item:openWithSystem` IPC（L0/L1 兜底）；API 索引表落档（[API.md](API.md)） | 纯重构行为不变：typecheck 通过 + 扫描/搜索/打标/排序回归一致；文本可预览、未知格式双击系统打开；日志落盘可查 | 本 RFC §五/§六 |
+| **P0.5 领域服务层收拢**（✅ 已完成 2026-08-23） | 新建 `ItemService`/`WorkspaceService`；声明校验/排序（SortKeyRegistry 单源，§5.7）/格式映射/原图策略/缺失语义/封面策略从 DAO+IPC 搬入；`isUnderPath` 抽离；**Logger 日志服务**（§5.9）；**官方功能补强**：文本格式进 fileFormatMap + code viewer（L2）、`item:openWithSystem` IPC（L0/L1 兜底）；API 索引表落档（[API.md](API.md)） | 纯重构行为不变：typecheck 通过 + 扫描/搜索/打标/排序回归一致；文本可预览、未知格式双击系统打开；日志落盘可查 | 本 RFC §五/§六 |
 | **P0 契约落地** | manifest `apiVersion`/`contributes` schema 校验（拒绝加载不合规） | 不合规插件加载报错清晰；hello 示例带 apiVersion | P0.5 |
 | **P1 领域 API + 事件** | `ctx.app.*` 接线到**领域服务层**（§7.5 映射表）；service 事件 emit → host 分发 + `event:plugin` 补接线；`app.write`/`fs.write` 权限 | 用 hello 插件演示：`ctx.app.search.global` 查库 + 订阅 `scan:completed` | P0 |
 | **P1.5 官方扩展包起步（候选）** | epub 元数据提取器作为**第一个官方扩展包**（走插件 API，L1） | epub 条目可索引/搜索/打标，详情显示作者/页数 | P1 |

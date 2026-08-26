@@ -14,6 +14,10 @@ export const useUiStore = defineStore('ui', () => {
   const showTitles = ref(true)
   /** 开始界面工作区卡片是否显示封面 */
   const showWorkspaceCovers = ref(true)
+  /** 全局 UI 缩放系数（CSS zoom：图标/字号/间距/媒体预览等比缩放，连续可调） */
+  const uiScale = ref(1)
+  /** 键鼠交互：Ctrl+F 搜索快捷键（功能组件 keyboardMouse 的设置项） */
+  const enableSearchShortcut = ref(true)
 
   // VSCode 式活动栏：每侧同时只开一个面板（点当前图标关闭，点其他图标切换）
   const leftTool = ref<LeftTool | null>('paths')
@@ -59,6 +63,9 @@ export const useUiStore = defineStore('ui', () => {
     layoutMode.value = cfg.layoutMode
     showTitles.value = cfg.showTitles ?? true
     showWorkspaceCovers.value = cfg.showWorkspaceCovers ?? true
+    uiScale.value = cfg.uiScale ?? 1
+    enableSearchShortcut.value = cfg.enableSearchShortcut ?? true
+    applyScale()
     applyTheme()
   }
 
@@ -83,11 +90,31 @@ export const useUiStore = defineStore('ui', () => {
     await window.api.config.update({ showWorkspaceCovers: showWorkspaceCovers.value })
   }
 
+  // 全局 UI 缩放：CSS zoom 连续缩放整个渲染页（虚拟化靠 ResizeObserver 自动重算）
+  const SCALE_MIN = 0.8
+  const SCALE_MAX = 1.5
+  function applyScale(): void {
+    document.documentElement.style.zoom = String(uiScale.value)
+  }
+  async function setUiScale(s: number): Promise<void> {
+    const clamped = Math.min(SCALE_MAX, Math.max(SCALE_MIN, s))
+    uiScale.value = clamped
+    applyScale()
+    await window.api.config.update({ uiScale: clamped })
+  }
+
+  async function setSearchShortcut(v: boolean): Promise<void> {
+    enableSearchShortcut.value = v
+    await window.api.config.update({ enableSearchShortcut: v })
+  }
+
   return {
     theme,
     layoutMode,
     showTitles,
     showWorkspaceCovers,
+    uiScale,
+    enableSearchShortcut,
     leftTool,
     rightTool,
     toggleLeft,
@@ -96,6 +123,8 @@ export const useUiStore = defineStore('ui', () => {
     setTheme,
     setLayoutMode,
     toggleShowTitles,
-    toggleWorkspaceCovers
+    toggleWorkspaceCovers,
+    setUiScale,
+    setSearchShortcut
   }
 })

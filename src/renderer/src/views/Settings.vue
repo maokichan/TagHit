@@ -20,15 +20,27 @@ const saved = ref(false)
 /** 挂载 settings 的功能组件（设置页按组件分类渲染；显示相关：layout / showTitles） */
 const settingsFeatures = computed(() => listFeatures('settings'))
 
-/** 由设置项 key 读当前值（读写均收敛在 uiStore，面板与设置页共享同一份状态） */
+/**
+ * 设置项读写路由：key → [读, 写]，声明式（新增设置项只需加一行）。
+ * 值读写均收敛在 uiStore，面板与设置页共享同一份状态。
+ */
+const settingHandlers: Record<string, { get: () => unknown; set: (v: unknown) => void }> = {
+  layoutMode: {
+    get: () => uiStore.layoutMode,
+    set: (v) => void uiStore.setLayoutMode(v as LayoutMode)
+  },
+  showTitles: { get: () => uiStore.showTitles, set: () => void uiStore.toggleShowTitles() },
+  enableSearchShortcut: {
+    get: () => uiStore.enableSearchShortcut,
+    set: (v) => void uiStore.setSearchShortcut(Boolean(v))
+  }
+}
+
 function settingValue(key: string): unknown {
-  if (key === 'layoutMode') return uiStore.layoutMode
-  if (key === 'showTitles') return uiStore.showTitles
-  return undefined
+  return settingHandlers[key]?.get()
 }
 function setSetting(key: string, value: unknown): void {
-  if (key === 'layoutMode') void uiStore.setLayoutMode(value as LayoutMode)
-  else if (key === 'showTitles') void uiStore.toggleShowTitles()
+  settingHandlers[key]?.set(value)
 }
 
 // 统一标签管理
@@ -187,14 +199,28 @@ async function onDeclareSelect(tagId: number): Promise<void> {
               {{ uiStore.showWorkspaceCovers ? '显示封面' : '隐藏封面' }}
             </button>
           </div>
+          <div>
+            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">
+              界面缩放（{{ Math.round(uiStore.uiScale * 100) }}%，80%–150%）
+            </div>
+            <input
+              type="range"
+              min="0.8"
+              max="1.5"
+              step="0.05"
+              class="w-44 accent-[var(--accent)] cursor-pointer"
+              :value="uiStore.uiScale"
+              @input="uiStore.setUiScale(Number(($event.target as HTMLInputElement).value))"
+            />
+          </div>
         </div>
       </section>
 
-      <!-- 显示（功能组件设置分区：由注册表渲染，与显示面板共享同一份配置） -->
-      <section v-if="settingsFeatures.length" class="panel p-4">
-        <div class="text-sm font-medium mb-3">显示</div>
-        <div class="flex flex-wrap items-start gap-6">
-          <template v-for="f in settingsFeatures" :key="f.id">
+      <!-- 功能组件设置分区：由注册表按组件分组渲染（每个组件一个分区，标题 = 组件 title） -->
+      <template v-for="f in settingsFeatures" :key="f.id">
+        <section class="panel p-4">
+          <div class="text-sm font-medium mb-3">{{ f.title }}</div>
+          <div class="flex flex-wrap items-start gap-6">
             <div v-for="s in f.settings ?? []" :key="s.key">
               <SchemaControl
                 :schema="s"
@@ -202,9 +228,9 @@ async function onDeclareSelect(tagId: number): Promise<void> {
                 @update:model-value="setSetting(s.key, $event)"
               />
             </div>
-          </template>
-        </div>
-      </section>
+          </div>
+        </section>
+      </template>
 
       <!-- 媒体 -->
       <section v-if="config" class="panel p-4 space-y-3">
