@@ -1,32 +1,34 @@
 /**
- * 领域规则（纯函数）：命名、标签关联的结构不变量、有向图派生。
- * 不持状态、不读写外部；写入时的强制执行在应用层。
+ * 领域规则（纯函数）：实体与关系的不变量判定。
+ * 不持状态、不读写外部；写入时由应用层调用这些判定。
+ * 语义（如 is-a 的方向/闭包/防环）不在本文件——随语义模块在应用层实现时引入。
  */
 
 import type { Id, Tag, TagLink } from './types'
 
-// ── 命名 ──────────────────────────────────────────────
-
+/** 标签名规范化（创建/改名前的值处理）。 */
 export function normalizeTagName(name: string): string {
   return name.trim()
 }
 
+/** 标签名唯一性判定（Tag 实体不变量）。 */
 export function tagNameTaken(tags: readonly Tag[], name: string): boolean {
   const target = name.trim().toLowerCase()
   return tags.some((t) => t.name.trim().toLowerCase() === target)
 }
 
+/** 按名查找（唯一性判定与报错用）。 */
 export function findTagNamed(tags: readonly Tag[], name: string): Tag | undefined {
   const target = name.trim().toLowerCase()
   return tags.find((t) => t.name.trim().toLowerCase() === target)
 }
 
-// ── 标签关联的结构不变量 ──────────────────────────────
-
+/** 标签关联：自环判定（关联记录结构规则）。 */
 export function isSelfLink(link: TagLink): boolean {
   return link.from === link.to
 }
 
+/** 标签关联：是否已存在同向关联（唯一性判定）。 */
 export function hasDirectedLink(links: readonly TagLink[], from: Id, to: Id): boolean {
   return links.some((l) => l.from === from && l.to === to)
 }
@@ -42,67 +44,4 @@ export function uniqueDirectedLinks(links: readonly TagLink[]): TagLink[] {
     out.push(l)
   }
   return out
-}
-
-// ── 有向图派生 ────────────────────────────────────────
-
-/** from → [to, …] */
-export function indexOutgoing(links: readonly TagLink[]): Map<Id, Id[]> {
-  const map = new Map<Id, Id[]>()
-  for (const l of links) {
-    const arr = map.get(l.from) ?? []
-    arr.push(l.to)
-    map.set(l.from, arr)
-  }
-  return map
-}
-
-/** to → [from, …] */
-export function indexIncoming(links: readonly TagLink[]): Map<Id, Id[]> {
-  const map = new Map<Id, Id[]>()
-  for (const l of links) {
-    const arr = map.get(l.to) ?? []
-    arr.push(l.from)
-    map.set(l.to, arr)
-  }
-  return map
-}
-
-/**
- * 沿出向（from→to）从 start 出发的可达集（不含 start）。
- * 若 is-a 组织为 子→父，即某标签的祖先集。
- */
-export function reachableViaOut(outgoing: Map<Id, Id[]>, start: Id): Set<Id> {
-  const seen = new Set<Id>()
-  const queue: Id[] = [...(outgoing.get(start) ?? [])]
-  while (queue.length > 0) {
-    const cur = queue.pop() as Id
-    if (seen.has(cur)) continue
-    seen.add(cur)
-    for (const next of outgoing.get(cur) ?? []) queue.push(next)
-  }
-  return seen
-}
-
-/**
- * 沿入向（to → from 反向）从 start 出发的可达集（不含 start）。
- * 若 is-a 组织为 子→父，即某标签的后代集。
- */
-export function reachableViaIn(incoming: Map<Id, Id[]>, start: Id): Set<Id> {
-  const seen = new Set<Id>()
-  const queue: Id[] = [...(incoming.get(start) ?? [])]
-  while (queue.length > 0) {
-    const cur = queue.pop() as Id
-    if (seen.has(cur)) continue
-    seen.add(cur)
-    for (const next of incoming.get(cur) ?? []) queue.push(next)
-  }
-  return seen
-}
-
-/** 新增 from → to 是否成环：to 已可沿出向到达 from，或 from === to。 */
-export function wouldCreateCycle(links: readonly TagLink[], from: Id, to: Id): boolean {
-  if (from === to) return true
-  const outgoing = indexOutgoing(links)
-  return reachableViaOut(outgoing, to).has(from)
 }
