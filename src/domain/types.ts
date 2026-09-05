@@ -57,7 +57,7 @@ export interface Group {
   createdAt: string
 }
 
-/** 标签关联：有向 tag → tag；语义由使用方组织（v1 按 is-a：子→父）。 */
+/** 标签关联：有向 tag → tag；语义由使用方组织。 */
 export interface TagLink {
   from: Id
   to: Id
