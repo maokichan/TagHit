@@ -1,24 +1,19 @@
 <script setup lang="ts">
 /**
- * 功能组件：排序（displayPanel 区块）
- * 排序白名单单一事实来源在 ItemService（SortKeyRegistry，RFC §5.7）：
- * 渲染层从主进程查询可用排序键，驱动式渲染下拉，不硬编码。
+ * 功能组件：排序（displayPanel 区块）。
+ * 白名单 = 契约 ItemsQuery.order 三键（createdAt/title/sourceUri）；
+ * listSortKeys 端点不在契约 v0，改为本地枚举。
  */
-import { onMounted, ref } from 'vue'
 import { ArrowDownWideNarrow, ArrowUpWideNarrow } from 'lucide-vue-next'
 import { useItemStore } from '../../../stores/item'
 
 const itemStore = useItemStore()
 
-const sortOptions = ref<Array<{ key: string; label: string }>>([])
-
-onMounted(async () => {
-  try {
-    sortOptions.value = await window.api.item.listSortKeys()
-  } catch {
-    sortOptions.value = []
-  }
-})
+const sortOptions = [
+  { key: 'createdAt', label: '收录时间' },
+  { key: 'title', label: '名称' },
+  { key: 'sourceUri', label: '来源路径' }
+] as const
 </script>
 
 <template>

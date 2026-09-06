@@ -6,7 +6,7 @@ import ItemGrid from '../components/item/ItemGrid.vue'
 import { useItemStore } from '../stores/item'
 import { useTabStore } from '../stores/tab'
 import { useWorkspaceStore } from '../stores/workspace'
-import type { ItemWithTags } from '@shared/types/item'
+import type { ItemView } from '../lib/viewModel'
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
@@ -14,7 +14,7 @@ const itemStore = useItemStore()
 const workspaceStore = useWorkspaceStore()
 const tabStore = useTabStore()
 
-const workspaceId = Number(props.id)
+const workspaceId = props.id
 
 let debounce: number | undefined
 function reload(): void {
@@ -26,7 +26,6 @@ watch(
     [
       workspaceId,
       itemStore.filter.tagIds.length,
-      itemStore.filter.mediaType,
       itemStore.sortBy,
       itemStore.sortDir
     ] as const,
@@ -45,14 +44,14 @@ onMounted(async () => {
   reload()
 })
 
-function openItem(item: ItemWithTags): void {
+function openItem(item: ItemView): void {
   // 双击打开详情 = 新开一个条目标签页（当前工作区标签不受影响）
   tabStore.openItem(item.id, workspaceId, item.title)
   router.push(`/item/${item.id}?workspace=${workspaceId}`)
 }
 
-function selectItem(item: ItemWithTags): void {
-  void itemStore.select(item, workspaceId)
+function selectItem(item: ItemView): void {
+  itemStore.select(item)
 }
 </script>
 

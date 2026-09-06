@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { TaghitApi } from '@shared/api'
+import type { TaghitRendererApi } from '@shared/contract'
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
@@ -9,6 +9,7 @@ declare module '*.vue' {
 
 declare global {
   interface Window {
-    api: TaghitApi
+    /** 0.2 typed 窄桥：由根 src/host/preload.ts 注入。 */
+    taghit: TaghitRendererApi | undefined
   }
 }

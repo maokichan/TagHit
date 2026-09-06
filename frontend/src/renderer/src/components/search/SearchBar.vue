@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RefreshCw, Search, X } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useTagStore } from '../../stores/tag'
+import type { Id } from '@shared/contract'
 
-const props = defineProps<{ workspaceId: number }>()
+const props = defineProps<{ workspaceId: Id }>()
 const itemStore = useItemStore()
 const workspaceStore = useWorkspaceStore()
 const tagStore = useTagStore()
 
-const hasPaths = computed(
-  () => (workspaceStore.byId(props.workspaceId)?.paths.length ?? 0) > 0
-)
+const rootCount = ref(0)
+const hasPaths = computed(() => rootCount.value > 0)
+
+async function refreshRoots(): Promise<void> {
+  rootCount.value = (await workspaceStore.listRoots(props.workspaceId)).length
+}
 
 /** 当前按标签筛选的标签名列表（用于展示筛选状态，可单独/全部清除） */
 const activeTagFilters = computed(() =>
@@ -23,6 +27,7 @@ const activeTagFilters = computed(() =>
 
 onMounted(() => {
   void tagStore.refreshAll()
+  void refreshRoots()
 })
 
 function onScan(): void {
@@ -48,7 +53,7 @@ function onScan(): void {
       <!-- 间隔区：把扫描按钮推到搜索栏最右侧 -->
       <div class="flex-1" />
 
-      <span class="text-[11px] text-[var(--fg-dim)] shrink-0">{{ itemStore.total }} 项</span>
+      <span class="text-[11px] text-[var(--fg-dim)] shrink-0">{{ itemStore.items.length }} 项</span>
 
       <button
         class="btn btn-primary shrink-0 ml-2"

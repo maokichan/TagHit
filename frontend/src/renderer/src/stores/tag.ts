@@ -1,34 +1,39 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { Tag, TagNode } from '@shared/types/tag'
+import { computed, ref } from 'vue'
+import { api } from '@shared/api'
+import type { Id, Tag } from '@shared/contract'
 
+/**
+ * 标签 store：全局标签池 + 工作区声明集。
+ * 标签层级（TagNode/关联）不在契约 v0：设置页层级管理降级。
+ */
 export const useTagStore = defineStore('tag', () => {
-  /** 当前工作区已声明的标签（工作区标签页内管理视图） */
-  const tags = ref<Tag[]>([])
-  /** 全部全局标签池（设置/声明用） */
+  /** 全部全局标签池（设置/声明用），按名升序 */
   const allTags = ref<Tag[]>([])
-  /** 全部标签 + 层级关系（设置页统一管理用） */
-  const tagNodes = ref<TagNode[]>([])
+  /** 当前工作区已声明的标签 id 集 */
+  const declaredIds = ref<Id[]>([])
+  /** 当前工作区已声明的标签（工作区标签页内管理视图） */
+  const tags = computed<Tag[]>(() => {
+    const declared = new Set(declaredIds.value)
+    return allTags.value.filter((t) => declared.has(t.id))
+  })
   const loading = ref(false)
 
-  /** 刷新全局标签池（可选带关系） */
-  async function refreshAll(includeRelations = false): Promise<void> {
+  /** 刷新全局标签池（空文本 = 全部，按名升序） */
+  async function refreshAll(): Promise<void> {
     loading.value = true
     try {
-      allTags.value = await window.api.tag.list()
-      if (includeRelations) {
-        tagNodes.value = await window.api.tag.listWithRelations()
-      }
+      allTags.value = await api.tags.search('')
     } finally {
       loading.value = false
     }
   }
 
   /** 刷新某工作区已声明的标签 */
-  async function refreshForWorkspace(workspaceId: number): Promise<void> {
+  async function refreshForWorkspace(workspaceId: Id): Promise<void> {
     loading.value = true
     try {
-      tags.value = await window.api.tag.listForWorkspace(workspaceId)
+      declaredIds.value = await api.workspaces.declaredTags(workspaceId)
     } finally {
       loading.value = false
     }
@@ -37,42 +42,42 @@ export const useTagStore = defineStore('tag', () => {
   /** 创建标签（全局），可同时声明到某工作区 */
   async function create(
     name: string,
-    description: string | undefined,
-    workspaceId?: number
+    description?: string,
+    workspaceId?: Id
   ): Promise<Tag> {
-    const tag = await window.api.tag.create({ name, description, workspaceId })
+    const tag = await api.tags.create({ name, description })
     await refreshAll()
-    if (workspaceId != null) await refreshForWorkspace(workspaceId)
+    if (workspaceId != null) {
+      await api.tags.declare(workspaceId, tag.id)
+      await refreshForWorkspace(workspaceId)
+    }
     return tag
   }
 
-  async function remove(id: number): Promise<void> {
-    await window.api.tag.remove(id)
+  async function remove(id: Id): Promise<void> {
+    await api.tags.remove(id)
     await refreshAll()
   }
 
   /** 在某工作区声明全局标签 */
-  async function declare(workspaceId: number, tagId: number): Promise<void> {
-    await window.api.tag.declare({ workspaceId, tagId })
+  async function declare(workspaceId: Id, tagId: Id): Promise<void> {
+    await api.tags.declare(workspaceId, tagId)
     await refreshForWorkspace(workspaceId)
-    await refreshAll()
   }
 
   /** 取消在某工作区声明 */
-  async function undeclare(workspaceId: number, tagId: number): Promise<void> {
-    await window.api.tag.undeclare({ workspaceId, tagId })
+  async function undeclare(workspaceId: Id, tagId: Id): Promise<void> {
+    await api.tags.undeclare(workspaceId, tagId)
     await refreshForWorkspace(workspaceId)
-    await refreshAll()
   }
 
-  function byId(id: number): Tag | undefined {
-    return tags.value.find((t) => t.id === id)
+  function byId(id: Id): Tag | undefined {
+    return allTags.value.find((t) => t.id === id)
   }
 
   return {
     tags,
     allTags,
-    tagNodes,
     loading,
     refreshAll,
     refreshForWorkspace,

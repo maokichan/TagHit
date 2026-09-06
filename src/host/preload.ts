@@ -15,10 +15,42 @@ function invoke<K extends IpcKind>(
 
 const api: TaghitRendererApi = {
   ping: () => invoke('ping'),
+
+  createTag: (input) => invoke('tags.create', input),
   searchTags: (text) => invoke('tags.search', text),
+  deleteTag: (tagId) => invoke('tags.delete', tagId),
+  declareTag: (input) => invoke('tags.declare', input),
+  undeclareTag: (input) => invoke('tags.undeclare', input),
+
   queryItems: (query) => invoke('items.query', query),
   tagItem: (input) => invoke('item.tag', input),
   untagItem: (input) => invoke('item.untag', input),
+  deleteItem: (itemId) => invoke('items.delete', itemId),
+
+  createWorkspace: (name) => invoke('workspace.create', name),
+  listWorkspaces: () => invoke('workspace.list'),
+  getWorkspace: (workspaceId) => invoke('workspace.get', workspaceId),
+  browseWorkspace: (workspaceId, query) => invoke('workspace.browse', workspaceId, query),
+  declaredTags: (workspaceId) => invoke('workspace.declaredTags', workspaceId),
+  mountRoot: (input) => invoke('workspace.mountRoot', input),
+  unmountRoot: (input) => invoke('workspace.unmountRoot', input),
+  listRoots: (workspaceId) => invoke('workspace.listRoots', workspaceId),
+  deleteWorkspace: (workspaceId) => invoke('workspace.delete', workspaceId),
+
+  runScan: (workspaceId, options) => invoke('scan.run', workspaceId, options),
+
+  createCollection: (name) => invoke('collection.create', name),
+  renameCollection: (input) => invoke('collection.rename', input),
+  appendCollectionMember: (input) => invoke('collection.appendMember', input),
+  removeCollectionMember: (input) => invoke('collection.removeMember', input),
+  reorderCollectionMembers: (input) => invoke('collection.reorderMembers', input),
+  deleteCollection: (collectionId) => invoke('collection.delete', collectionId),
+
+  createGroup: (name) => invoke('group.create', name),
+  renameGroup: (input) => invoke('group.rename', input),
+  addGroupMember: (input) => invoke('group.addMember', input),
+  removeGroupMember: (input) => invoke('group.removeMember', input),
+  deleteGroup: (groupId) => invoke('group.delete', groupId),
 }
 
 contextBridge.exposeInMainWorld('taghit', api)

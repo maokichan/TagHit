@@ -1,86 +1,120 @@
-import type { AppConfig } from './types/config'
-import type {
-  AddPathRequest,
-  ScanProgress,
-  ScanRequest,
-  ScanResult,
-  WorkspaceWithPaths
-} from './types/workspace'
-import type { ItemFilter, ItemWithTags, UpdateTagsRequest } from './types/item'
-import type { AddHierarchyRequest, CreateTagRequest, DeclareTagRequest, Tag, TagNode } from './types/tag'
-import type { SearchRequest, SearchResult } from './types/search'
-import type { PluginCallRequest, PluginInfo } from './types/plugin'
-import type { EventChannel } from './ipc'
-
 /**
- * 渲染进程可见的 API 形状（window.api）。
- * 由 preload 实现，@shared 单点定义，保证三端类型一致。
+ * 渲染层 API 门面：window.taghit（0.2 typed 窄桥）的薄封装。
+ *
+ * 职责只有两件：
+ * 1. 解 Result 信封：ok 取 data；!ok 抛 ApiError（D9：按 code 转文案，message 原样附带）；
+ * 2. 给 stores 一个稳定的调用面。类型全部来自 @shared/contract（type-only）。
+ *
+ * 不做的事：不做缓存、不做本地过滤排序（数据流裁决：改意图 → 窄桥调一次 → 失效重查）。
  */
-export interface TaghitApi {
-  workspace: {
-    list(): Promise<WorkspaceWithPaths[]>
-    create(title: string): Promise<WorkspaceWithPaths>
-    update(id: number, title: string): Promise<WorkspaceWithPaths>
-    remove(id: number): Promise<void>
-    addPath(req: AddPathRequest): Promise<WorkspaceWithPaths>
-    removePath(pathId: number, workspaceId: number): Promise<WorkspaceWithPaths>
-    scan(req: ScanRequest): Promise<ScanResult>
-    /** 设置工作区封面（null = 自动取工作区内图片） */
-    setCover(id: number, coverPath: string | null): Promise<WorkspaceWithPaths>
+
+import type {
+  Id,
+  ItemsQuery,
+  ItemHit,
+  ProjectedHit,
+  Result,
+  ScanOptions,
+  ScanSummary,
+  Tag,
+  Workspace,
+  WorkspaceRoot
+} from './contract'
+
+/** 窄桥错误：code 来自 DomainErrorCode | 'UNKNOWN'。 */
+export class ApiError extends Error {
+  readonly code: string
+
+  constructor(code: string, message: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = code
   }
-  item: {
-    list(filter: ItemFilter): Promise<{ items: ItemWithTags[]; total: number }>
-    get(id: number, workspaceId: number): Promise<ItemWithTags | null>
-    updateTags(req: UpdateTagsRequest): Promise<ItemWithTags | null>
-    /** 读取文本条目内容（L2 文本预览；非文本/超限返回 null） */
-    readText(itemId: number): Promise<{ text: string } | null>
-    /** 用系统关联应用打开条目（L0/L1 兜底） */
-    openWithSystem(itemId: number): Promise<void>
-    /** 可用排序键（排序白名单单一事实来源在 ItemService，渲染层驱动式渲染下拉） */
-    listSortKeys(): Promise<Array<{ key: string; label: string }>>
-  }
-  tag: {
-    list(): Promise<Tag[]>
-    listWithRelations(): Promise<TagNode[]>
-    /** 某工作区已声明的标签 */
-    listForWorkspace(workspaceId: number): Promise<Tag[]>
-    create(req: CreateTagRequest): Promise<Tag>
-    update(id: number, patch: { name?: string; description?: string }): Promise<Tag>
-    remove(id: number): Promise<void>
-    addHierarchy(req: AddHierarchyRequest): Promise<void>
-    removeHierarchy(parentId: number, childId: number): Promise<void>
-    /** 在某工作区声明一个全局标签（仅改变可见性） */
-    declare(req: DeclareTagRequest): Promise<void>
-    undeclare(req: DeclareTagRequest): Promise<void>
-  }
-  search: {
-    /** 工作区内搜索（仅匹配已声明标签） */
-    query(req: SearchRequest): Promise<SearchResult>
-    /** 全局搜索（开始界面，跨工作区） */
-    global(req: SearchRequest): Promise<SearchResult>
-  }
-  config: {
-    get(): Promise<AppConfig>
-    update(patch: Partial<AppConfig>): Promise<AppConfig>
-  }
-  plugin: {
-    list(): Promise<PluginInfo[]>
-    call(req: PluginCallRequest): Promise<unknown>
-  }
-  dialog: {
-    /** 原生目录选择器，取消返回 null */
-    pickFolder(): Promise<string | null>
-    /** 原生图片选择器（工作区封面用），取消返回 null */
-    pickImage(): Promise<string | null>
-    /** 原生确认框（确定/取消），返回是否确认 */
-    confirm(options: { title?: string; message: string }): Promise<boolean>
-  }
-  thumbnail: {
-    /** 保存渲染进程生成的缩略图（base64 JPEG），回写 item.preview_uri，返回缓存路径 */
-    save(req: { contentHash: string; base64: string }): Promise<string | null>
-  }
-  /** 订阅主进程事件（扫描进度 / 插件事件），返回取消订阅函数 */
-  on(channel: EventChannel, cb: (payload: unknown) => void): () => void
 }
 
-export type ScanProgressHandler = (progress: ScanProgress) => void
+/** D9 错误文案映射：code → 中文短句（message 作为细节附在其后）。 */
+const ERROR_LABELS: Record<string, string> = {
+  NOT_FOUND: '目标不存在',
+  CONFLICT: '与现有数据冲突',
+  INVALID: '输入不合法',
+  UNKNOWN: '内部错误'
+}
+
+function unwrap<T>(result: Result<T>): T {
+  if (result.ok) return result.data
+  const label = ERROR_LABELS[result.error.code] ?? '内部错误'
+  throw new ApiError(result.error.code, `${label}：${result.error.message}`)
+}
+
+function bridge(): NonNullable<Window['taghit']> {
+  if (!window.taghit) {
+    throw new ApiError('UNKNOWN', '宿主未就绪：请在 Electron 宿主内运行（window.taghit 不可用）')
+  }
+  return window.taghit
+}
+
+export const api = {
+  tags: {
+    async search(text: string): Promise<Tag[]> {
+      return unwrap(await bridge().searchTags(text))
+    },
+    async create(input: { name: string; description?: string | null }): Promise<Tag> {
+      return unwrap(await bridge().createTag(input))
+    },
+    async remove(tagId: Id): Promise<void> {
+      unwrap(await bridge().deleteTag(tagId))
+    },
+    async declare(workspaceId: Id, tagId: Id): Promise<void> {
+      unwrap(await bridge().declareTag({ workspaceId, tagId }))
+    },
+    async undeclare(workspaceId: Id, tagId: Id): Promise<void> {
+      unwrap(await bridge().undeclareTag({ workspaceId, tagId }))
+    }
+  },
+  items: {
+    async query(query: ItemsQuery): Promise<ItemHit[]> {
+      return unwrap(await bridge().queryItems(query))
+    },
+    async tag(itemId: Id, tagIds: Id[]): Promise<void> {
+      unwrap(await bridge().tagItem({ itemId, tagIds }))
+    },
+    async untag(itemId: Id, tagIds: Id[]): Promise<void> {
+      unwrap(await bridge().untagItem({ itemId, tagIds }))
+    },
+    async remove(itemId: Id): Promise<void> {
+      unwrap(await bridge().deleteItem(itemId))
+    }
+  },
+  workspaces: {
+    async list(): Promise<Workspace[]> {
+      return unwrap(await bridge().listWorkspaces())
+    },
+    async create(name: string): Promise<Workspace> {
+      return unwrap(await bridge().createWorkspace(name))
+    },
+    async get(workspaceId: Id): Promise<Workspace | null> {
+      return unwrap(await bridge().getWorkspace(workspaceId))
+    },
+    async remove(workspaceId: Id): Promise<void> {
+      unwrap(await bridge().deleteWorkspace(workspaceId))
+    },
+    async browse(workspaceId: Id, query?: ItemsQuery): Promise<ProjectedHit[]> {
+      return unwrap(await bridge().browseWorkspace(workspaceId, query))
+    },
+    async declaredTags(workspaceId: Id): Promise<Id[]> {
+      return unwrap(await bridge().declaredTags(workspaceId))
+    },
+    async mountRoot(workspaceId: Id, path: string): Promise<void> {
+      unwrap(await bridge().mountRoot({ workspaceId, path }))
+    },
+    async unmountRoot(workspaceId: Id, path: string): Promise<void> {
+      unwrap(await bridge().unmountRoot({ workspaceId, path }))
+    },
+    async listRoots(workspaceId: Id): Promise<WorkspaceRoot[]> {
+      return unwrap(await bridge().listRoots(workspaceId))
+    },
+    async scan(workspaceId: Id, options?: ScanOptions): Promise<ScanSummary> {
+      return unwrap(await bridge().runScan(workspaceId, options))
+    }
+  }
+}

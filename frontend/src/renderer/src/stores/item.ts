@@ -1,53 +1,46 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ItemWithTags, ItemFilter } from '@shared/types/item'
-import type { ScanProgress, ScanResult } from '@shared/types/workspace'
+import { api, ApiError } from '@shared/api'
+import { toItemView, type ItemView } from '../lib/viewModel'
+import type { Id, ItemsQuery, ScanSummary } from '@shared/contract'
 
 const PAGE_SIZE = 120
 
+/** 排序键（ItemsQuery 白名单：createdAt/title/sourceUri）。 */
+export type SortOrder = 'createdAt' | 'title' | 'sourceUri'
+
 /**
- * 条目 store：当前标签页（工作区）的网格数据 + 过滤 + 扫描状态 + 分页。
- * 扫描进度事件在 App.vue 订阅后写入 scanProgress。
+ * 条目 store：当前工作区的浏览视图（成员派生 + 声明投影）+ 过滤 + 分页。
+ * 数据流裁决：改意图 → 窄桥调一次用例 → 失效重查；不做本地过滤/排序。
+ * 扫描进度事件未进契约 v0：扫描期间只显示整体进行态（scan.run 一次返回 Summary）。
  */
 export const useItemStore = defineStore('item', () => {
-  const items = ref<ItemWithTags[]>([])
-  const total = ref(0)
+  /** 投影后的条目视图（tags 已按工作区声明裁剪，hiddenCount 为未交付数） */
+  const items = ref<ItemView[]>([])
   const loading = ref(false)
   const scanning = ref(false)
-  const scanProgress = ref<ScanProgress | null>(null)
   const scanError = ref<string | null>(null)
-  const lastScanResult = ref<{
-    added: number
-    updated: number
-    missing: number
-    detached: number
-    durationMs: number
-  } | null>(null)
-  /** 右侧信息面板当前选中的条目（工作区网格内单选） */
-  const selected = ref<ItemWithTags | null>(null)
+  const lastScanResult = ref<ScanSummary | null>(null)
+  /** 信息面板当前选中条目（工作区网格内单选） */
+  const selected = ref<ItemView | null>(null)
 
-  const filter = ref<{ tagIds: number[]; mediaType: string; keyword: string }>({
-    tagIds: [],
-    mediaType: '',
-    keyword: ''
-  })
+  const filter = ref<{ tagIds: Id[]; keyword: string }>({ tagIds: [], keyword: '' })
 
-  // 分页：主界面一次最多渲染一页，滚动/按钮加载更多（修复"内容在库但显示不下"）
+  // 分页：主界面一次最多渲染一页，滚动/按钮加载更多
   const page = ref(0)
   const hasMore = ref(false)
 
   // 排序（显示面板控制）
-  const sortBy = ref<string>('updatedAt')
+  const sortBy = ref<SortOrder>('createdAt')
   const sortDir = ref<'asc' | 'desc'>('desc')
 
-  function buildFilter(workspaceId: number, offset: number): ItemFilter {
-    const payload: ItemFilter = { workspaceId, limit: PAGE_SIZE, offset }
-    if (filter.value.tagIds.length) payload.tagIds = [...filter.value.tagIds]
-    if (filter.value.mediaType) payload.mediaType = filter.value.mediaType
-    if (filter.value.keyword) payload.keyword = filter.value.keyword
-    payload.sortBy = sortBy.value
-    payload.sortDir = sortDir.value
-    return payload
+  function buildQuery(offset: number): ItemsQuery {
+    const query: ItemsQuery = { limit: PAGE_SIZE, offset }
+    if (filter.value.tagIds.length) query.withAllTags = [...filter.value.tagIds]
+    if (filter.value.keyword) query.titleContains = filter.value.keyword
+    query.order = sortBy.value
+    query.orderDir = sortDir.value
+    return query
   }
 
   function toggleSortDir(): void {
@@ -55,78 +48,55 @@ export const useItemStore = defineStore('item', () => {
   }
 
   /** 重新加载（过滤/扫描变化时）：回到第一页并替换条目 */
-  async function load(workspaceId: number): Promise<void> {
+  async function load(workspaceId: Id): Promise<void> {
     loading.value = true
     try {
-      const res = await window.api.item.list(buildFilter(workspaceId, 0))
-      items.value = res.items
-      total.value = res.total
+      const hits = await api.workspaces.browse(workspaceId, buildQuery(0))
+      items.value = hits.map(toItemView)
       page.value = 0
-      hasMore.value = items.value.length < res.total
+      hasMore.value = false // browse 端点单次返回成员集；分页待 ItemsQuery total 语义落地
     } finally {
       loading.value = false
     }
   }
 
-  /** 加载下一页（追加到网格尾部） */
-  async function loadMore(workspaceId: number): Promise<void> {
+  /** 加载下一页（追加到网格尾部）。当前 browse 一次返回全部成员，暂为 no-op。 */
+  async function loadMore(workspaceId: Id): Promise<void> {
     if (loading.value || !hasMore.value) return
     loading.value = true
     try {
       const next = page.value + 1
-      const res = await window.api.item.list(buildFilter(workspaceId, next * PAGE_SIZE))
-      items.value = [...items.value, ...res.items]
-      total.value = res.total
+      const hits = await api.workspaces.browse(workspaceId, buildQuery(next * PAGE_SIZE))
+      items.value = [...items.value, ...hits.map(toItemView)]
       page.value = next
-      hasMore.value = items.value.length < res.total
     } finally {
       loading.value = false
     }
   }
 
-  async function scan(workspaceId: number): Promise<void> {
+  async function scan(workspaceId: Id): Promise<void> {
     scanning.value = true
     scanError.value = null
-    scanProgress.value = { workspaceId, phase: 'walk', processed: 0, total: 0, current: null }
     try {
-      const result: ScanResult = await window.api.workspace.scan({ workspaceId })
-      lastScanResult.value = {
-        added: result.filesAdded,
-        updated: result.filesUpdated,
-        missing: result.filesMarkedMissing,
-        detached: result.filesDetached,
-        durationMs: result.durationMs
-      }
+      lastScanResult.value = await api.workspaces.scan(workspaceId)
       await load(workspaceId)
     } catch (e) {
-      scanError.value = e instanceof Error ? e.message : String(e)
+      scanError.value = e instanceof ApiError ? e.message : e instanceof Error ? e.message : String(e)
     } finally {
       scanning.value = false
-      scanProgress.value = null
     }
   }
 
-  /** 选中条目：立即显示，并异步补全元数据（EAV）供信息面板展示 */
-  async function select(item: ItemWithTags, workspaceId: number): Promise<void> {
+  /** 选中条目（信息面板）。0.2 无 EAV 补全：选中即完整视图。 */
+  function select(item: ItemView): void {
     selected.value = item
-    const full = await window.api.item.get(item.id, workspaceId)
-    if (full != null && selected.value?.id === item.id) {
-      selected.value = full
-    }
   }
 
   function clearSelection(): void {
     selected.value = null
   }
 
-  /** 缩略图生成完成后回写（就地更新，触发网格重渲染） */
-  function patchPreview(itemId: number, previewUri: string): void {
-    const it = items.value.find((i) => i.id === itemId)
-    if (it) it.previewUri = previewUri
-    if (selected.value?.id === itemId) selected.value.previewUri = previewUri
-  }
-
-  function toggleTagFilter(tagId: number): void {
+  function toggleTagFilter(tagId: Id): void {
     const list = filter.value.tagIds
     filter.value.tagIds = list.includes(tagId) ? list.filter((id) => id !== tagId) : [...list, tagId]
   }
@@ -140,16 +110,15 @@ export const useItemStore = defineStore('item', () => {
     filter.value.keyword = kw
   }
 
-  function setMediaType(mt: string): void {
-    filter.value.mediaType = filter.value.mediaType === mt ? '' : mt
+  /** 媒体类别过滤不在契约 v0（条目无 mediaType 事实）：保留 no-op 以免视图崩溃。 */
+  function setMediaType(_mt: string): void {
+    /* 降级：待后端补文件事实后恢复 */
   }
 
   return {
     items,
-    total,
     loading,
     scanning,
-    scanProgress,
     scanError,
     lastScanResult,
     selected,
@@ -163,7 +132,6 @@ export const useItemStore = defineStore('item', () => {
     scan,
     select,
     clearSelection,
-    patchPreview,
     toggleTagFilter,
     clearTagFilters,
     setKeyword,

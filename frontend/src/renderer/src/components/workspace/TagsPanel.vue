@@ -4,7 +4,7 @@ import { Plus, Trash2 } from 'lucide-vue-next'
 import { useTagStore } from '../../stores/tag'
 import { useItemStore } from '../../stores/item'
 
-const props = defineProps<{ workspaceId: number; side?: 'left' | 'right' }>()
+const props = defineProps<{ workspaceId: string; side?: 'left' | 'right' }>()
 const tagStore = useTagStore()
 const itemStore = useItemStore()
 

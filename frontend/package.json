@@ -21,11 +21,6 @@
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux"
   },
-  "dependencies": {
-    "better-sqlite3": "^11.5.0",
-    "hash-wasm": "^4.11.0",
-    "image-size": "^1.1.1"
-  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^22.9.0",

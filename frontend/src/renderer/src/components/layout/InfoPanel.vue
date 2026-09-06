@@ -16,26 +16,22 @@ const item = computed(() => itemStore.selected)
 const rows = computed(() => {
   const it = item.value
   if (!it) return []
-  const base: Array<[string, string]> = [
+  return [
     ['类型', it.mediaType],
     ['扩展名', it.extension ?? '-'],
     ['大小', formatSize(it.size)],
-    ['状态', it.status],
+    ['状态', it.status ?? '-'],
     ['修改时间', it.fileModifiedAt ?? '-'],
     ['路径', it.sourceUri ?? '-']
-  ]
-  for (const m of it.metadata ?? []) {
-    base.push([m.key, m.value])
-  }
-  return base
+  ] as Array<[string, string]>
 })
 
 function openDetail(): void {
   const it = item.value
   if (!it) return
-  const ws = it.workspaceIds?.[0] ?? null
-  tabStore.openItem(it.id, ws, it.title)
-  router.push(ws != null ? `/item/${it.id}?workspace=${ws}` : `/item/${it.id}`)
+  const activeWs = tabStore.activeWorkspaceId
+  tabStore.openItem(it.id, activeWs, it.title)
+  router.push(activeWs != null ? `/item/${it.id}?workspace=${activeWs}` : `/item/${it.id}`)
 }
 </script>
 
@@ -70,6 +66,9 @@ function openDetail(): void {
             #{{ tag.name }}
           </span>
         </div>
+        <p v-if="item.hiddenCount > 0" class="text-[10px] text-[var(--fg-dim)] mb-2">
+          另有 {{ item.hiddenCount }} 个未声明标签未显示
+        </p>
 
         <dl class="space-y-1 text-[12px]">
           <div v-for="[k, v] in rows" :key="k" class="flex gap-2">

@@ -57,14 +57,8 @@ export const useUiStore = defineStore('ui', () => {
     }
   }
 
-  async function init(): Promise<void> {
-    const cfg = await window.api.config.get()
-    theme.value = cfg.theme
-    layoutMode.value = cfg.layoutMode
-    showTitles.value = cfg.showTitles ?? true
-    showWorkspaceCovers.value = cfg.showWorkspaceCovers ?? true
-    uiScale.value = cfg.uiScale ?? 1
-    enableSearchShortcut.value = cfg.enableSearchShortcut ?? true
+  /** config 持久化不在契约 v0：init 只应用本地缺省。 */
+  function init(): void {
     applyScale()
     applyTheme()
   }
@@ -72,22 +66,18 @@ export const useUiStore = defineStore('ui', () => {
   async function setTheme(t: Theme): Promise<void> {
     theme.value = t
     applyTheme()
-    await window.api.config.update({ theme: t })
   }
 
   async function setLayoutMode(m: LayoutMode): Promise<void> {
     layoutMode.value = m
-    await window.api.config.update({ layoutMode: m })
   }
 
   async function toggleShowTitles(): Promise<void> {
     showTitles.value = !showTitles.value
-    await window.api.config.update({ showTitles: showTitles.value })
   }
 
   async function toggleWorkspaceCovers(): Promise<void> {
     showWorkspaceCovers.value = !showWorkspaceCovers.value
-    await window.api.config.update({ showWorkspaceCovers: showWorkspaceCovers.value })
   }
 
   // 全局 UI 缩放：CSS zoom 连续缩放整个渲染页（虚拟化靠 ResizeObserver 自动重算）
@@ -100,12 +90,10 @@ export const useUiStore = defineStore('ui', () => {
     const clamped = Math.min(SCALE_MAX, Math.max(SCALE_MIN, s))
     uiScale.value = clamped
     applyScale()
-    await window.api.config.update({ uiScale: clamped })
   }
 
   async function setSearchShortcut(v: boolean): Promise<void> {
     enableSearchShortcut.value = v
-    await window.api.config.update({ enableSearchShortcut: v })
   }
 
   return {

@@ -1,23 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
 import { Puzzle } from 'lucide-vue-next'
-import type { PluginInfo } from '@shared/types/plugin'
 
 defineProps<{ side?: 'left' | 'right' }>()
 
-const plugins = ref<PluginInfo[]>([])
-const loading = ref(true)
-const error = ref('')
-
-onMounted(async () => {
-  try {
-    plugins.value = await window.api.plugin.list()
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
-  } finally {
-    loading.value = false
-  }
-})
+/** 插件机制不在宿主契约 v0：面板降级为说明占位（贡献点 v0 落地后恢复）。 */
 </script>
 
 <template>
@@ -32,41 +18,13 @@ onMounted(async () => {
         <Puzzle :size="12" /> 插件
       </div>
 
-      <div v-if="loading" class="text-[12px] text-[var(--fg-dim)]">加载中…</div>
-      <p v-else-if="error" class="text-[12px] text-[var(--danger)]">{{ error }}</p>
-
-      <template v-else>
-        <p v-if="plugins.length === 0" class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
-          暂无插件。将插件目录放入
-          <code class="kbd">resources/plugins</code> 后重启应用即可加载。
-        </p>
-        <div v-for="p in plugins" :key="p.name" class="panel p-2 mb-2">
-          <div class="flex items-center gap-1.5 text-[12px]">
-            <span class="font-medium truncate flex-1">{{ p.name }}</span>
-            <span class="text-[10px] text-[var(--fg-dim)] shrink-0">{{ p.version }}</span>
-            <span
-              v-if="p.loaded"
-              class="shrink-0 px-1 rounded text-[10px] bg-[var(--accent-soft)] text-[var(--accent)]"
-            >
-              已加载
-            </span>
-            <span
-              v-else
-              class="shrink-0 px-1 rounded text-[10px]"
-              style="background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger)"
-            >
-              失败
-            </span>
-          </div>
-          <p v-if="p.description" class="text-[11px] text-[var(--fg-dim)] mt-1">
-            {{ p.description }}
-          </p>
-          <p v-if="p.error" class="text-[11px] mt-1" style="color: var(--danger)">{{ p.error }}</p>
-          <p v-if="p.tools.length" class="text-[11px] text-[var(--fg-dim)] mt-1">
-            工具：{{ p.tools.join('、') }}
-          </p>
-        </div>
-      </template>
+      <p class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
+        插件机制暂未接入。
+      </p>
+      <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed mt-2">
+        0.2 的插件方向：UI 增强走渲染层贡献点，复杂能力走主进程工具 + manifest
+        声明式权限，统一经 HostApi 门面（见 docs/ARCHITECTURE §4）。宿主契约就绪后此面板恢复。
+      </p>
     </div>
   </aside>
 </template>

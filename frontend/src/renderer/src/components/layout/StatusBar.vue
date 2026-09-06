@@ -1,30 +1,17 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useItemStore } from '../../stores/item'
-import type { PluginInfo } from '@shared/types/plugin'
 
+/** 状态栏：扫描状态 + 插件占位（插件面板不在契约 v0，恒为 0）。 */
 const itemStore = useItemStore()
-const plugins = ref<PluginInfo[]>([])
-let unsub: (() => void) | null = null
 
-onMounted(async () => {
-  plugins.value = await window.api.plugin.list()
-  unsub = window.api.on('event:scanProgress', (payload) => {
-    itemStore.scanProgress = payload as never
-  })
-})
-onUnmounted(() => unsub?.())
+const PLUGIN_COUNT = 0
 
 const statusText = computed(() => {
-  if (itemStore.scanning && itemStore.scanProgress) {
-    const p = itemStore.scanProgress
-    if (p.phase === 'walk') return '正在遍历目录…'
-    if (p.total > 0) return `正在扫描 ${p.processed}/${p.total}`
-    return '正在计算哈希…'
-  }
+  if (itemStore.scanning) return '正在扫描…'
   if (itemStore.lastScanResult) {
     const r = itemStore.lastScanResult
-    return `扫描完成：+${r.added} 新增 / ${r.updated} 更新 / ${r.missing} 缺失（${(r.durationMs / 1000).toFixed(1)}s）`
+    return `扫描完成：+${r.itemsCreated} 新增 / ${r.itemsUpdated} 更新 / ${r.itemsMissing} 缺失（${r.scannedRoots} 个来源根）`
   }
   return null
 })
@@ -37,9 +24,9 @@ const statusText = computed(() => {
 
     <span class="flex items-center gap-1">
       <span class="inline-block w-1.5 h-1.5 rounded-full"
-        :class="plugins.length > 0 ? 'bg-emerald-500' : 'bg-[var(--border)]'"
+        :class="PLUGIN_COUNT > 0 ? 'bg-emerald-500' : 'bg-[var(--border)]'"
       />
-      {{ plugins.length }} 插件
+      {{ PLUGIN_COUNT }} 插件
     </span>
   </footer>
 </template>

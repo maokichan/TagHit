@@ -31,13 +31,14 @@
 ### 分层与落点
 
 ```
-frontend/   渲染 UI（Vue3 + Pinia + router + Tailwind，迁自 0.1，待改造到新窄桥）
-   │  window.taghit（typed 窄桥，src/host/ipc.ts 契约 + 信封 {ok,data}|{ok:false,error}）
+frontend/   渲染 UI（Vue3 + Pinia + router + Tailwind；已改造到新窄桥）
+   │  window.taghit（typed 窄桥 + 信封 {ok,data}|{ok:false,error}；stores 经 shared/api 门面解包）
 src/host/   主进程装配：SqliteStore(库文件) + 真时钟/UUID + 逐端点注册用例；隔离窗口
-src/shared-契约 → 计划移入 frontend/src/shared 或 src/host（单一事实源待定）
+契约单一事实源 = src/host/ipc.ts（已裁决，2026-09-06）；frontend/src/shared/contract.ts
+             仅 type-only 再导出（tsconfig alias @host/*），渲染层零运行时依赖
 ```
 
-- **边界纪律**：渲染层只认 uri，字节经主进程闸门；渲染层拿不到 Store/裸 Node——一切走窄桥用例；D9 错误按信封 code 转文案（待 UI 侧做）。
+- **边界纪律**：渲染层只认 uri，字节经主进程闸门；渲染层拿不到 Store/裸 Node——一切走窄桥用例；D9 错误按信封 code 转文案（frontend/shared/api.ts ApiError 已做）。
 - Electron 接线要点：宿主 Store 用 better-sqlite3（Electron 33 无 node:sqlite）；开发 = dev URL → 打包 = loadFile；preload 只暴露 `window.taghit`（contextIsolation）。
 - 数据流约定：渲染层持**视图状态**（工作区/勾选 tag/排序/页码）；任何改动 = 改意图 → 窄桥调用一次用例 → 失效并重查；**不本地排序/过滤**（分页语义依赖适配器一次完成）。
 
@@ -58,8 +59,9 @@ src/shared-契约 → 计划移入 frontend/src/shared 或 src/host（单一事�
 
 ## 五、下一步与 backlog
 
-1. 宿主契约 v0（贡献点/HostApi/生命周期类型草案；与 `src/host` 窄桥对齐）。
-2. 垂直切片（官方 feature 全链路）→ 前端逐步改造（按用户思路）。
-3. 真机接线：electron + better-sqlite3 驱动、dev/打包；D9 UI 文案；缩略图/uri 字节闸门。
-4. 后端沿切片补能力：声明/节点开关薄用例、标签语义带出、EAV 元数据建模、事件（D6）。
-5. 收尾：LICENSE、CI/脚本入口、批量未 push 提交与 tag。
+1. ✅ 宿主契约 v0（2026-09-06）：IpcContracts 32 端点（标签/条目/工作区/扫描/作品/组）+ 统一信封；薄用例补 createTag/declare/undeclare 与 workspace create/list/get/listRoots。
+2. ✅ 旧 UI 吸收（2026-09-06）：frontend 全量换轨 window.taghit（shared/api 门面 + D9 文案；stores/视图/组件改字符串 id）；降级项：config 持久化、原生 dialog、缩略图/媒体预览（字节闸门）、插件面板、标签层级、媒体类型筛选。扫描进度事件随 D6 落地。
+3. 贡献点 v0 类型化（features/registry 机制已有，待对齐 §4 声明）。
+4. 真机接线：electron + better-sqlite3 驱动、dev/打包；缩略图/uri 字节闸门（预览/缩略图恢复）。
+5. 后端沿切片补能力：节点开关薄用例、标签语义带出、EAV 元数据建模、事件（D6）。
+6. 收尾：LICENSE、CI/脚本入口、批量未 push 提交与 tag。

@@ -10,7 +10,7 @@ export interface HomeTab {
 export interface WorkspaceTabItem {
   key: string
   kind: 'workspace'
-  workspaceId: number
+  workspaceId: string
   title: string
 }
 
@@ -23,8 +23,8 @@ export interface SettingsTab {
 export interface ItemTab {
   key: string
   kind: 'item'
-  itemId: number
-  workspaceId: number | null
+  itemId: string
+  workspaceId: string | null
   title: string
 }
 
@@ -78,7 +78,7 @@ export const useTabStore = defineStore('tab', () => {
    * 打开工作区：当前标签直接变成该工作区（不新增标签）。
    * 若该工作区已存在于其他标签，则关闭当前标签并激活已有标签，避免重复。
    */
-  function openWorkspace(id: number, title: string): void {
+  function openWorkspace(id: string, title: string): void {
     const existing = tabs.value.find((t) => t.kind === 'workspace' && t.workspaceId === id)
     if (existing) {
       const cur = activeKey.value
@@ -112,7 +112,7 @@ export const useTabStore = defineStore('tab', () => {
    * 打开条目详情：新开一个条目标签页（不占用当前标签）。
    * 若同一条目已有标签页，则激活它并更新上下文（工作区/标题）。
    */
-  function openItem(itemId: number, workspaceId: number | null, title: string): void {
+  function openItem(itemId: string, workspaceId: string | null, title: string): void {
     const existing = tabs.value.find(
       (t): t is ItemTab => t.kind === 'item' && t.itemId === itemId
     )

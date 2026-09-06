@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Inbox } from 'lucide-vue-next'
-import type { ItemWithTags } from '@shared/types/item'
+import type { ItemView } from '../../lib/viewModel'
 import { useUiStore } from '../../stores/ui'
 import ItemCard from './ItemCard.vue'
 
 const props = defineProps<{
-  items: ItemWithTags[]
+  items: ItemView[]
   loading: boolean
   interactiveTags?: boolean
-  selectedId?: number | null
+  selectedId?: string | null
   hasMore?: boolean
 }>()
 const emit = defineEmits<{
-  (e: 'open', item: ItemWithTags): void
-  (e: 'select', item: ItemWithTags): void
-  (e: 'tag-click', tagId: number): void
+  (e: 'open', item: ItemView): void
+  (e: 'select', item: ItemView): void
+  (e: 'tag-click', tagId: string): void
   (e: 'load-more'): void
 }>()
 const uiStore = useUiStore()
@@ -27,7 +27,6 @@ const MIN_COL = 180
 const INFO_H = 56 // ItemCard 信息区固定高度（标题+标签一行）
 const LIST_ROW_H = 64 // 列表行高（缩略图 48 + py-2×2），与 ItemCard 行样式一致
 const LIST_GAP = 4 // 列表行距（紧凑，区别于网格/瀑布流的 GAP）
-const MAX_RATIO = 2.2
 const BUFFER = 800 // 视口外预渲染缓冲（像素）
 
 /* ── 滚动容器度量：scrollEl 在条目加载后才渲染，须 watch 出现即测量 ── */
@@ -81,19 +80,16 @@ onUnmounted(() => {
   if (rafId) cancelAnimationFrame(rafId)
 })
 
-/* ── 布局计算：瀑布流 = JS 列分配（追加不动旧卡片）；网格/列表 = 均匀行 ── */
-function ratioOf(item: ItemWithTags): number {
-  if (item.width && item.height && item.height > 0) {
-    const r = item.width / item.height
-    return Math.min(Math.max(r, 1 / MAX_RATIO), MAX_RATIO)
-  }
+/* ── 布局计算：瀑布流 = JS 列分配（追加不动旧卡片）；网格/列表 = 均匀行 ──
+ * 0.2 无宽高元数据：统一 4:3（宽高比上限逻辑待字节闸门落地后随元数据恢复）。 */
+function ratioOf(_item: ItemView): number {
   return 4 / 3
 }
 
 const isMasonry = computed(() => uiStore.layoutMode === 'masonry')
 
 interface LayoutResult {
-  places: { item: ItemWithTags; left: number; top: number; width: number; height: number }[]
+  places: { item: ItemView; left: number; top: number; width: number; height: number }[]
   totalH: number
   cols: number
   colW: number
@@ -166,7 +162,7 @@ const visibleMasonry = computed(() => {
 const rowSlice = computed(() => {
   const { rowH, cols } = layout.value
   const items = props.items
-  if (rowH <= 0 || items.length === 0) return { slice: [] as ItemWithTags[], topPad: 0, bottomPad: 0 }
+  if (rowH <= 0 || items.length === 0) return { slice: [] as ItemView[], topPad: 0, bottomPad: 0 }
   const totalRows = Math.ceil(items.length / cols)
   const firstRow = Math.max(0, Math.floor((scrollTop.value - BUFFER) / rowH))
   const lastRow = Math.min(totalRows, Math.ceil((scrollTop.value + viewH.value + BUFFER) / rowH))
