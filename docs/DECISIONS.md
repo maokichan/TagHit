@@ -55,7 +55,7 @@
 |---|---|---|
 | D4 | 领域层 | 同步纯函数；异步只在边界 |
 | D6 | 事件 | 只保留有真实订阅者的事件 |
-| D9 | 错误控制 | 异常传播（Promise reject 携带 DomainError.code）；转译在渲染/宿主边界（信封已就绪，UI 文案待做） |
+| D9 | 错误控制 | 异常传播（Promise reject 携带 DomainError.code）；转译在渲染/宿主边界（信封 + 渲染层中文文案均已就绪） |
 | D10 | SQLite 驱动 | node:sqlite（Node 内置）；**仅限 Node ≥ 23.4 环境** |
 | D11 | 消失策略 | 缺省 keep；discard 可选 |
 | D12 | 内容签名 | 头/中/尾三采样（64 KiB/段），适配器共用 sampleHash |

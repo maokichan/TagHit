@@ -1,63 +1,56 @@
 # TagHit 架构与宿主（ARCHITECTURE）
 
-> 活体架构说明 + 当前状态。与 DECISIONS（裁决）互补：本文件讲"东西放哪、为什么、做到哪"。
-> 渲染/宿主相关内容与后端核心**分节独立**（三、四节起全部是渲染层/宿主/插件话题，读后端时可跳过）。
-> 版本：0.2.2 快照。
+> 架构活体文档：讲"东西放哪、为什么"。进度与下一步**只在 CONTEXT §三**跟踪，本文件不含状态。
+> 渲染/宿主话题自 §三 起，与后端核心分节独立，读后端时可跳过。
 
-## 一、当前状态
-
-- 后端核心已完成并通过校准：领域层 → 端口 → 应用层（首批用例 + 两阶段扫描）→ memory/sqlite/node 适配器；三份校准（s32/s33 × memory/sqlite）全绿。
-- 宿主骨架已入库：typed IPC 窄桥 + 结果信封 + 装配（`src/host/`）；旧版 Vue 前端整体迁入 `frontend/`（依赖未装，待改造）。
-- 产品方向已明确：**插件生态**（VSCode/Obsidian 式）。下一步主线 = 前端壳 + 宿主契约（见三、四）。
-- 沙箱/真机事实：沙箱无网、无 GUI——不能 `npm i electron`/起窗口；freeze 里现成 `electron@33.4.11`（内嵌 **Node 20.18 < 23.4 → node:sqlite 不可用**，宿主 Store 需换 better-sqlite3 或升级 Electron，见 DECISIONS D13）；本机 node v24 直跑 TS 做校准。
-- git：本地提交与 tag（v0.2.1、v0.2.2）已就绪，**push 由真人执行**（含 tag）。
-
-## 二、后端核心（核心对渲染层/插件一无所知）
+## 一、后端核心（核心对渲染层/插件一无所知）
 
 ```
-应用层 src/application  —— 用例编排（打标/浏览+投影/检索/维护/删除级联/扫描），无状态
+应用层 src/application  —— 用例编排（打标/浏览+投影/检索/维护/删除级联/扫描/内容读取），无状态
    │  调领域规则与端口
 领域层 src/domain       —— types（实体+关系行）· rules（纯规则）· errors；零依赖
 端口 src/ports          —— 契约第一公民 = 流动类型；动词薄按用例反推；查询下沉条件对象
-适配器 src/adapters     —— memory（Store+假FS）· sqlite（SqliteStore）· node（NodeFileSystem）
+适配器 src/adapters     —— memory（Store+假FS）· sqlite（SqliteStore，驱动注入）· node（NodeFileSystem）
 ```
 
 - 存储契约全局约定：异步；实体写严格（NOT_FOUND/CONFLICT/INVALID）；关系写幂等；读宽松；事务 = 边界原子性、一致性编排在用例。详见 DECISIONS 与 `src/ports/store.ts` 头部。
 - 校准文化：无测试设施（code-first 校准理解）；memory 与 sqlite 跑同一场景，契约一致才绿。
-- 工作区 ↔ 条目模型（来源根 → 路径节点 → 归属派生）与两阶段扫描已落地；扫描 missing 策略 keep/discard 可配；内容签名三采样点。
+- 工作区 ↔ 条目模型（来源根 → 路径节点 → 归属派生）与两阶段扫描已落地；扫描 missing 策略 keep/discard 可配；内容签名三采样点；图片固有尺寸扫描时从文件头解析（application/mediaMeta.ts，零依赖，见 D15）。
 
-## 三、渲染层与宿主（前端壳 + Electron）
+## 二、渲染层与宿主（已落地）
 
 ### 分层与落点
 
 ```
-frontend/   渲染 UI（Vue3 + Pinia + router + Tailwind；已改造到新窄桥）
+frontend/   渲染 UI（Vue3 + Pinia + router + Tailwind；已接窄桥）
    │  window.taghit（typed 窄桥 + 信封 {ok,data}|{ok:false,error}；stores 经 shared/api 门面解包）
-src/host/   主进程装配：SqliteStore(库文件) + 真时钟/UUID + 逐端点注册用例；隔离窗口
+src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真时钟/UUID + 逐端点注册用例 + taghit-file 协议；隔离窗口
 契约单一事实源 = src/host/ipc.ts（已裁决，2026-09-06）；frontend/src/shared/contract.ts
              仅 type-only 再导出（tsconfig alias @host/*），渲染层零运行时依赖
 ```
 
-- **边界纪律**：渲染层只认 uri，字节经主进程闸门；渲染层拿不到 Store/裸 Node——一切走窄桥用例；D9 错误按信封 code 转文案（frontend/shared/api.ts ApiError 已做）。
-- Electron 接线要点：宿主 Store 用 better-sqlite3（Electron 33 无 node:sqlite）；开发 = dev URL → 打包 = loadFile；preload 只暴露 `window.taghit`（contextIsolation）。
+- **边界纪律**：渲染层只认 uri；渲染层拿不到 Store/裸 Node——一切走窄桥用例；D9 错误按信封 code 转文案（frontend/shared/api.ts）。
+- **SQLite 驱动注入（D14）**：适配层只认最小接口 `SyncSqlite`；node:sqlite 在 nodeDriver.ts（Node ≥22 校准用），Electron 主进程注入 better-sqlite3（ABI 匹配 Electron，根 node_modules）。node:sqlite 不进 Electron 打包产物。
+- **字节闸门（D15）**：媒体经 `host/protocol.ts` 的 taghit-file:// 特权协议（白名单 = 各工作区来源根 + userData，从 Store 端口查；Range/MIME/ACAO）；文本经 `item.readText` 窄桥（application/content.ts：TEXT_EXTS 白名单 + 2MiB 上限）。
+- **打包与真机运行**：esbuild 打 src/host → build/main.cjs + preload.cjs（external: electron/better-sqlite3）；`npm run bundle:host` / `dev:renderer` / `start:host`（命令细节见 CONTEXT §五）。
 - 数据流约定：渲染层持**视图状态**（工作区/勾选 tag/排序/页码）；任何改动 = 改意图 → 窄桥调用一次用例 → 失效并重查；**不本地排序/过滤**（分页语义依赖适配器一次完成）。
 
-### 旧版前端与 0.1 插件雏形（参考，不照抄）
+### 渲染层功能组件（贡献点 v0）
 
-- `frontend/src/renderer/src/features/registry.ts` + `shared/types/feature.ts`：FeatureManifest + MountPoint（activityBar:left/right、displayPanel、settings；statusBar/grid 预留）——官方组件注册、宿主按声明渲染。
-- freeze 0.1 `main/plugins/*` + `shared/types/plugin.ts`：PluginManifest + 声明式权限（fs/network/shell）+ 工具调用模型。
-- 0.1 是**两套未统一**的插件雏形（UI 功能 vs 主进程工具）；0.2 在此统一。
+- `frontend/src/renderer/src/features/registry.ts` + `shared/types/feature.ts`：FeatureManifest + MountPoint（activityBar:left/right、displayPanel、settings；statusBar/grid 预留）——官方组件注册、宿主按声明渲染；source 信任层 + Disposer 生命周期。
+- **注册必须先于 app.mount**（App.vue 挂载时读注册表——顺序错了活动栏就是空轨，踩过）。
+- freeze 0.1 `main/plugins/*` + `shared/types/plugin.ts`：0.1 的两套未统一插件雏形（UI 功能 vs 主进程工具），0.2 在此统一。
 
-## 四、前端与插件方向（已共识）
+## 三、前端与插件方向（已共识）
 
 - **插件 = 提供程序所没有的能力**：UI 增强（面板/展示/命令）→ 渲染层贡献点；复杂运算/程序外能力（OCR、哈希、转码、扫描等）→ **主进程能力工具** + manifest 声明式权限。两层都经统一 **HostApi 门面**（= 冻结的应用层用例 + 事件），核心保持对插件无知。
 - **壳 = 插件容器与展示层**（不只 UI）：布局、标签页、面板拖拽/显隐都是壳/官方功能的行为。
 - **贡献点 v0**：`activityBar:left/right` · 内容区标签页 · `displayPanel` 块（排序/显隐）· `settings`。**不做任意跨区停靠（完整 dock）**。
 - 官方功能组件：居**左活动栏**（工具间切换/显隐）。三方插件：**左、右活动栏均可**，displayPanel 内可贡献块。
 - 官方与三方插件：**注册机制同构**、信任/生命周期分层（官方静态可信；三方走动态加载、错误隔离、权限门、卸载清理）。性能用**惰性加载（激活条件 → 用时才 import）+ 事件仅推活跃订阅者**控制，同构不引入固定开销。
-- **契约优先**：贡献点 + HostApi + 生命周期先立为稳定面（对插件作者是 API 契约）；先用一条**垂直切片**（一个官方 feature：Store → 用例 → HostApi → manifest → 壳内渲染全链路）证明机制，再批量把旧 UI 组件改造成官方 feature。
+- **契约优先**：贡献点 + HostApi + 生命周期先立为稳定面（对插件作者是 API 契约）；先用**垂直切片**证明机制，再批量改造。
 
-### 4.1 贡献点机制：选型理由与两个概念（2026-09-06 定稿）
+### 3.1 贡献点机制：选型理由与两个概念（2026-09-06 定稿）
 
 **为什么是贡献点，而不是别的扩展方式**——三条既有裁决把选项收敛到唯一：
 
@@ -85,12 +78,3 @@ src/host/   主进程装配：SqliteStore(库文件) + 真时钟/UUID + 逐端�
 - 三方代码不进主进程核心。"插件跑进应用层"技术上可行，但会同时击穿：信任边界（主进程直接摸 Store/fs）、事务语义（用例 = 单事务边界）、行为归属（删插件不应改变业务行为）、内部 API 冻结（用例签名是演进面，HostApi 才是冻结面）。
 - 重运算（OCR/转码/哈希）= **主进程能力工具**：宿主调用、结果返回、不持有 Store、不进事务，经 manifest 权限闸门。
 - 预留：未来若需"插件提供扫描期文件解析器/哈希器"，走**窄领域端口 + 独立进程**（Electron utilityProcess）实现，宿主拉起并注册，用例照常调端口——依赖仍只向内，插件 crash 不带崩宿主。不做流程钩子。
-
-## 五、下一步与 backlog
-
-1. ✅ 宿主契约 v0（2026-09-06）：IpcContracts 32 端点（标签/条目/工作区/扫描/作品/组）+ 统一信封；薄用例补 createTag/declare/undeclare 与 workspace create/list/get/listRoots。
-2. ✅ 旧 UI 吸收（2026-09-06）：frontend 全量换轨 window.taghit（shared/api 门面 + D9 文案；stores/视图/组件改字符串 id）；降级项：config 持久化、原生 dialog、缩略图/媒体预览（字节闸门）、插件面板、标签层级、媒体类型筛选。扫描进度事件随 D6 落地。
-3. ✅ 贡献点 v0 类型化（2026-09-06）：FeatureManifest 加 source 信任层；setup 可退订（Disposer）；活动栏左右槽由注册表驱动（壳不再硬编码面板组件）；垂直切片 = workspaceInfo 官方组件消费 HostApi（listRoots/declaredTags）。contentTab 槽未实现（壳标签页仍为固定四类）。
-4. 真机接线：electron + better-sqlite3 驱动、dev/打包；缩略图/uri 字节闸门（预览/缩略图恢复）。
-5. 后端沿切片补能力：节点开关薄用例、标签语义带出、EAV 元数据建模、事件（D6）。
-6. 收尾：LICENSE、CI/脚本入口、批量未 push 提交与 tag。

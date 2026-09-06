@@ -34,20 +34,20 @@ TagHit 管理散落在本地目录里的内容（图片、视频、音频、文�
 2. **宿主技术是可替换的**。桌面框架、数据库、文件访问方式都可能演进（例如协作形态下的存储变化）；把它们挡在适配器后，业务核心不受影响。
 3. **单核心、多入口**。官方界面、命令行、未来的插件扩展共用同一套领域与应用逻辑，避免每入口一套规则。
 
-当前进度：领域层、端口、内存/SQLite 双适配器、应用层用例与两阶段扫描完成（三份校准全绿）；宿主契约 v0（typed IPC 32 端点 + 统一错误信封）落地；旧版界面已全量改造到 `window.taghit` 窄桥（缺口能力降级置灰）。下一步：贡献点 v0 类型化、真机 Electron 接线与字节闸门（媒体预览/缩略图）。
+当前进度：后端核心与三份校准全绿；宿主契约 v0（typed IPC 33 端点 + 统一错误信封）；旧版界面已全量改造到 `window.taghit` 窄桥；真机运行已打通（Electron 33 + better-sqlite3，D13/D14）；字节闸门已落地（taghit-file:// 媒体协议 + 文本窄桥 + 图片尺寸扫描落库，D15），媒体预览/缩略图/瀑布流恢复。下一步：视频缩略图帧抓取、contentTab 贡献点槽（见 docs/CONTEXT §三）。
 
 ## 目录结构
 
 ```
 src/domain/       领域层（纯 TS）：types（实体/关系行/工作区-来源路径）· rules · errors
 src/ports/        端口（接口，纯声明）：store · filesystem（含 hash 三采样签名）· system（Clock/IdGen）
-src/adapters/     适配器（实现）：memory（MemoryStore · MemoryFileSystem 假 FS）· sqlite（SqliteStore，node:sqlite 内置驱动）
+src/adapters/     适配器（实现）：memory（MemoryStore · MemoryFileSystem 假 FS）· sqlite（SqliteStore，SyncSqlite 驱动注入）
                   node（NodeFileSystem 真实 fs）· sample-hash.ts（共享签名）
-src/application/  应用层用例：tagging · browse（成员派生+声明投影）· search · collection/group · cascade · scan（两阶段扫描）
-src/host/         Electron 宿主：main（装配+IPC 注册）· preload（window.taghit）· ipc（typed 窄桥契约）——electron 依赖需真实机安装
-frontend/         渲染层：Vue3+Pinia+router+Tailwind（已接窄桥；shared/contract=契约桥 · shared/api=门面+D9 文案 · lib/viewModel=视图适配）
+src/application/  应用层用例：tagging · browse（成员派生+声明投影）· search · collection/group · cascade · scan（两阶段+图片尺寸解析）· content（文本读取）· mediaMeta（图片头解析）
+src/host/         Electron 宿主：main（装配+IPC 注册）· preload（window.taghit）· ipc（typed 契约）· protocol（taghit-file 媒体协议）· sqliteDriver（better-sqlite3）
+frontend/         渲染层：Vue3+Pinia+router+Tailwind（shared/contract=契约桥 · shared/api=门面+D9 文案 · lib/viewModel+media=视图/媒体适配）
 scripts/          校准：s32（六用例）memory/sqlite · s33（扫描）memory/sqlite
-docs/             GLOSSARY（词汇）· DECISIONS（裁决）· CONTEXT（交接）· ARCHITECTURE（架构/状态/渲染-核心分离）
+docs/             GLOSSARY（词汇）· DECISIONS（裁决）· CONTEXT（交接/进度）· ARCHITECTURE（架构/插件方向）
 ```
 
 历史版本存档于 `../freeze/`（Tauri 原型、Electron 0.1.x，含前端参考）。
@@ -72,4 +72,10 @@ npm run calibrate:sqlite      # 校准：s32 sqlite :memory:（契约一致性�
 npm run calibrate:scan        # 校准：扫描场景 memory + sqlite
 ```
 
-桌面宿主（Electron）在真实机接线：`npm i -D electron`（版本内嵌 Node 需 ≥ 23.4，见 DECISIONS D13），随后以 TAGHIT_RENDERER_URL 指向渲染 dev server 启动主进程。
+真机运行（Electron 33 + better-sqlite3，见 DECISIONS D13/D14）：
+
+```bash
+npm run dev:renderer   # 终端 A：渲染层 vite dev server（5173）
+npm run bundle:host    # 终端 B：esbuild 打包 src/host → build/
+TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:host
+```
