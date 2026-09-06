@@ -10,17 +10,18 @@ TagHit 是多源内容标记与检索管理器，正在做 **0.2 领域先行重
 ## 二、架构与关键裁决（详见 GLOSSARY / DECISIONS）
 
 - 六边形分层：渲染层 → 应用层（首批用例已落地 `src/application`；收录扫描/事件规划中）→ 领域层 `src/domain` → 端口 `src/ports`（接口，已落地）→ 适配器 `src/adapters`（内存先行，SQLite 规划中）。依赖只向内。
-- 实体：条目 item（素材 / 空条目·锚）、工作区（索引容器，不拥有条目）、标签、作品（有序容器 + 锚条目承载标签）、组。
+- 实体：条目 item（素材 / 空条目·锚）、工作区（索引容器，不拥有条目）、标签、作品（有序容器 + 锚条目承载标签）、组、路径节点（扫描产物）。
 - 挂载 = 条目 × 标签（条目级）；声明 = 工作区 × 标签（**读取端投影**：取条目返回全部标签，未声明者不交付该工作区）。
 - 标签关联 = 有向 tag → tag，**领域不解义**；语义词一律不许写进领域层。
 - 条目去重、mediaType 等一概不在领域层建模（去重是扫描行为；mediaType 只是元信息键）。
+- **工作区 ↔ 条目**：可见性为**派生**——工作区拥有**来源根**（配置行）→ 扫描在其下创建**路径节点**（含根节点，带 included/excluded 状态）→ 条目的直接节点**不落库**，浏览时以 sourceUri 父目录 == 节点 dirPath 派生。节点 excluded 只隐藏其直接条目，不级联。
 - **存储**：单体 Store + 事务（`src/ports/store.ts`）；查询下沉到存储，复杂查询用可扩展条件对象。端口契约以**流动类型**为第一公民、动词按用例收窄；实体与关系行记录（含成员行）全在 `domain/types.ts`。事务 = 边界暴露的原子性（ACID）、不支持嵌套；一致性边界在应用层用例（删除级联单事务编排）。全局约定：异步边界、实体写严格（NOT_FOUND/CONFLICT/INVALID）、关系写幂等、读宽松。
 
 ## 三、已完成
 
 - 旧版归档（`freeze/TagHit-Electron-0.1.2`，含审计文档与 git）；git 历史已继承到本仓库。
 - 文档精简：GLOSSARY / DECISIONS / 本文件；README 是项目说明（定位、架构、原因）。
-- 领域层：`types.ts`（实体 + 全部关系行记录，含 `CollectionMember`(带 position) 与 `GroupMember`）、`rules.ts`（纯规则：标签名唯一、自环、同向重复判定）、`errors.ts`。
+- 领域层：`types.ts`（实体 + 全部关系行记录，含 `CollectionMember`(带 position)、`GroupMember`，及工作区-来源路径模型 `WorkspaceRoot`/`PathNode`/`NodeState`）、`rules.ts`（纯规则：标签名唯一、自环、同向重复判定）、`errors.ts`。
 - 端口：`src/ports/system.ts`（Clock/IdGen）· `filesystem.ts`（walk/stat/readHead）· `store.ts`（单体 Store + 事务 + ItemsQuery/TagsQuery 条件对象）。
 - 内存适配器：`src/adapters/memory/store.ts`（`MemoryStore`，clone-on-write 模拟事务回滚；严格/幂等/宽松按端口全局约定）。
 - 应用层首批六用例：`src/application/tagging.ts`（打标/卸标，批量原子）· `browse.ts`（浏览 + 声明投影）· `search.ts`（检索条目/标签）· `collection.ts`、`group.ts`（维护）· `cascade.ts`（删除级联，单事务清关联行）· `services.ts`（依赖注入点：store/clock/idGen）。
@@ -30,7 +31,7 @@ TagHit 是多源内容标记与检索管理器，正在做 **0.2 领域先行重
 ## 四、下一步（SQLite → 扫描 → 前端）
 
 1. **SQLite v1 schema + `SqliteStore` 适配器**（同一 Store 接口）。可用同一份校准脚本换适配器跑通作一致性验证；随后补收录扫描/事件等应用层用例。需先定驱动（同步 better-sqlite3 vs 异步）与依赖引入方式。
-2. 两阶段扫描（路径遍历 + 条目级）、工作区来源路径树建模。
+2. 两阶段扫描（路径遍历 + 条目级）：扫描用例创建/维护路径节点（`PathNode`）与状态、维护条目与来源根挂载；随后 browse 接节点状态做可见性派生。工作区-来源路径模型领域类型已落地，Store 端口动词待扫描用例反推（子树整体排除 = parked 应用层逻辑）。
 3. 前端复用改造（沿用旧版界面）。
 
 ## 五、纪律（防止新 session 跑偏；都踩过坑）
@@ -38,8 +39,8 @@ TagHit 是多源内容标记与检索管理器，正在做 **0.2 领域先行重
 1. **层纪律**：领域层只有类型与纯规则，绝不持有存储、不做 IO；流程进应用层；存储实现放适配器。不要造"实体 + 存储 + CRUD"一锅端的类。端口只声明"流动类型 + 薄动词"的契约，不做业务判定。
 2. **术语纪律**：只用 GLOSSARY 里的词。**不要自行引入**未收录的术语或关系语义（如"is-a/继承/修饰/上溯"曾被单方面引入造成幻觉，已全部清除）；语义预设词禁止写入领域层。
 3. **文档纪律**：文档已精简，禁止加轮次记录/自指声明/冗余解释；只维护 GLOSSARY / DECISIONS / CONTEXT 三份。
-4. **不预建模**：parked 项（C-S、作品嵌套/多归属等）不进代码不进决策。
-5. 提交前所改层的 `tsc -p tsconfig.<domain|ports|adapters|application>.json` 必须通过；同一语义变更同步更新对应文档行。
+4. **不预建模**：parked 项（C-S、作品嵌套/多归属、子树整体排除等）不进代码不进决策。
+5. 提交前所改层的 `tsc -p tsconfig.<domain|ports|adapters|application>.json` 必须通过；同一语义变更同步更新对应文档行（改动即同步，不留到下次）。
 
 ## 六、环境与 git
 

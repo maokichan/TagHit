@@ -88,6 +88,33 @@ export interface GroupMember {
   tagId: Id
 }
 
+// ---------------------------------------------------------------------------
+// 工作区 ↔ 来源路径（条目可见性派生模型；节点由扫描用例创建，未到首批）
+// ---------------------------------------------------------------------------
+
+/** 节点状态：仅作用于该节点的直接条目；不影响其子节点与父节点（不级联）。 */
+export type NodeState = 'included' | 'excluded'
+
+/**
+ * 来源根：挂到工作区的目录路径（配置行）。
+ * 工作区拥有其来源根集合，但**不拥有条目**。路径为归一化绝对路径（正斜杠）。
+ */
+export interface WorkspaceRoot {
+  workspaceId: Id
+  path: string
+}
+
+/**
+ * 路径节点：扫描在某来源根下发现的目录（含来源根本身 = 根节点）。
+ * 身份 = 工作区 × 目录路径；树形由目录路径的前缀关系蕴含（不另存父指针）。
+ * 条目的节点归属**不落库**：浏览时以 sourceUri 的父目录 == dirPath 派生。
+ */
+export interface PathNode {
+  workspaceId: Id
+  dirPath: string
+  state: NodeState
+}
+
 export function isFileItem(item: Item): item is FileItem {
   return item.kind === 'file'
 }
