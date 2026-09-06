@@ -28,7 +28,7 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 3. 文档纪律：维护 GLOSSARY / DECISIONS / CONTEXT / **ARCHITECTURE** + README；不留轮次记录；**进度只记本文件 §三**。
 4. 不预建模：parked 项不进代码。
 5. 提交前所改层 `tsc -p tsconfig.<domain|ports|adapters|application|host>.json` 通过；语义变更即同步文档；动契约/适配器后跑三份校准。
-6. git：本地提交可做；**打 tag 前先向用户确认一次再打**；push（含 tag）由真人执行。
+6. git：本地提交可做；**打 tag 前先向用户确认一次再打**；push（含 tag）由真人执行；版本迭代只对应代码/功能变更，纯文档变更不打版本。
 
 ## 五、环境与运行
 
