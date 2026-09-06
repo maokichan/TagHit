@@ -11,10 +11,10 @@ async function bootstrap(): Promise<void> {
   const app = createApp(App)
   app.use(pinia)
   app.use(router)
+  // 官方功能组件先注册再挂载：App.vue 的活动栏在 setup 时读取注册表
+  registerBuiltinFeatures()
   app.mount('#app')
 
-  // 注册官方功能组件（宿主按声明渲染；插件贡献点未来走同一条路）
-  registerBuiltinFeatures()
   // 执行功能组件的行为钩子（键鼠交互快捷键等）
   setupFeatureBehaviors()
 

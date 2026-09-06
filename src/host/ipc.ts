@@ -79,6 +79,8 @@ export interface IpcContracts {
   'item.tag': { args: [{ itemId: Id; tagIds: Id[] }]; result: null }
   'item.untag': { args: [{ itemId: Id; tagIds: Id[] }]; result: null }
   'items.delete': { args: [itemId: Id]; result: null }
+  /** 文本条目内容（字节闸门）：不可文本预览 → null；截断由 truncated 标记 */
+  'item.readText': { args: [itemId: Id, maxBytes?: number]; result: { text: string; truncated: boolean } | null }
 
   // ---- 工作区 workspace：建 / 列 / 浏览 / 来源根 ---------------------------
   'workspace.create': { args: [name: string]; result: Workspace }
@@ -129,6 +131,7 @@ export interface TaghitRendererApi {
   tagItem(input: { itemId: Id; tagIds: Id[] }): Promise<IpcResult<'item.tag'>>
   untagItem(input: { itemId: Id; tagIds: Id[] }): Promise<IpcResult<'item.untag'>>
   deleteItem(itemId: Id): Promise<IpcResult<'items.delete'>>
+  readText(itemId: Id, maxBytes?: number): Promise<IpcResult<'item.readText'>>
 
   createWorkspace(name: string): Promise<IpcResult<'workspace.create'>>
   listWorkspaces(): Promise<IpcResult<'workspace.list'>>

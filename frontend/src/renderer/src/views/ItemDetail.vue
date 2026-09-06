@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { File, Film, Image, Music, FileText } from 'lucide-vue-next'
 import { api } from '@shared/api'
 import type { Id } from '@shared/contract'
 import { toItemView, type ItemView } from '../lib/viewModel'
+import { previewKindOf, taghitFileUrl, type PreviewKind } from '../lib/media'
 import { useTabStore } from '../stores/tab'
 import { useTagStore } from '../stores/tag'
 import { formatSize } from '../lib/format'
@@ -17,6 +19,47 @@ const tagStore = useTagStore()
 
 const item = ref<ItemView | null>(null)
 const error = ref('')
+
+// ---- 字节闸门：内嵌预览 -----------------------------------------------------
+const previewKind = computed<PreviewKind>(() =>
+  item.value ? previewKindOf(item.value.mediaType, item.value.extension) : 'none'
+)
+const mediaUrl = computed(() =>
+  item.value?.sourceUri ? taghitFileUrl(item.value.sourceUri) : null
+)
+const textContent = ref<{ text: string; truncated: boolean } | null>(null)
+const textLoading = ref(false)
+const textUnavailable = ref(false)
+const previewFailed = ref(false)
+
+// 兜底占位图标（音频兜底也要用）
+const iconMap: Record<string, Component> = {
+  image: Image,
+  video: Film,
+  audio: Music,
+  document: FileText,
+  other: File
+}
+const TypeIcon = computed(() => iconMap[item.value?.mediaType ?? 'other'] ?? File)
+
+async function loadText(): Promise<void> {
+  textContent.value = null
+  textUnavailable.value = false
+  if (!item.value || previewKind.value !== 'text') return
+  textLoading.value = true
+  try {
+    textContent.value = await api.items.readText(item.value.id)
+    if (textContent.value === null) textUnavailable.value = true
+  } catch {
+    textUnavailable.value = true
+  } finally {
+    textLoading.value = false
+  }
+}
+watch(() => item.value?.id, () => {
+  previewFailed.value = false
+  void loadText()
+})
 
 // 工作区上下文：优先取路由 query（全局搜索结果带入），否则用当前活动工作区标签
 const workspaceId = computed<Id | null>(() => {
@@ -70,12 +113,49 @@ const rows = computed(() => {
     </div>
 
     <template v-else-if="item">
-      <!-- 左：媒体内容。0.2 契约无字节通道：预览区降级为占位（待宿主字节闸门落地） -->
+      <!-- 左：媒体内容（字节闸门：媒体经 taghit-file 协议，文本经窄桥 readText） -->
       <div class="flex-1 min-w-0 h-full flex items-center justify-center p-4 overflow-hidden">
-        <div class="flex flex-col items-center gap-3 text-[var(--fg-dim)]">
-          <span class="text-sm">媒体预览暂不可用</span>
-          <span class="text-[11px] max-w-xs text-center leading-relaxed">
-            渲染层按纪律拿不到文件字节；图片/视频/文本预览将在宿主"字节闸门"能力落地后恢复。
+        <!-- 图片 -->
+        <img
+          v-if="previewKind === 'image' && mediaUrl"
+          :key="item.id"
+          :src="mediaUrl"
+          :alt="item.title"
+          class="max-w-full max-h-full object-contain rounded-md shadow-lg"
+          @error="previewFailed = true"
+        />
+        <!-- 视频 -->
+        <video
+          v-else-if="previewKind === 'video' && mediaUrl && !previewFailed"
+          :key="item.id"
+          :src="mediaUrl"
+          controls
+          class="max-w-full max-h-full rounded-md shadow-lg bg-black"
+          @error="previewFailed = true"
+        ></video>
+        <!-- 音频 -->
+        <div v-else-if="previewKind === 'audio' && mediaUrl && !previewFailed" class="w-full max-w-md flex flex-col items-center gap-4">
+          <component :is="TypeIcon" :size="72" class="text-[var(--fg-dim)]" />
+          <audio :key="item.id" :src="mediaUrl" controls class="w-full" @error="previewFailed = true"></audio>
+        </div>
+        <!-- 文本 -->
+        <div v-else-if="previewKind === 'text'" class="w-full h-full flex flex-col min-h-0">
+          <div v-if="textLoading" class="flex-1 flex items-center justify-center text-[var(--fg-dim)] text-sm">读取中…</div>
+          <template v-else-if="textContent">
+            <div v-if="textContent.truncated" class="text-[11px] text-[var(--warning, #e5a23c)] px-2 py-1">
+              文件超过 2 MiB，仅显示前段内容
+            </div>
+            <pre class="flex-1 min-h-0 overflow-auto text-[12px] leading-relaxed whitespace-pre-wrap break-all bg-[var(--bg)] rounded-md border border-[var(--border)] p-3">{{ textContent.text }}</pre>
+          </template>
+          <div v-else class="flex-1 flex items-center justify-center text-[var(--fg-dim)] text-sm">
+            {{ textUnavailable ? '文本读取失败（文件可能已移动或被占用）' : '读取中…' }}
+          </div>
+        </div>
+        <!-- 兜底占位：无预览形态 / 媒体解码失败 -->
+        <div v-else class="flex flex-col items-center gap-3 text-[var(--fg-dim)]">
+          <component :is="TypeIcon" :size="56" />
+          <span class="text-sm">
+            {{ previewFailed ? '该格式无法内嵌预览' : '此类型暂无内嵌预览' }}
           </span>
           <span v-if="item.sourceUri" class="text-[11px] kbd max-w-full truncate">{{ item.sourceUri }}</span>
         </div>

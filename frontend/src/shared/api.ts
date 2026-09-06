@@ -83,6 +83,9 @@ export const api = {
     },
     async remove(itemId: Id): Promise<void> {
       unwrap(await bridge().deleteItem(itemId))
+    },
+    async readText(itemId: Id, maxBytes?: number): Promise<{ text: string; truncated: boolean } | null> {
+      return unwrap(await bridge().readText(itemId, maxBytes))
     }
   },
   workspaces: {

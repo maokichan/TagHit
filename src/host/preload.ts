@@ -26,6 +26,7 @@ const api: TaghitRendererApi = {
   tagItem: (input) => invoke('item.tag', input),
   untagItem: (input) => invoke('item.untag', input),
   deleteItem: (itemId) => invoke('items.delete', itemId),
+  readText: (itemId, maxBytes) => invoke('item.readText', itemId, maxBytes),
 
   createWorkspace: (name) => invoke('workspace.create', name),
   listWorkspaces: () => invoke('workspace.list'),

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { File, Film, Image, Music, FileText } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
+import { taghitFileUrl } from '../../lib/media'
 import { useUiStore } from '../../stores/ui'
 import { formatSize } from '../../lib/format'
 import TagChip from '../common/TagChip.vue'
@@ -22,7 +23,16 @@ const uiStore = useUiStore()
 /** 列表布局（文件管理器样式）：行式渲染，区别于卡片（瀑布流/网格） */
 const isList = computed(() => uiStore.layoutMode === 'list')
 
-// 0.2 无缩略图管线（字节闸门待宿主落地）：统一图标占位
+// 缩略图（字节闸门）：图片类经 taghit-file 协议直取；加载失败回落图标占位
+const thumbUrl = computed(() =>
+  props.item.mediaType === 'image' && props.item.sourceUri ? taghitFileUrl(props.item.sourceUri) : null
+)
+const thumbFailed = ref(false)
+watch(() => props.item.id, () => {
+  thumbFailed.value = false
+})
+
+// 非图片/无缩略图：统一图标占位
 const iconMap: Record<string, Component> = {
   image: Image,
   video: Film,
@@ -48,7 +58,15 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
   >
     <div class="flex items-center gap-3 px-3 py-2">
       <div class="w-16 h-12 shrink-0 rounded-md bg-[var(--bg)] overflow-hidden flex items-center justify-center relative">
-        <div class="flex flex-col items-center gap-0.5 text-[var(--fg-dim)]">
+        <img
+          v-if="thumbUrl && !thumbFailed"
+          :src="thumbUrl"
+          :alt="item.title"
+          class="w-full h-full object-cover"
+          loading="lazy"
+          @error="thumbFailed = true"
+        />
+        <div v-else class="flex flex-col items-center gap-0.5 text-[var(--fg-dim)]">
           <component :is="TypeIcon" :size="20" />
           <span class="text-[8px] uppercase">{{ item.extension ?? item.mediaType }}</span>
         </div>
@@ -111,7 +129,15 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
     @dblclick="emit('open', item)"
   >
     <div class="bg-[var(--bg)] flex items-center justify-center overflow-hidden aspect-[4/3]">
-      <div class="flex flex-col items-center gap-1 text-[var(--fg-dim)] py-6">
+      <img
+        v-if="thumbUrl && !thumbFailed"
+        :src="thumbUrl"
+        :alt="item.title"
+        class="w-full h-full object-cover"
+        loading="lazy"
+        @error="thumbFailed = true"
+      />
+      <div v-else class="flex flex-col items-center gap-1 text-[var(--fg-dim)] py-6">
         <component :is="TypeIcon" :size="28" />
         <span class="text-[10px] uppercase">{{ item.extension ?? item.mediaType }}</span>
       </div>

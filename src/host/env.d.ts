@@ -39,6 +39,18 @@ declare module 'electron' {
   export const ipcRenderer: {
     invoke(channel: string, ...args: unknown[]): Promise<unknown>
   }
+
+  export const net: {
+    fetch(url: string): Promise<Response>
+  }
+
+  export const protocol: {
+    registerSchemesAsPrivileged(schemes: {
+      scheme: string
+      privileges: { secure?: boolean; supportFetchAPI?: boolean; stream?: boolean; corsEnabled?: boolean }
+    }[]): void
+    handle(scheme: string, handler: (request: Request) => Response | Promise<Response>): void
+  }
 }
 
 declare const process: {

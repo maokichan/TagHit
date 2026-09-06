@@ -16,6 +16,7 @@ import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
 import { createNodeFileSystem } from '../adapters/node/index.ts'
 import { openSqlite } from './sqliteDriver.ts'
+import { registerPrivilegedSchemes, registerTaghitFileProtocol } from './protocol.ts'
 import {
   appendCollectionMember,
   browseWorkspace,
@@ -35,6 +36,7 @@ import {
   listWorkspaceRoots,
   listWorkspaces,
   mountWorkspaceRoot,
+  readItemText,
   removeCollectionMember,
   removeGroupMember,
   renameCollection,
@@ -109,6 +111,9 @@ function registerHandlers(): void {
   )
   ipcMain.handle('items.delete', (_event, itemId: Id) =>
     envelope(deleteItemCascade(services, itemId).then(() => null))
+  )
+  ipcMain.handle('item.readText', (_event, itemId: Id, maxBytes?: number) =>
+    envelope(readItemText(services, nodeFs, itemId, maxBytes))
   )
 
   // ---- 工作区 ----
@@ -186,9 +191,13 @@ function createWindow(): void {
   void win.loadURL(process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173')
 }
 
+// 字节闸门（媒体侧）：taghit-file:// 特权 scheme 必须在 ready 前注册
+registerPrivilegedSchemes()
+
 registerHandlers()
 
 app.whenReady().then(() => {
+  registerTaghitFileProtocol(services)
   createWindow()
   app.on('activate', () => createWindow())
 })
