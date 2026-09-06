@@ -28,13 +28,14 @@ TagHit 是多源内容标记与检索管理器，正在做 **0.2 领域先行重
 - SQLite 适配器：`src/adapters/sqlite/store.ts`（`SqliteStore`，node:sqlite 内置驱动、外键、事务；v1 schema 内嵌）。
 - 应用层：首批用例（tagging/browse/search/collection/group/cascade）+ `scan.ts`（两阶段扫描、挂载/卸载来源根、missing 策略）+ `paths.ts`（父目录/文件名派生）+ `services.ts`。
 - 校准：`s32-scenario.ts`（首批六用例 + 节点排除，44 断言）双跑（calibrate / calibrate:sqlite）；`s33-scan-scenario.ts`（扫描场景，15 断言）双跑（calibrate:scan）。node v24 直接执行 TS。
-- 四个 tsconfig（domain / ports / adapters / application）逐层覆盖依赖；**无测试设施**（按用户要求先出代码校准理解）。
+- 宿主骨架：`src/adapters/node/fs.ts`（`NodeFileSystem`，真实 fs，与假 FS 同采样签名）· `src/host/`（`ipc.ts` 类型化窄桥契约 + 结果信封；`main.ts` 装配 SqliteStore/真时钟/UUID 并注册端点；`preload.ts` 暴露 `window.taghit`）。**不含 electron 依赖**：渲染端仍需引入并在真实机接线。
+- 五个 tsconfig（domain / ports / adapters / application / host）逐层覆盖依赖；**无测试设施**（按用户要求先出代码校准理解）。
 
-## 四、下一步（前端 → 宿主接线）
+## 四、下一步（前端 → 真实机宿主接线）
 
-1. 前端复用改造（沿用旧版界面；渲染层只认 uri）；渲染/宿主边界错误转译（D9）。
-2. 真实 node:fs 适配器（实现 FileSystem 的 walk/stat/readHead/hash）与宿主接线；内容签名的三采样策略在真实实现与 MemoryFileSystem 共用 `sampleHash`。
-3. 事件机制（D6）、后台增量扫描 / 子树整体排除（parked，未来按 UI 需要做）。
+1. 前端（渲染层）复用改造：沿用 freeze 旧版界面，UI 只调 `window.taghit`（typed IPC 窄桥）与 uri/字节闸门；D9 错误转译按信封 code 落地。
+2. 真实机接线（沙箱外）：`npm i -D electron`（+ 前端构建链）；验证内嵌 Node ≥ 23.4（否则宿主层换 better-sqlite3 实现同一 Store，见 D13）；dev URL / 打包 loadFile。
+3. 补扫描/浏览类 IPC 端点（NodeFileSystem 注入 scanWorkspace）；事件机制（D6）、后台增量扫描 / 子树整体排除（parked）。
 
 ## 五、纪律（防止新 session 跑偏；都踩过坑）
 
@@ -46,9 +47,9 @@ TagHit 是多源内容标记与检索管理器，正在做 **0.2 领域先行重
 
 ## 六、环境与 git
 
-- 本仓库无 node_modules：类型检查用存档的 tsc（四个配置：domain / ports / adapters / application）：
+- 本仓库无 node_modules：类型检查用存档的 tsc（五个配置：domain / ports / adapters / application / host）：
   `& 'D:\PROJECT\freeze\TagHit-Electron-0.1.2\node_modules\.bin\tsc.cmd' -p tsconfig.domain.json`
-  （或先 `npm install --no-audit --no-fund` 后 `npm run typecheck:domain|ports|adapters|application`。）
+  （或先 `npm install --no-audit --no-fund` 后 `npm run typecheck:domain|ports|adapters|application|host`。）
 - 本机 node v24：直接 `node 脚本.ts` 跑 TS（内置 node:sqlite / node:crypto，零第三方依赖）。
 - 校准：`npm run calibrate`（s32 memory）· `calibrate:sqlite`（s32 sqlite）· `calibrate:scan`（s33 memory + sqlite）。
 - git：本地提交可做；**push 由真人执行**（沙箱无凭据，见 `../NETWORK.md`）。提交身份已配置（Maokichan）。
@@ -57,15 +58,16 @@ TagHit 是多源内容标记与检索管理器，正在做 **0.2 领域先行重
 
 ```
 TagHit/
-├── README.md · package.json · tsconfig.{domain,ports,adapters,application}.json · .gitignore
+├── README.md · package.json · tsconfig.{domain,ports,adapters,application,host}.json · .gitignore
 ├── docs/          CONTEXT.md（本文件）· GLOSSARY.md（词汇）· DECISIONS.md（分层/裁决/范围）
 ├── src/domain/    types.ts · rules.ts · errors.ts · index.ts
 ├── src/ports/     system.ts（Clock/IdGen）· filesystem.ts（walk/stat/readHead/hash）· store.ts · index.ts
 ├── src/adapters/  memory/store.ts（MemoryStore）· memory/fs.ts（MemoryFileSystem）
 │                  sqlite/store.ts（SqliteStore）· sqlite/index.ts · sqlite/sqlite.d.ts
-│                  sample-hash.ts（三采样签名）· node-builtins.d.ts（node:crypto 声明）
+│                  node/fs.ts（NodeFileSystem）· sample-hash.ts · node-builtins.d.ts
 ├── src/application/  services.ts · paths.ts · tagging.ts · browse.ts · search.ts · collection.ts
 │                  group.ts · cascade.ts · scan.ts · index.ts
+├── src/host/      main.ts（装配+IPC 注册）· preload.ts（window.taghit）· ipc.ts（窄桥契约）· env.d.ts
 └── scripts/       s32-scenario.ts · s32-calibrate.ts · s32-calibrate-sqlite.ts
                    s33-scan-scenario.ts · s33-scan-calibrate.ts
 ```

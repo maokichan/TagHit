@@ -71,6 +71,7 @@
 | D10 | SQLite 驱动 | Node 内置 node:sqlite（同步单连接；零第三方依赖） |
 | D11 | 消失策略 | 扫描调用配置；缺省 keep（标 missing 保留），discard 可选 |
 | D12 | 内容签名 | sha256 于头/中/尾三采样点（64 KiB/段），适配器共用 sampleHash |
+| D13 | 宿主 | Electron（Node + Chromium 渲染界面）；typed IPC 窄桥暴露用例；核心零依赖。接线时验证 Electron 内嵌 Node ≥ 23.4（node:sqlite）；不满足则宿主层换 better-sqlite3 实现同一 Store 接口 |
 
 ## parked
 

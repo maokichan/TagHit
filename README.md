@@ -41,9 +41,10 @@ TagHit 管理散落在本地目录里的内容（图片、视频、音频、文�
 ```
 src/domain/       领域层（纯 TS）：types（实体/关系行/工作区-来源路径）· rules · errors
 src/ports/        端口（接口，纯声明）：store · filesystem（含 hash 三采样签名）· system（Clock/IdGen）
-src/adapters/     适配器（实现）：memory（MemoryStore · MemoryFileSystem 假 FS）
-                  sqlite（SqliteStore，node:sqlite 内置驱动）· sample-hash.ts（共享签名）
+src/adapters/     适配器（实现）：memory（MemoryStore · MemoryFileSystem 假 FS）· sqlite（SqliteStore，node:sqlite 内置驱动）
+                  node（NodeFileSystem 真实 fs）· sample-hash.ts（共享签名）
 src/application/  应用层用例：tagging · browse（成员派生+声明投影）· search · collection/group · cascade · scan（两阶段扫描）
+src/host/         Electron 宿主：main（装配+IPC 注册）· preload（window.taghit）· ipc（typed 窄桥契约）——electron 依赖需真实机安装
 scripts/          校准：s32（六用例）memory/sqlite · s33（扫描）memory/sqlite
 docs/             GLOSSARY（业务词汇）· DECISIONS（分层与裁决）· CONTEXT（开发交接）
 ```
@@ -63,7 +64,10 @@ npm run typecheck:domain      # 领域层
 npm run typecheck:ports       # + 端口接口
 npm run typecheck:adapters    # + 适配器
 npm run typecheck:application # + 应用层与脚本
+npm run typecheck:host        # + Electron 宿主骨架
 npm run calibrate             # 校准：s32 memory（需 node ≥ v24）
 npm run calibrate:sqlite      # 校准：s32 sqlite :memory:（契约一致性）
 npm run calibrate:scan        # 校准：扫描场景 memory + sqlite
 ```
+
+桌面宿主（Electron）在真实机接线：`npm i -D electron`（版本内嵌 Node 需 ≥ 23.4，见 DECISIONS D13），随后以 TAGHIT_RENDERER_URL 指向渲染 dev server 启动主进程。
