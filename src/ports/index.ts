@@ -1,3 +1,3 @@
-export * from './system'
-export * from './filesystem'
-export * from './store'
+export * from './system.ts'
+export * from './filesystem.ts'
+export * from './store.ts'

@@ -34,15 +34,17 @@ TagHit 管理散落在本地目录里的内容（图片、视频、音频、文�
 2. **宿主技术是可替换的**。桌面框架、数据库、文件访问方式都可能演进（例如协作形态下的存储变化）；把它们挡在适配器后，业务核心不受影响。
 3. **单核心、多入口**。官方界面、命令行、未来的插件扩展共用同一套领域与应用逻辑，避免每入口一套规则。
 
-当前进度：领域层与端口接口完成，内存 Store 适配器已落地（`src/domain/` · `src/ports/` · `src/adapters/`，纯 TS）；应用层首批用例与 SQLite 适配器进行中；渲染层沿用旧版界面并改造。
+当前进度：领域层、端口接口、内存 Store 适配器与应用层首批六用例已完成并在校准脚本上跑通（`npm run calibrate`，42 断言）；下一步是 SQLite 适配器与两阶段扫描；渲染层沿用旧版界面并改造。
 
 ## 目录结构
 
 ```
-src/domain/      领域层（纯 TS）：types（实体/关系行）· rules（不变量判定）· errors
-src/ports/       端口（接口，纯声明）：store（单体 + 事务 + 条件对象）· filesystem · system（Clock/IdGen）
-src/adapters/    适配器（实现）：memory（MemoryStore，开发/测试用；SQLite 规划中）
-docs/            GLOSSARY（业务词汇）· DECISIONS（分层与裁决）· CONTEXT（开发交接）
+src/domain/       领域层（纯 TS）：types（实体/关系行）· rules（不变量判定）· errors
+src/ports/        端口（接口，纯声明）：store（单体 + 事务 + 条件对象）· filesystem · system（Clock/IdGen）
+src/adapters/     适配器（实现）：memory（MemoryStore，开发/测试用；SQLite 规划中）
+src/application/  应用层用例：tagging（打标/卸标）· browse（浏览+声明投影）· search（检索）· collection / group（维护）· cascade（删除级联）
+scripts/          校准脚本（npm run calibrate）
+docs/             GLOSSARY（业务词汇）· DECISIONS（分层与裁决）· CONTEXT（开发交接）
 ```
 
 历史版本存档于 `../freeze/`（Tauri 原型、Electron 0.1.x，含前端参考）。
@@ -56,7 +58,9 @@ docs/            GLOSSARY（业务词汇）· DECISIONS（分层与裁决）· C
 ## 开发
 
 ```bash
-npm run typecheck:domain     # 领域层
-npm run typecheck:ports      # + 端口接口
-npm run typecheck:adapters   # + 适配器
+npm run typecheck:domain      # 领域层
+npm run typecheck:ports       # + 端口接口
+npm run typecheck:adapters    # + 适配器
+npm run typecheck:application # + 应用层与脚本
+npm run calibrate             # 内存 Store 上直跑首批六用例（需 node ≥ v24）
 ```

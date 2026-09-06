@@ -9,5 +9,5 @@
     "forceConsistentCasingInFileNames": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src/domain/**/*.ts", "src/ports/**/*.ts"]
+  "include": ["src/**/*.ts", "scripts/**/*.ts"]
 }

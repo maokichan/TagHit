@@ -2,11 +2,11 @@
 export type DomainErrorCode = 'NOT_FOUND' | 'CONFLICT' | 'INVALID'
 
 export class DomainError extends Error {
-  constructor(
-    readonly code: DomainErrorCode,
-    message: string
-  ) {
+  readonly code: DomainErrorCode
+
+  constructor(code: DomainErrorCode, message: string) {
     super(message)
     this.name = 'DomainError'
+    this.code = code
   }
 }

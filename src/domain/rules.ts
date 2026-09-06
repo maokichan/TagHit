@@ -3,7 +3,7 @@
  * 不持状态、不读写外部；写入时由应用层调用这些判定。
  */
 
-import type { Id, Tag, TagLink } from './types'
+import type { Id, Tag, TagLink } from './types.ts'
 
 /** 标签名规范化（创建/改名前的值处理）。 */
 export function normalizeTagName(name: string): string {

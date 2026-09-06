@@ -34,7 +34,7 @@ import type {
   Tag,
   TagLink,
   Workspace,
-} from '../domain'
+} from '../domain/index.ts'
 
 // ---------------------------------------------------------------------------
 // 写输入（跨边界输入的形状；id / createdAt 由应用层经 Clock / IdGen 注入）

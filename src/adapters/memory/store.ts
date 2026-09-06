@@ -15,7 +15,7 @@
  * 规则在 domain/rules.ts，编排在应用层用例。
  */
 
-import { DomainError } from '../../domain'
+import { DomainError } from '../../domain/index.ts'
 import type {
   Collection,
   CollectionMember,
@@ -29,7 +29,7 @@ import type {
   Tag,
   TagLink,
   Workspace,
-} from '../../domain'
+} from '../../domain/index.ts'
 import type {
   ItemHit,
   ItemsQuery,
@@ -39,7 +39,7 @@ import type {
   NewWorkspace,
   Store,
   TagsQuery,
-} from '../../ports/store'
+} from '../../ports/store.ts'
 
 // ---------------------------------------------------------------------------
 // 状态与克隆
