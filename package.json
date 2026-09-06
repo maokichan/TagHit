@@ -5,6 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck:domain": "tsc -p tsconfig.domain.json"
+    "typecheck:domain": "tsc -p tsconfig.domain.json",
+    "typecheck:ports": "tsc -p tsconfig.ports.json",
+    "typecheck:adapters": "tsc -p tsconfig.adapters.json"
   }
 }

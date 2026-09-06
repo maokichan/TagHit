@@ -75,6 +75,19 @@ export interface Declaration {
   tagId: Id
 }
 
+/** 成员：作品 → 条目（有序）。position 为成员在该作品内的 0 起位置。 */
+export interface CollectionMember {
+  collectionId: Id
+  itemId: Id
+  position: number
+}
+
+/** 成员：组 → 标签（无序）。 */
+export interface GroupMember {
+  groupId: Id
+  tagId: Id
+}
+
 export function isFileItem(item: Item): item is FileItem {
   return item.kind === 'file'
 }
