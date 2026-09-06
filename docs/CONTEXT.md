@@ -9,7 +9,7 @@
 
 ## 二、读序
 
-README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{domain,ports,application}；`frontend/` 是渲染层（旧 Vue，待改造）。
+README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{domain,ports,application}；`frontend/` 是渲染层（已接窄桥）。
 
 ## 三、下一步
 
@@ -31,7 +31,7 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 - 无 node_modules：存档 tsc `& 'D:\PROJECT\freeze\TagHit-Electron-0.1.2\node_modules\.bin\tsc.cmd' -p tsconfig.<layer>.json`；node v24 直跑 TS。
 - frontend：已装 node_modules；`npx vue-tsc --noEmit -p tsconfig.web.json --composite false`（web）与 `npx tsc --noEmit -p tsconfig.node.json --composite false`（构建配置）；契约类型经 @host/* alias type-only 引用根 src/host/ipc.ts。
 - 校准：`npm run calibrate | calibrate:sqlite | calibrate:scan`。
-- git：本地提交/tag 可做；**push（含 tag）由真人执行**。
+- git：本地提交可做；**打 tag 前先向用户确认一次再打**；push（含 tag）由真人执行。
 
 ## 六、文件地图（要点）
 
