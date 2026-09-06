@@ -7,7 +7,13 @@
     "noEmit": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
-  "include": ["src/domain/**/*.ts", "src/ports/**/*.ts", "src/adapters/**/*.ts"]
+  "include": [
+    "src/domain/**/*.ts",
+    "src/ports/**/*.ts",
+    "src/adapters/**/*.ts"
+  ]
 }

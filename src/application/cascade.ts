@@ -5,9 +5,9 @@
  * 各实体删除语义：
  * - 标签：清挂载 / 双向标签关联 / 声明 / 组成员行；
  * - 条目：清挂载与所在作品的成员行；
- * - 作品：清其成员行 → 级联删除锚条目（含锚的挂载等）→ 删作品行；
+ * - 作品：清成员行 → 删作品行 → 级联删锚条目（先删引用方，兼容 SQLite 外键）；
  * - 组：清组成员行；
- * - 工作区：清声明行。
+ * - 工作区：清来源根（含节点树）与声明行。
  */
 
 import { DomainError } from '../domain/index.ts'
@@ -15,8 +15,8 @@ import type { Id } from '../domain/index.ts'
 import type { Store } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
 
-/** 事务内：删除条目并清理其挂载与作品成员行。 */
-async function deleteItemIn(db: Store, itemId: Id): Promise<void> {
+/** 删除条目行并清理其挂载/成员行（删除级联与扫描在事务内复用）。 */
+export async function deleteItemIn(db: Store, itemId: Id): Promise<void> {
   for (const row of await db.listAttachments({ itemId })) {
     await db.detachTag(itemId, row.tagId)
   }

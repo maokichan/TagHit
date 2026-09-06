@@ -17,6 +17,7 @@ import type { FileItem, Id } from '../domain/index.ts'
 import type { FileSystem, Store } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
 import { basename } from './paths.ts'
+import { deleteItemIn } from './cascade.ts'
 
 export type MissingPolicy = 'keep' | 'discard'
 
@@ -49,17 +50,6 @@ export async function unmountWorkspaceRoot(
   path: string
 ): Promise<void> {
   await svc.store.removeWorkspaceRoot(workspaceId, path)
-}
-
-/** 事务内删除条目并清理其挂载/成员行（与 cascade.deleteItemCascade 同语义，避免嵌套事务）。 */
-async function deleteItemIn(db: Store, itemId: Id): Promise<void> {
-  for (const row of await db.listAttachments({ itemId })) {
-    await db.detachTag(itemId, row.tagId)
-  }
-  for (const member of await db.listCollectionMemberships({ itemId })) {
-    await db.removeCollectionMember(member.collectionId, itemId)
-  }
-  await db.deleteItem(itemId)
 }
 
 export async function scanWorkspace(
