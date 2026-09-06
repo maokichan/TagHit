@@ -60,6 +60,7 @@
 | D11 | 消失策略 | 缺省 keep；discard 可选 |
 | D12 | 内容签名 | 头/中/尾三采样（64 KiB/段），适配器共用 sampleHash |
 | D13 | 宿主 | Electron；typed IPC 窄桥暴露用例；核心零依赖。**Electron 33 内嵌 Node 20.18 → 宿主 Store 需换 better-sqlite3 实现（或升级 Electron）** |
+| D14 | SQLite 驱动 | 适配层只认最小接口 `SyncSqlite`（store.ts），驱动注入：node:sqlite 在 nodeDriver.ts（Node≥22 校准用），宿主注入 better-sqlite3（Electron ABI，根 node_modules）；node:sqlite 不进 Electron 打包产物 |
 
 ## parked
 

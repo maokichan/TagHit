@@ -1,15 +1,16 @@
 /**
  * SQLite 适配器：实现 Store 端口（src/ports/store.ts）。
  *
- * - 驱动：Node 内置 `node:sqlite`（DatabaseSync，同步），零第三方依赖；
- *   连接可指向文件或 ':memory:'（校准一致性验证用）。
+ * - 驱动：同步 SQLite 驱动以最小接口注入（SyncSqlite）。缺省用 Node 内置
+ *   `node:sqlite`（DatabaseSync），零第三方依赖；Electron 主进程（Node 20，
+ *   无 node:sqlite）由宿主注入 better-sqlite3——两者 API 形状一致，适配层不感知。
+ * - 连接可指向文件或 ':memory:'（校准一致性验证用）。
  * - 语义对齐：内存适配器同款端口全局约定——实体写严格（NOT_FOUND/CONFLICT/INVALID）、
  *   关系写幂等、读宽松、行列表按插入序（rowid）返回、名称排序用 JS 与内存适配器一致。
  * - 事务：外显 transaction → BEGIN/COMMIT/ROLLBACK；不支持嵌套；
  *   内部多语句操作（压实位置/重排）在未处于外显事务时自开短事务。
  */
 
-import { DatabaseSync } from 'node:sqlite'
 import { DomainError } from '../../domain/index.ts'
 import type {
   Collection,
@@ -40,6 +41,17 @@ import type {
 } from '../../ports/store.ts'
 
 type Row = Record<string, unknown>
+
+/** 同步 SQLite 驱动最小接口：node:sqlite DatabaseSync 与 better-sqlite3 Database 均满足。 */
+export interface SyncSqlite {
+  exec(sql: string): unknown
+  close(): void
+  prepare(sql: string): {
+    run(...params: unknown[]): { changes: number | bigint }
+    get(...params: unknown[]): unknown
+    all(...params: unknown[]): unknown[]
+  }
+}
 
 function notFound(entity: string, id: Id): DomainError {
   return new DomainError('NOT_FOUND', `${entity} 不存在（${id}）`)
@@ -196,11 +208,12 @@ CREATE TABLE IF NOT EXISTS groupMembers (
 `
 
 export class SqliteStore implements Store {
-  private db: DatabaseSync
+  private db: SyncSqlite
   private depth = 0
 
-  constructor(path = ':memory:') {
-    this.db = new DatabaseSync(path)
+  /** 驱动由调用方注入：node:sqlite 见 nodeDriver.ts（校准/测试），better-sqlite3 由宿主注入。 */
+  constructor(driver: SyncSqlite) {
+    this.db = driver
     this.db.exec(SCHEMA)
   }
 
@@ -840,7 +853,7 @@ export class SqliteStore implements Store {
   }
 }
 
-/** 新建 SQLite Store；path 缺省为 ':memory:'（校准/测试）。 */
-export function createSqliteStore(path = ':memory:'): Store {
-  return new SqliteStore(path)
+/** 以注入驱动建 Store（node:sqlite 或 better-sqlite3，由调用方决定）。 */
+export function createSqliteStoreFromDriver(db: SyncSqlite): Store {
+  return new SqliteStore(db)
 }

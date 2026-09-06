@@ -4,6 +4,7 @@
   "description": "TagHit — 多源内容标记与管理系统",
   "private": true,
   "type": "module",
+  "main": "build/main.cjs",
   "scripts": {
     "typecheck:domain": "tsc -p tsconfig.domain.json",
     "typecheck:ports": "tsc -p tsconfig.ports.json",
@@ -12,6 +13,9 @@
     "calibrate": "node scripts/s32-calibrate.ts",
     "calibrate:sqlite": "node scripts/s32-calibrate-sqlite.ts",
     "calibrate:scan": "node scripts/s33-scan-calibrate.ts",
+    "bundle:host": "node frontend/node_modules/esbuild/bin/esbuild src/host/main.ts --bundle --platform=node --format=cjs --outfile=build/main.cjs --external:electron --external:better-sqlite3 && node frontend/node_modules/esbuild/bin/esbuild src/host/preload.ts --bundle --platform=node --format=cjs --outfile=build/preload.cjs --external:electron",
+    "dev:renderer": "npm --prefix frontend run dev:renderer",
+    "start:host": "node frontend/node_modules/electron/cli.js .",
     "typecheck:host": "tsc -p tsconfig.host.json"
   }
 }

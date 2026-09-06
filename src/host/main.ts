@@ -1,8 +1,8 @@
 /**
- * Electron 主进程：宿主的装配点（唯一允许接触 node:sqlite / node:fs / electron 的地方）。
+ * Electron 主进程：宿主的装配点（唯一允许接触 SQLite 驱动 / node:fs / electron 的地方）。
  *
  * 职责：
- * - 组装 AppServices：SqliteStore（真实库文件）+ 真时钟 + UUID；
+ * - 组装 AppServices：SqliteStore（better-sqlite3 真实库文件）+ 真时钟 + UUID；
  * - 用「用例窄桥」注册 IPC 端点（契约见 ipc.ts），统一结果信封与 D9 错误转译；
  * - 创建隔离窗口（contextIsolation，渲染层无 Node；preload 仅暴露 window.taghit）。
  *
@@ -13,8 +13,9 @@
 import { randomUUID } from 'node:crypto'
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { DomainError } from '../domain/index.ts'
-import { createSqliteStore } from '../adapters/sqlite/index.ts'
+import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
 import { createNodeFileSystem } from '../adapters/node/index.ts'
+import { openSqlite } from './sqliteDriver.ts'
 import {
   appendCollectionMember,
   browseWorkspace,
@@ -56,7 +57,7 @@ function dbPath(): string {
 }
 
 const services: AppServices = {
-  store: createSqliteStore(dbPath()),
+  store: createSqliteStoreFromDriver(openSqlite(dbPath())),
   clock: { now: () => new Date().toISOString() },
   idGen: { newId: () => randomUUID() },
 }
@@ -177,7 +178,7 @@ function createWindow(): void {
     width: 1280,
     height: 840,
     webPreferences: {
-      preload: `${app.getAppPath()}/src/host/preload.ts`,
+      preload: `${app.getAppPath()}/build/preload.cjs`,
       contextIsolation: true,
       nodeIntegration: false,
     },

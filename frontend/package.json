@@ -8,6 +8,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev:renderer": "vite --config vite.renderer.config.ts",
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
     "build": "electron-vite build",
