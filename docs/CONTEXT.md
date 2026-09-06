@@ -14,9 +14,10 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 ## 三、下一步
 
 1. ~~真机接线~~（已完成）：宿主 Store 驱动注入化（store.ts 只收 SyncSqlite；node:sqlite 在 adapters/sqlite/nodeDriver.ts，Electron 无此模块不进产物），Electron 主进程注入 better-sqlite3（根 node_modules，ABI=Electron 33，勿让 node v24 直接加载）。
-2. 字节闸门：taghit-file 协议 / readText → 恢复媒体预览与缩略图（ItemCard 预留图标占位）。
-3. contentTab 贡献点槽（壳标签页仍为固定四类）。
-4. Backlog：事件（D6，扫描进度）、EAV 建模、标签语义带出、config 持久化、LICENSE、CI —— 见 ARCHITECTURE §5。
+2. **界面美化（用户点名的下一步）**：新视图只搬了行为没搬观感，被评"没有一点看的欲望"。方案 = 老皮肤 + 新引擎——以 freeze/TagHit-Electron-0.1.2/src/renderer 的老视图为视觉基准，把模板层次/间距/质感回灌到 frontend 新视图（Tailwind + globals.css 主题变量体系都在，不用引入新东西），行为仍接新 store/api；改完真窗口截图对比验收。
+3. 字节闸门：taghit-file 协议 / readText → 恢复媒体预览与缩略图（ItemCard 预留图标占位）。
+4. contentTab 贡献点槽（壳标签页仍为固定四类）。
+5. Backlog：事件（D6，扫描进度）、EAV 建模、标签语义带出、config 持久化、LICENSE、CI —— 见 ARCHITECTURE §5。
 
 ## 四、纪律
 
