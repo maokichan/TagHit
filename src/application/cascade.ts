@@ -10,6 +10,7 @@
  * - 工作区：清声明行。
  */
 
+import { DomainError } from '../domain/index.ts'
 import type { Id } from '../domain/index.ts'
 import type { Store } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
@@ -56,11 +57,10 @@ export async function deleteCollectionCascade(svc: AppServices, collectionId: Id
       await db.removeCollectionMember(collectionId, member.itemId)
     }
     const collection = await db.getCollection(collectionId)
-    if (collection) {
-      // 锚条目随作品删除（含其挂载标签清理）
-      await deleteItemIn(db, collection.anchorItemId)
-    }
+    if (!collection) throw new DomainError('NOT_FOUND', `作品 不存在（${collectionId}）`)
+    // 先删 collection 行再级联删锚条目：SQLite 外键（collections.anchorItemId → items.id）要求先解除引用
     await db.deleteCollection(collectionId)
+    await deleteItemIn(db, collection.anchorItemId)
   })
 }
 

@@ -9,6 +9,7 @@
     "typecheck:ports": "tsc -p tsconfig.ports.json",
     "typecheck:adapters": "tsc -p tsconfig.adapters.json",
     "typecheck:application": "tsc -p tsconfig.application.json",
-    "calibrate": "node scripts/s32-calibrate.ts"
+    "calibrate": "node scripts/s32-calibrate.ts",
+    "calibrate:sqlite": "node scripts/s32-calibrate-sqlite.ts"
   }
 }
