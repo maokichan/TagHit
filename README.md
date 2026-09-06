@@ -45,8 +45,9 @@ src/adapters/     适配器（实现）：memory（MemoryStore · MemoryFileSyst
                   node（NodeFileSystem 真实 fs）· sample-hash.ts（共享签名）
 src/application/  应用层用例：tagging · browse（成员派生+声明投影）· search · collection/group · cascade · scan（两阶段扫描）
 src/host/         Electron 宿主：main（装配+IPC 注册）· preload（window.taghit）· ipc（typed 窄桥契约）——electron 依赖需真实机安装
+frontend/         渲染层：旧版 Vue 前端（Vue3+Pinia+router+Tailwind；依赖未装，待改造到窄桥）
 scripts/          校准：s32（六用例）memory/sqlite · s33（扫描）memory/sqlite
-docs/             GLOSSARY（业务词汇）· DECISIONS（分层与裁决）· CONTEXT（开发交接）
+docs/             GLOSSARY（词汇）· DECISIONS（裁决）· CONTEXT（交接）· ARCHITECTURE（架构/状态/渲染-核心分离）
 ```
 
 历史版本存档于 `../freeze/`（Tauri 原型、Electron 0.1.x，含前端参考）。
@@ -55,7 +56,8 @@ docs/             GLOSSARY（业务词汇）· DECISIONS（分层与裁决）· 
 
 - `docs/GLOSSARY.md` — 业务词汇（条目/标签/工作区/作品/组等）
 - `docs/DECISIONS.md` — 分层、裁决、规划范围
-- `docs/CONTEXT.md` — 开发交接（进行到哪、下一步、纪律）
+- `docs/ARCHITECTURE.md` — 架构与宿主（当前状态；渲染层/宿主与后端核心分节；插件方向）
+- `docs/CONTEXT.md` — 开发交接（快速读法、下一步、纪律）
 
 ## 开发
 
