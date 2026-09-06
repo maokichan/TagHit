@@ -17,6 +17,9 @@ export interface FileItem {
   fileModifiedAt: string | null
   status: ItemStatus
   createdAt: string
+  /** 媒体固有尺寸（像素）。图片在扫描时从文件头解析；未解析/不适用 → 缺省。 */
+  width?: number | null
+  height?: number | null
 }
 
 /** 空条目·锚：无来源，承接作品标签；随作品创建与删除。 */

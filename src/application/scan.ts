@@ -17,6 +17,7 @@ import type { FileItem, Id } from '../domain/index.ts'
 import type { FileSystem, Store } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
 import { basename } from './paths.ts'
+import { isImageFile, parseImageSize } from './mediaMeta.ts'
 import { deleteItemIn } from './cascade.ts'
 
 export type MissingPolicy = 'keep' | 'discard'
@@ -114,6 +115,10 @@ export async function scanWorkspace(
       for (const path of files) {
         const stat = await fs.stat(path)
         const hash = await fs.hash(path)
+        // 图片：读文件头解析固有尺寸（老版 image-size 的零依赖替代；失败 → null 缺省）
+        const dims = isImageFile(basename(path)) ? parseImageSize(await fs.readHead(path, 65536)) : null
+        const width = dims?.width ?? null
+        const height = dims?.height ?? null
         const existing = itemByUri.get(path)
         if (!existing) {
           const item: FileItem = {
@@ -126,6 +131,8 @@ export async function scanWorkspace(
             fileModifiedAt: stat.modifiedAt ?? null,
             status: 'active',
             createdAt: now,
+            width,
+            height,
           }
           await db.createItem(item)
           summary.itemsCreated++
@@ -134,13 +141,17 @@ export async function scanWorkspace(
             existing.status !== 'active' ||
             existing.contentHash !== hash ||
             existing.size !== (stat.size ?? null) ||
-            existing.fileModifiedAt !== (stat.modifiedAt ?? null)
+            existing.fileModifiedAt !== (stat.modifiedAt ?? null) ||
+            (existing.width ?? null) !== width ||
+            (existing.height ?? null) !== height
           if (changed) {
             await db.updateItem(existing.id, {
               status: 'active',
               contentHash: hash,
               size: stat.size ?? null,
               fileModifiedAt: stat.modifiedAt ?? null,
+              width,
+              height,
             })
             summary.itemsUpdated++
           }

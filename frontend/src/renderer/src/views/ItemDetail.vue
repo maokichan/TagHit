@@ -93,6 +93,12 @@ const rows = computed(() => {
   return [
     ['类型', item.value.mediaType],
     ['扩展名', item.value.extension ?? '-'],
+    [
+      '尺寸',
+      item.value.width != null && item.value.height != null
+        ? `${item.value.width} × ${item.value.height}`
+        : '-'
+    ],
     ['大小', formatSize(item.value.size)],
     ['状态', item.value.status ?? '-'],
     ['修改时间', item.value.fileModifiedAt ?? '-'],

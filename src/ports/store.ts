@@ -159,6 +159,8 @@ export interface Store {
       contentHash?: string | null
       size?: number | null
       fileModifiedAt?: string | null
+      width?: number | null
+      height?: number | null
     }
   ): Promise<void>
 

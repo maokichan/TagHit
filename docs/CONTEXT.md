@@ -16,7 +16,7 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 1. ~~真机接线~~（已完成）：宿主 Store 驱动注入化（store.ts 只收 SyncSqlite；node:sqlite 在 adapters/sqlite/nodeDriver.ts，Electron 无此模块不进产物），Electron 主进程注入 better-sqlite3（根 node_modules，ABI=Electron 33，勿让 node v24 直接加载）。
 2. ~~字节闸门~~（已完成）：媒体经 taghit-file:// 协议（host/protocol.ts，白名单=来源根+userData，Range/MIME/ACAO；privileged 注册须在 ready 前）；文本经 item.readText 窄桥（application/content.ts，TEXT_EXTS 白名单 + 2MiB 上限，超限返回前段 truncated:true）。渲染侧 lib/media.ts taghitFileUrl + previewKindOf；ItemDetail 四类预览 + ItemCard 图片缩略图均接通。已修渲染层启动 bug：registerBuiltinFeatures 必须先于 app.mount（否则活动栏空轨）。
 3. ~~界面美化~~（已完成）：考古结论——主题底座/壳层组件与老版逐字节一致，真正缺口只有 4 处，已补齐：瀑布流真实高度（contentHash 派生确定性宽高比，仅图片/视频参与变高，其余类型 4:3——用户裁定）、列表行修改时间、StartScreen 搜索瀑布流、工作区卡「N 来源根」徽标。元数据（EAV）落地后比例换实测值。
-4. 功能组件显示问题：瀑布流不显示已随美化修复；**视频缩略图仍待帧抓取管线**（taghit-file 协议已就绪，缺 canvas 抓帧/封面提取，旧版 lib/thumbnailer.ts 思路可参考）。
+4. 功能组件显示问题：瀑布流不显示已随美化修复；图片比例已按老版逻辑落真值（扫描时 mediaMeta.ts 解析文件头 → items.width/height，瀑布流钳制 [1/2.2,2.2]，重扫即补齐旧数据）；**视频缩略图仍待帧抓取管线**（taghit-file 协议已就绪，缺 canvas 抓帧/封面提取，旧版 lib/thumbnailer.ts 思路可参考；视频尺寸同理待 ffprobe/元数据）。
 5. contentTab 贡献点槽（壳标签页仍为固定四类）。
 6. Backlog：事件（D6，扫描进度）、EAV 建模、标签语义带出、config 持久化、LICENSE、CI —— 见 ARCHITECTURE §5。
 

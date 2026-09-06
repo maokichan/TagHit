@@ -222,6 +222,8 @@ export class MemoryStore implements Store {
       contentHash?: string | null
       size?: number | null
       fileModifiedAt?: string | null
+      width?: number | null
+      height?: number | null
     }
   ): Promise<void> {
     const old = this.state.items.get(id)
@@ -235,6 +237,8 @@ export class MemoryStore implements Store {
             ...(patch.contentHash !== undefined ? { contentHash: patch.contentHash } : {}),
             ...(patch.size !== undefined ? { size: patch.size } : {}),
             ...(patch.fileModifiedAt !== undefined ? { fileModifiedAt: patch.fileModifiedAt } : {}),
+            ...(patch.width !== undefined ? { width: patch.width } : {}),
+            ...(patch.height !== undefined ? { height: patch.height } : {}),
           }
         : {
             ...old,

@@ -38,14 +38,18 @@ export function previewKindOf(mediaType: MediaType, ext: string | null): Preview
 const MAX_RATIO = 2.2
 
 /**
- * 瀑布流媒体宽高比（确定性）。只有图片/视频参与变高——其余类型（文档/音频等）
- * 没有天然纵横比，一律标准 4:3。图片/视频 0.2 契约无 width/height 元数据，
- * 改由 contentHash 派生：同一文件每次扫描比值不变（虚拟化/翻页不跳动），
- * 不同文件比值散开——瀑布流恢复视觉层次；真元数据（EAV）落地后替换回实测值。
- * anchor 无 hash → 4:3。几何分布（对数均匀），视觉上中比值更密、两端稀疏。
+ * 瀑布流媒体宽高比。老版逻辑：比例来自媒体固有尺寸，钳制在 [1/2.2, 2.2]。
+ * - 图片：优先扫描时解析的真实 width/height；缺失（旧数据/解析失败）回退
+ *   contentHash 估计值，直到重扫补齐。
+ * - 视频：0.2 无 ffprobe，仍用 contentHash 估计（元数据落地后换实测值）。
+ * - 其余类型（文档/音频等）没有天然纵横比，一律标准 4:3（用户裁定）。
+ * anchor 无 hash → 4:3。估计用几何分布（对数均匀），中比值密、两端稀。
  */
-export function masonryRatioOf(view: { contentHash: string | null; mediaType: MediaType }): number {
+export function masonryRatioOf(view: { contentHash: string | null; mediaType: MediaType; width?: number | null; height?: number | null }): number {
   if (view.mediaType !== 'image' && view.mediaType !== 'video') return 4 / 3
+  if (view.width != null && view.height != null && view.width > 0 && view.height > 0) {
+    return Math.min(Math.max(view.width / view.height, 1 / MAX_RATIO), MAX_RATIO)
+  }
   const hash = view.contentHash
   if (!hash) return 4 / 3
   const u = parseInt(hash.slice(0, 8), 16) / 0xffffffff

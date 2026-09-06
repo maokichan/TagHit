@@ -113,6 +113,8 @@ function toItem(row: Row): Item {
     fileModifiedAt: (row.fileModifiedAt as string | null) ?? null,
     status: (row.status as ItemStatus) ?? 'active',
     createdAt: row.createdAt as string,
+    width: row.width == null ? null : Number(row.width),
+    height: row.height == null ? null : Number(row.height),
   }
 }
 
@@ -140,7 +142,9 @@ CREATE TABLE IF NOT EXISTS items (
   size INTEGER,
   fileModifiedAt TEXT,
   status TEXT CHECK (status IN ('active','missing')),
-  createdAt TEXT NOT NULL
+  createdAt TEXT NOT NULL,
+  width INTEGER,
+  height INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS workspaces (
@@ -215,6 +219,17 @@ export class SqliteStore implements Store {
   constructor(driver: SyncSqlite) {
     this.db = driver
     this.db.exec(SCHEMA)
+    // 轻量迁移：v0.2.4 之前的库没有 items.width/height（重复加列会抛错，吞掉即可）
+    try {
+      this.db.exec('ALTER TABLE items ADD COLUMN width INTEGER')
+    } catch {
+      /* 列已存在 */
+    }
+    try {
+      this.db.exec('ALTER TABLE items ADD COLUMN height INTEGER')
+    } catch {
+      /* 列已存在 */
+    }
   }
 
   close(): void {
@@ -310,7 +325,7 @@ export class SqliteStore implements Store {
     if (this.idExists('items', item.id)) throw conflict(`条目 id 重复：${item.id}`)
     if (item.kind === 'file') {
       this.run(
-        'INSERT INTO items (id, kind, title, sourceUri, contentHash, size, fileModifiedAt, status, createdAt) VALUES (?,?,?,?,?,?,?,?,?)',
+        'INSERT INTO items (id, kind, title, sourceUri, contentHash, size, fileModifiedAt, status, createdAt, width, height) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
         [
           item.id,
           'file',
@@ -321,6 +336,8 @@ export class SqliteStore implements Store {
           item.fileModifiedAt,
           item.status,
           item.createdAt,
+          item.width ?? null,
+          item.height ?? null,
         ]
       )
     } else {
@@ -342,6 +359,8 @@ export class SqliteStore implements Store {
       contentHash?: string | null
       size?: number | null
       fileModifiedAt?: string | null
+      width?: number | null
+      height?: number | null
     }
   ): Promise<void> {
     const row = this.get('SELECT * FROM items WHERE id = ?', [id])
@@ -354,6 +373,8 @@ export class SqliteStore implements Store {
       if (patch.fileModifiedAt !== undefined) {
         this.run('UPDATE items SET fileModifiedAt = ? WHERE id = ?', [patch.fileModifiedAt, id])
       }
+      if (patch.width !== undefined) this.run('UPDATE items SET width = ? WHERE id = ?', [patch.width, id])
+      if (patch.height !== undefined) this.run('UPDATE items SET height = ? WHERE id = ?', [patch.height, id])
     }
   }
 
