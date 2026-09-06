@@ -17,7 +17,8 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 2. ~~字节闸门~~（已完成）：媒体经 taghit-file:// 协议（host/protocol.ts，白名单=来源根+userData，Range/MIME/ACAO；privileged 注册须在 ready 前）；文本经 item.readText 窄桥（application/content.ts，TEXT_EXTS 白名单 + 2MiB 上限，超限返回前段 truncated:true）。渲染侧 lib/media.ts taghitFileUrl + previewKindOf；ItemDetail 四类预览 + ItemCard 图片缩略图均接通。已修渲染层启动 bug：registerBuiltinFeatures 必须先于 app.mount（否则活动栏空轨）。
 3. **界面美化（用户点名的下一步）**：新视图只搬了行为没搬观感，被评"没有一点看的欲望"。方案 = 老皮肤 + 新引擎——以 freeze/TagHit-Electron-0.1.2/src/renderer 的老视图为视觉基准，把模板层次/间距/质感回灌到 frontend 新视图（Tailwind + globals.css 主题变量体系都在，不用引入新东西），行为仍接新 store/api；改完真窗口截图对比验收。
 4. contentTab 贡献点槽（壳标签页仍为固定四类）。
-5. Backlog：事件（D6，扫描进度）、EAV 建模、标签语义带出、config 持久化、LICENSE、CI —— 见 ARCHITECTURE §5。
+5. 功能组件显示问题（用户真机反馈）：视频缩略图不显示（需视频帧抓取管线：taghit-file 协议已就绪，缺 canvas 抓帧/封面提取，旧版 lib/thumbnailer.ts 思路可参考）；显示面板的瀑布流布局不显示（ItemGrid 布局模式切换失效，检查 waterfall 分支与虚拟化高度）。
+6. Backlog：事件（D6，扫描进度）、EAV 建模、标签语义带出、config 持久化、LICENSE、CI —— 见 ARCHITECTURE §5。
 
 ## 四、纪律
 
