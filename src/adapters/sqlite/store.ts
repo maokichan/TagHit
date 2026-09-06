@@ -21,9 +21,12 @@ import type {
   Item,
   ItemAttach,
   ItemStatus,
+  NodeState,
+  PathNode,
   Tag,
   TagLink,
   Workspace,
+  WorkspaceRoot,
 } from '../../domain/index.ts'
 import type {
   ItemHit,
@@ -145,6 +148,19 @@ CREATE TABLE IF NOT EXISTS groups (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   createdAt TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS workspaceRoots (
+  workspaceId TEXT NOT NULL REFERENCES workspaces(id),
+  path TEXT NOT NULL,
+  PRIMARY KEY (workspaceId, path)
+);
+
+CREATE TABLE IF NOT EXISTS pathNodes (
+  workspaceId TEXT NOT NULL REFERENCES workspaces(id),
+  dirPath TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('included','excluded')),
+  PRIMARY KEY (workspaceId, dirPath)
 );
 
 CREATE TABLE IF NOT EXISTS attachments (
@@ -305,12 +321,26 @@ export class SqliteStore implements Store {
     return item
   }
 
-  async updateItem(id: Id, patch: { title?: string; status?: ItemStatus }): Promise<void> {
+  async updateItem(
+    id: Id,
+    patch: {
+      title?: string
+      status?: ItemStatus
+      contentHash?: string | null
+      size?: number | null
+      fileModifiedAt?: string | null
+    }
+  ): Promise<void> {
     const row = this.get('SELECT * FROM items WHERE id = ?', [id])
     if (!row) throw notFound('条目', id)
     if (patch.title !== undefined) this.run('UPDATE items SET title = ? WHERE id = ?', [patch.title, id])
-    if (patch.status !== undefined && row.kind === 'file') {
-      this.run('UPDATE items SET status = ? WHERE id = ?', [patch.status, id])
+    if (row.kind === 'file') {
+      if (patch.status !== undefined) this.run('UPDATE items SET status = ? WHERE id = ?', [patch.status, id])
+      if (patch.contentHash !== undefined) this.run('UPDATE items SET contentHash = ? WHERE id = ?', [patch.contentHash, id])
+      if (patch.size !== undefined) this.run('UPDATE items SET size = ? WHERE id = ?', [patch.size, id])
+      if (patch.fileModifiedAt !== undefined) {
+        this.run('UPDATE items SET fileModifiedAt = ? WHERE id = ?', [patch.fileModifiedAt, id])
+      }
     }
   }
 
@@ -521,6 +551,74 @@ export class SqliteStore implements Store {
 
   async listWorkspaces(): Promise<Workspace[]> {
     return this.all('SELECT * FROM workspaces', []).map(toWorkspace).sort(byNameAsc)
+  }
+
+  // ---- 来源根与路径节点 -----------------------------------------------------
+
+  async addWorkspaceRoot(workspaceId: Id, path: string): Promise<void> {
+    this.requireWorkspace(workspaceId)
+    this.run('INSERT OR IGNORE INTO workspaceRoots (workspaceId, path) VALUES (?,?)', [workspaceId, path])
+  }
+
+  async removeWorkspaceRoot(workspaceId: Id, path: string): Promise<void> {
+    this.requireWorkspace(workspaceId)
+    this.run('DELETE FROM workspaceRoots WHERE workspaceId = ? AND path = ?', [workspaceId, path])
+    // 删该来源根下的整棵节点树（dirPath == path 或其下）
+    const prefix = `${path}/`
+    this.run('DELETE FROM pathNodes WHERE workspaceId = ? AND (dirPath = ? OR substr(dirPath, 1, ?) = ?)', [
+      workspaceId,
+      path,
+      prefix.length,
+      prefix,
+    ])
+  }
+
+  async listWorkspaceRoots(workspaceId: Id): Promise<WorkspaceRoot[]> {
+    const rows = this.all('SELECT workspaceId, path FROM workspaceRoots WHERE workspaceId = ? ORDER BY path ASC', [
+      workspaceId,
+    ])
+    return rows.map((r) => ({ workspaceId: r.workspaceId as string, path: r.path as string }))
+  }
+
+  async ensurePathNode(workspaceId: Id, dirPath: string, state: NodeState = 'included'): Promise<void> {
+    this.requireWorkspace(workspaceId)
+    this.run('INSERT OR IGNORE INTO pathNodes (workspaceId, dirPath, state) VALUES (?,?,?)', [
+      workspaceId,
+      dirPath,
+      state,
+    ])
+  }
+
+  async deletePathNode(workspaceId: Id, dirPath: string): Promise<void> {
+    this.run('DELETE FROM pathNodes WHERE workspaceId = ? AND dirPath = ?', [workspaceId, dirPath])
+  }
+
+  async setPathNodeState(workspaceId: Id, dirPath: string, state: NodeState): Promise<void> {
+    if (this.run('UPDATE pathNodes SET state = ? WHERE workspaceId = ? AND dirPath = ?', [state, workspaceId, dirPath]).changes === 0) {
+      throw notFound('路径节点', dirPath)
+    }
+  }
+
+  async listPathNodes(opts?: { workspaceId?: Id; dirPrefix?: string }): Promise<PathNode[]> {
+    const where: string[] = []
+    const params: unknown[] = []
+    if (opts?.workspaceId !== undefined) {
+      where.push('workspaceId = ?')
+      params.push(opts.workspaceId)
+    }
+    if (opts?.dirPrefix !== undefined) {
+      const prefix = `${opts.dirPrefix}/`
+      where.push('dirPath = ? OR substr(dirPath, 1, ?) = ?')
+      params.push(opts.dirPrefix, prefix.length, prefix)
+    }
+    const sql = `SELECT workspaceId, dirPath, state FROM pathNodes${
+      where.length ? ` WHERE ${where.join(' AND ')}` : ''
+    } ORDER BY dirPath ASC`
+    return this.all(sql, params).map((r) => ({
+      workspaceId: r.workspaceId as string,
+      dirPath: r.dirPath as string,
+      state: r.state as NodeState,
+    }))
   }
 
   // ---- 作品 ---------------------------------------------------------------

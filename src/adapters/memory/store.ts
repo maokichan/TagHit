@@ -26,9 +26,12 @@ import type {
   Item,
   ItemAttach,
   ItemStatus,
+  NodeState,
+  PathNode,
   Tag,
   TagLink,
   Workspace,
+  WorkspaceRoot,
 } from '../../domain/index.ts'
 import type {
   ItemHit,
@@ -56,6 +59,8 @@ interface State {
   declarations: Map<string, Declaration>
   collectionMembers: Map<string, CollectionMember>
   groupMembers: Map<string, GroupMember>
+  workspaceRoots: Map<string, WorkspaceRoot>
+  pathNodes: Map<string, PathNode>
 }
 
 function createEmptyState(): State {
@@ -70,6 +75,8 @@ function createEmptyState(): State {
     declarations: new Map(),
     collectionMembers: new Map(),
     groupMembers: new Map(),
+    workspaceRoots: new Map(),
+    pathNodes: new Map(),
   }
 }
 
@@ -86,6 +93,8 @@ function cloneState(s: State): State {
     declarations: new Map(s.declarations),
     collectionMembers: new Map(s.collectionMembers),
     groupMembers: new Map(s.groupMembers),
+    workspaceRoots: new Map(s.workspaceRoots),
+    pathNodes: new Map(s.pathNodes),
   }
 }
 
@@ -205,7 +214,16 @@ export class MemoryStore implements Store {
     return item
   }
 
-  async updateItem(id: Id, patch: { title?: string; status?: ItemStatus }): Promise<void> {
+  async updateItem(
+    id: Id,
+    patch: {
+      title?: string
+      status?: ItemStatus
+      contentHash?: string | null
+      size?: number | null
+      fileModifiedAt?: string | null
+    }
+  ): Promise<void> {
     const old = this.state.items.get(id)
     if (!old) throw notFound('条目', id)
     const next: Item =
@@ -214,6 +232,9 @@ export class MemoryStore implements Store {
             ...old,
             ...(patch.title !== undefined ? { title: patch.title } : {}),
             ...(patch.status !== undefined ? { status: patch.status } : {}),
+            ...(patch.contentHash !== undefined ? { contentHash: patch.contentHash } : {}),
+            ...(patch.size !== undefined ? { size: patch.size } : {}),
+            ...(patch.fileModifiedAt !== undefined ? { fileModifiedAt: patch.fileModifiedAt } : {}),
           }
         : {
             ...old,
@@ -367,6 +388,66 @@ export class MemoryStore implements Store {
 
   async listWorkspaces(): Promise<Workspace[]> {
     return [...this.state.workspaces.values()].sort(byNameAsc)
+  }
+
+  // ---- 来源根与路径节点 -----------------------------------------------------
+
+  async addWorkspaceRoot(workspaceId: Id, path: string): Promise<void> {
+    this.requireWorkspace(workspaceId)
+    const key = pairKey(workspaceId, path)
+    if (this.state.workspaceRoots.has(key)) return
+    this.state.workspaceRoots.set(key, { workspaceId, path })
+  }
+
+  async removeWorkspaceRoot(workspaceId: Id, path: string): Promise<void> {
+    this.requireWorkspace(workspaceId)
+    this.state.workspaceRoots.delete(pairKey(workspaceId, path))
+    const prefix = `${path}/`
+    for (const node of this.nodesOf(workspaceId)) {
+      if (node.dirPath === path || node.dirPath.startsWith(prefix)) {
+        this.state.pathNodes.delete(pairKey(workspaceId, node.dirPath))
+      }
+    }
+  }
+
+  async listWorkspaceRoots(workspaceId: Id): Promise<WorkspaceRoot[]> {
+    const out: WorkspaceRoot[] = []
+    for (const root of this.state.workspaceRoots.values()) {
+      if (root.workspaceId === workspaceId) out.push(root)
+    }
+    out.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+    return out
+  }
+
+  async ensurePathNode(workspaceId: Id, dirPath: string, state: NodeState = 'included'): Promise<void> {
+    this.requireWorkspace(workspaceId)
+    const key = pairKey(workspaceId, dirPath)
+    if (this.state.pathNodes.has(key)) return // 不改动既有状态（扫描不覆盖用户排除）
+    this.state.pathNodes.set(key, { workspaceId, dirPath, state })
+  }
+
+  async deletePathNode(workspaceId: Id, dirPath: string): Promise<void> {
+    this.state.pathNodes.delete(pairKey(workspaceId, dirPath))
+  }
+
+  async setPathNodeState(workspaceId: Id, dirPath: string, state: NodeState): Promise<void> {
+    const key = pairKey(workspaceId, dirPath)
+    const existing = this.state.pathNodes.get(key)
+    if (!existing) throw notFound('路径节点', dirPath)
+    this.state.pathNodes.set(key, { ...existing, state })
+  }
+
+  async listPathNodes(opts?: { workspaceId?: Id; dirPrefix?: string }): Promise<PathNode[]> {
+    const out: PathNode[] = []
+    for (const node of this.state.pathNodes.values()) {
+      if (opts?.workspaceId !== undefined && node.workspaceId !== opts.workspaceId) continue
+      if (opts?.dirPrefix !== undefined && node.dirPath !== opts.dirPrefix && !node.dirPath.startsWith(`${opts.dirPrefix}/`)) {
+        continue
+      }
+      out.push(node)
+    }
+    out.sort((a, b) => (a.dirPath < b.dirPath ? -1 : a.dirPath > b.dirPath ? 1 : 0))
+    return out
   }
 
   // ---- 作品 ---------------------------------------------------------------
@@ -537,6 +618,14 @@ export class MemoryStore implements Store {
     const out: CollectionMember[] = []
     for (const row of this.state.collectionMembers.values()) {
       if (row.collectionId === collectionId) out.push(row)
+    }
+    return out
+  }
+
+  private nodesOf(workspaceId: Id): PathNode[] {
+    const out: PathNode[] = []
+    for (const node of this.state.pathNodes.values()) {
+      if (node.workspaceId === workspaceId) out.push(node)
     }
     return out
   }

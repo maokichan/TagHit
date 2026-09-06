@@ -75,6 +75,13 @@ export async function deleteGroupCascade(svc: AppServices, groupId: Id): Promise
 
 export async function deleteWorkspaceCascade(svc: AppServices, workspaceId: Id): Promise<void> {
   await svc.store.transaction(async (db) => {
+    // 来源根（含其节点树）与遗留节点先清，避免 SQLite 外键违约
+    for (const root of await db.listWorkspaceRoots(workspaceId)) {
+      await db.removeWorkspaceRoot(workspaceId, root.path)
+    }
+    for (const node of await db.listPathNodes({ workspaceId })) {
+      await db.deletePathNode(workspaceId, node.dirPath)
+    }
     for (const row of await db.listDeclarations({ workspaceId })) {
       await db.undeclareTag(workspaceId, row.tagId)
     }

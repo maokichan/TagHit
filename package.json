@@ -10,6 +10,7 @@
     "typecheck:adapters": "tsc -p tsconfig.adapters.json",
     "typecheck:application": "tsc -p tsconfig.application.json",
     "calibrate": "node scripts/s32-calibrate.ts",
-    "calibrate:sqlite": "node scripts/s32-calibrate-sqlite.ts"
+    "calibrate:sqlite": "node scripts/s32-calibrate-sqlite.ts",
+    "calibrate:scan": "node scripts/s33-scan-calibrate.ts"
   }
 }

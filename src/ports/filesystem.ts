@@ -36,4 +36,12 @@ export interface FileSystem {
    * 路径不存在或不是文件 → reject。
    */
   readHead(path: string, maxBytes: number): Promise<Uint8Array>
+
+  /**
+   * 内容签名（hex）。同内容必同签名（sha256）；真实文件系统实现用
+   * 头部/中部/尾部三采样点抽样（媒体同格式头部常相同，中尾才有区分度）。
+   * 签名供扫描变更判定与内容去重用，不承诺对整文件全局唯一。
+   * 路径不存在或不可读 → reject。
+   */
+  hash(path: string): Promise<string>
 }

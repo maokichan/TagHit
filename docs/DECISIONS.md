@@ -7,7 +7,7 @@
 ```
 渲染层 / 用户输入
    │
-应用层（用例：流程编排，调领域规则与端口）     ← src/application（首批六用例已落地）
+应用层（用例：流程编排，调领域规则与端口）     ← src/application（首批用例 + 收录扫描已落地）
    │
 领域层（实体类型 + 纯规则，无存储、无 IO）     ← src/domain
    │
@@ -28,30 +28,32 @@
 - 组：全局扁平容器、标签可多属；语义在应用层
 - 成员：作品 → 条目（有序，行记录带 position）；组 → 标签（无序）。两类行记录属领域类型
 - 来源根：工作区 × 目录路径 的配置行；工作区拥有其来源根集合，不拥有条目。领域类型 WorkspaceRoot 已落地
-- 路径节点：扫描产物（工作区 × 目录路径；来源根本身 = 根节点）。状态 included/excluded **仅作用于该节点直接条目，不级联**；子树整体排除 parked。领域类型 PathNode/NodeState 已落地，节点由扫描用例创建（应用层，未到首批）
-- 条目-节点归属：不落库；浏览时以 sourceUri 父目录 == 节点 dirPath 派生
+- 路径节点：扫描产物（工作区 × 目录路径；来源根本身 = 根节点）。状态 included/excluded **仅作用于该节点直接条目，不级联**；扫描确保节点存在但不覆盖既有 excluded。领域类型已落地；`scanWorkspace` 创建/维护（已落地）
+- 条目-节点归属：不落库；浏览时以 sourceUri 父目录 == 节点 dirPath 派生（已落地于 browseWorkspace）
 - 重叠挂载：条目全局唯一、共享；节点按（工作区 × 目录）各建一份（各工作区独立树视图与开关）
+- 扫描消失策略：可配置（keep = 标 missing 保留，默认 / discard = 删除条目及关联），作用于该趟扫描
+- 内容签名：sha256 于 **头部/中部/尾部三采样点**（媒体同格式头部常相同，中尾才有区分度）；同内容必同签名，供变更判定/去重
 - 元数据：核心事实 + EAV 长尾，键注册表约束
 - 渲染层：只认 uri，字节经主进程闸门
 - 全局搜索：对全部工作区
 
 ## 领域层（src/domain）
 
-`types.ts`（实体与关系行记录：挂载 ItemAttach / 标签关联 TagLink / 声明 Declaration / 成员 CollectionMember·GroupMember / 工作区-来源路径 WorkspaceRoot·PathNode·NodeState）· `rules.ts`（纯规则：命名与标签关联的不变量判定）· `errors.ts`
+`types.ts`（实体与关系行记录：挂载 ItemAttach / 标签关联 TagLink / 声明 Declaration / 成员 CollectionMember·GroupMember / 工作区-来源路径 WorkspaceRoot·PathNode·NodeState）· `rules.ts`（纯规则）· `errors.ts`
 
 ## 应用层用例（src/application）
 
-- 已落地首批：打标/卸标（批量原子）· 浏览与声明投影 · 检索 · 组与作品维护 · 删除级联（单事务内反查清关联行再删实体）
-- 规划中：收录扫描（路径遍历 + 条目级扫描；创建/维护路径节点与状态）· 来源根挂/卸 · 事件 · 实体生命周期命名/描述用例
+- 已落地：打标/卸标（批量原子）· 浏览与声明投影 + 工作区成员派生 · 检索 · 组与作品维护 · 删除级联（单事务反查清关联行）· 收录扫描（手动整树幂等 diff；来源根挂/卸；missing keep/discard 可配）
+- 规划中：事件 · 实体生命周期命名/描述用例 · 后台增量扫描
 
 ## 端口与适配器（已落地；实现见 src/ports、src/adapters）
 
 - 端口是**应用层对外部世界的需求清单**（被驱动接口）。契约的第一公民是**流动数据的类型**：实体与关系行记录在领域层，写输入 / 读条件对象 / 结果记录在端口文件；动词是这些类型的薄存取通道，按应用用例反推，不做业务判定。
-- 存储端口：**单体 Store + 事务**，粒度不拆。`transaction` = 边界暴露的**原子性**（ACID），不支持嵌套；顶层单条读写可直呼。**一致性边界在应用层用例**：删除级联等多行一致由用例在同一事务内编排，端口不越界。
+- 存储端口：**单体 Store + 事务**，粒度不拆。`transaction` = 边界暴露的**原子性**（ACID），不支持嵌套；顶层单条读写可直呼。**一致性边界在应用层用例**：删除级联、扫描等多行一致由用例在同一事务内编排，端口不越界。
 - 全局约定：异步边界（全 Promise）；实体写严格（NOT_FOUND / CONFLICT / INVALID）；关系写幂等（重复 add、移除缺失行 = no-op）；读宽松（条件引用不存在的 id 不报错）。
 - **查询全部下沉到存储**：复杂查询用可扩展**条件对象**（ItemsQuery / TagsQuery）表达——不为每界面预造专用方法，也不预造通用查询引擎。
-- 文件系统端口（walk / stat / readHead）；Clock / IdGen 注入。
-- 适配器：内存先行（`MemoryStore`，clone-on-write 回滚）；**SQLite 已落地**（`SqliteStore`：Node 内置 node:sqlite 同步驱动、外键开启、事务 BEGIN/COMMIT/ROLLBACK，v1 schema 内嵌于适配器）。**同一份校准场景双跑（memory / sqlite，42 断言）验证契约一致性**。
+- 文件系统端口：walk / stat / readHead / **hash（三采样内容签名）**；Clock / IdGen 注入。
+- 适配器：内存先行（`MemoryStore`，clone-on-write 回滚；`MemoryFileSystem` 确定性假 FS）；**SQLite 已落地**（`SqliteStore`：node:sqlite 同步驱动、外键开启、事务，v1 schema 内嵌）。**同一份校准场景双跑验证契约一致性**（s32 44 断言；s33 扫描 15 断言）。
 
 ## 假设（未否决即生效）
 
@@ -67,7 +69,9 @@
 | D8 | 查询 | 全部下沉到存储；复杂查询用可扩展条件对象 |
 | D9 | 错误控制 | 异常传播：失败的 Promise 携带 DomainError(code)；应用层不吞错；转译为文案/日志发生在渲染·宿主边界（规划中） |
 | D10 | SQLite 驱动 | Node 内置 node:sqlite（同步单连接；零第三方依赖） |
+| D11 | 消失策略 | 扫描调用配置；缺省 keep（标 missing 保留），discard 可选 |
+| D12 | 内容签名 | sha256 于头/中/尾三采样点（64 KiB/段），适配器共用 sampleHash |
 
 ## parked
 
-C-S · 作品嵌套/多归属 · 子树整体排除（应用层逻辑）
+C-S · 作品嵌套/多归属 · 子树整体排除（应用层逻辑）· 后台增量扫描

@@ -122,6 +122,15 @@ export async function runScenario(store: Store): Promise<void> {
     await store.createItem(item)
   }
 
+  // 工作区-来源路径：挂来源根 + 确保目录节点（浏览成员资格按直接节点状态派生）
+  const dirs = ['C:/素材', 'C:/素材/photos', 'C:/素材/people', 'C:/素材/docs']
+  await store.addWorkspaceRoot('ws-main', 'C:/素材')
+  await store.addWorkspaceRoot('ws-collect', 'C:/素材')
+  for (const dir of dirs) {
+    await store.ensurePathNode('ws-main', dir)
+    await store.ensurePathNode('ws-collect', dir)
+  }
+
   // ---- ① 打标 / 卸标 ------------------------------------------------------
   await tagItem(svc, it.sunset, [tagIds.scene, tagIds.red])
   await tagItem(svc, it.night, [tagIds.scene, tagIds.red])
@@ -184,6 +193,22 @@ export async function runScenario(store: Store): Promise<void> {
   assertEqual(sunsetView!.hiddenCount, 1, '投影：日落隐藏 1 个未声明标签')
   const docView = wsMainView.find((h) => h.item.id === it.doc)
   assertEqual(docView!.hiddenCount, 1, '投影：论文标签全未声明 → 空交付 + 隐藏 1')
+
+  // 节点 excluded 只隐藏其直接条目（不级联；photos 下为夜景/日落，people/docs 不受影响）
+  await store.setPathNodeState('ws-main', 'C:/素材/photos', 'excluded')
+  const wsMainExcluded = await browseWorkspace(svc, 'ws-main')
+  assertEqual(
+    wsMainExcluded.map((h) => h.item.id).sort(),
+    [it.doc, it.portrait],
+    '浏览：排除 photos 后其直接条目(夜景/日落)退出视图，其余仍在'
+  )
+  await store.setPathNodeState('ws-main', 'C:/素材/photos', 'included')
+  const wsMainRestored = await browseWorkspace(svc, 'ws-main')
+  assertEqual(
+    wsMainRestored.map((h) => h.item.id).sort(),
+    [it.doc, it.night, it.portrait, it.sunset],
+    '浏览：恢复 photos 后视图还原'
+  )
 
   const wsCollectRed = await browseWorkspace(svc, 'ws-collect', {
     withAnyTag: [tagIds.red],

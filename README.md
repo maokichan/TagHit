@@ -9,8 +9,8 @@ TagHit 管理散落在本地目录里的内容（图片、视频、音频、文�
 - 把内容收进**条目**，一个条目是一个内容单元（一个文件，或一个无文件的作品标签锚点）
 - 用**标签**描述条目；标签之间可以有**有向关联**（组织成层级等语义），打标时可按语义自动带出相关标签
 - 多个条目可组织成一个**作品**（如一张专辑的多支曲目、一个项目的多份文件），作品自身可打标签
-- **工作区**是内容视图：每个工作区索引一组目录，并可声明自己可见的标签子集——同一库，不同视角
-- 按标签、工作区与检索条件发现内容
+- **工作区**是内容视图：每个工作区索引一组目录（来源根），并可声明自己可见的标签子集——同一库，不同视角
+- 按标签、工作区与检索条件发现内容；工作区经扫描建立目录视图（可排除子目录，仅作用于直接条目）
 
 目标用户与场景：媒体工作者管理大量素材（跨项目检索），收藏者（电影、美术等）整理带个人语境的内容。核心价值是**跨目录、跨来源的标签化检索**，而不是文件管理器的目录浏览。
 
@@ -34,16 +34,17 @@ TagHit 管理散落在本地目录里的内容（图片、视频、音频、文�
 2. **宿主技术是可替换的**。桌面框架、数据库、文件访问方式都可能演进（例如协作形态下的存储变化）；把它们挡在适配器后，业务核心不受影响。
 3. **单核心、多入口**。官方界面、命令行、未来的插件扩展共用同一套领域与应用逻辑，避免每入口一套规则。
 
-当前进度：领域层、端口接口、内存与 SQLite 两个 Store 适配器、应用层首批六用例已完成，校准脚本双跑（memory / sqlite，42 断言）全过；下一步是两阶段扫描与前端复用改造；渲染层沿用旧版界面并改造。
+当前进度：领域层、端口、内存/SQLite 双适配器、应用层首批用例与两阶段扫描已完成（memory/sqlite 三份校准全绿）；下一步是前端复用改造与真实 node:fs 宿主接线；渲染层沿用旧版界面并改造。
 
 ## 目录结构
 
 ```
-src/domain/       领域层（纯 TS）：types（实体/关系行）· rules（不变量判定）· errors
-src/ports/        端口（接口，纯声明）：store（单体 + 事务 + 条件对象）· filesystem · system（Clock/IdGen）
-src/adapters/     适配器（实现）：memory（MemoryStore，开发/测试）· sqlite（SqliteStore，node:sqlite 内置驱动）
-src/application/  应用层用例：tagging（打标/卸标）· browse（浏览+声明投影）· search（检索）· collection / group（维护）· cascade（删除级联）
-scripts/          校准：s32-scenario.ts（共享场景）· s32-calibrate.ts / s32-calibrate-sqlite.ts（入口）
+src/domain/       领域层（纯 TS）：types（实体/关系行/工作区-来源路径）· rules · errors
+src/ports/        端口（接口，纯声明）：store · filesystem（含 hash 三采样签名）· system（Clock/IdGen）
+src/adapters/     适配器（实现）：memory（MemoryStore · MemoryFileSystem 假 FS）
+                  sqlite（SqliteStore，node:sqlite 内置驱动）· sample-hash.ts（共享签名）
+src/application/  应用层用例：tagging · browse（成员派生+声明投影）· search · collection/group · cascade · scan（两阶段扫描）
+scripts/          校准：s32（六用例）memory/sqlite · s33（扫描）memory/sqlite
 docs/             GLOSSARY（业务词汇）· DECISIONS（分层与裁决）· CONTEXT（开发交接）
 ```
 
@@ -62,6 +63,7 @@ npm run typecheck:domain      # 领域层
 npm run typecheck:ports       # + 端口接口
 npm run typecheck:adapters    # + 适配器
 npm run typecheck:application # + 应用层与脚本
-npm run calibrate             # 校准：memory（需 node ≥ v24）
-npm run calibrate:sqlite      # 校准：sqlite :memory:（同一场景，契约一致性）
+npm run calibrate             # 校准：s32 memory（需 node ≥ v24）
+npm run calibrate:sqlite      # 校准：s32 sqlite :memory:（契约一致性）
+npm run calibrate:scan        # 校准：扫描场景 memory + sqlite
 ```

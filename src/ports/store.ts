@@ -31,9 +31,12 @@ import type {
   Item,
   ItemAttach,
   ItemStatus,
+  NodeState,
+  PathNode,
   Tag,
   TagLink,
   Workspace,
+  WorkspaceRoot,
 } from '../domain/index.ts'
 
 // ---------------------------------------------------------------------------
@@ -144,8 +147,20 @@ export interface Store {
   /** 新建条目（file 或 anchor）。id 重复 → CONFLICT。返回创建实体。 */
   createItem(item: Item): Promise<Item>
 
-  /** 局部更新（title / 状态；其余如哈希、大小、修改时间待扫描用例扩展）。不存在 → NOT_FOUND。 */
-  updateItem(id: Id, patch: { title?: string; status?: ItemStatus }): Promise<void>
+  /**
+   * 局部更新（title / 状态 / 文件事实）。file 专用字段对 anchor 条目忽略；
+   * 传 null 清空可空字段。不存在 → NOT_FOUND。
+   */
+  updateItem(
+    id: Id,
+    patch: {
+      title?: string
+      status?: ItemStatus
+      contentHash?: string | null
+      size?: number | null
+      fileModifiedAt?: string | null
+    }
+  ): Promise<void>
 
   /** 删条目行。挂载/成员行的级联删除是应用层用例。 */
   deleteItem(id: Id): Promise<void>
@@ -200,6 +215,35 @@ export interface Store {
 
   /** 全部工作区，按名升序。 */
   listWorkspaces(): Promise<Workspace[]>
+
+  // ---- 来源根（配置行）与路径节点（扫描产物） ------------------------------
+
+  /** 挂来源根。workspace 须存在（否则 NOT_FOUND）；重复（workspace × path）→ no-op。 */
+  addWorkspaceRoot(workspaceId: Id, path: string): Promise<void>
+
+  /**
+   * 卸来源根并删除其整棵节点树（dirPath == path 或在其下）。行不存在 → no-op；
+   * workspace 不存在 → NOT_FOUND。条目不受影响（条目全局，不由工作区拥有）。
+   */
+  removeWorkspaceRoot(workspaceId: Id, path: string): Promise<void>
+
+  /** 来源根列表（读宽松：workspace 不存在返回空）。 */
+  listWorkspaceRoots(workspaceId: Id): Promise<WorkspaceRoot[]>
+
+  /**
+   * 确保节点存在：缺失则按给定 state（缺省 included）插入；已存在**不改动**状态
+   * （扫描不得覆盖用户的 excluded 意图）。workspace 须存在（否则 NOT_FOUND）。
+   */
+  ensurePathNode(workspaceId: Id, dirPath: string, state?: NodeState): Promise<void>
+
+  /** 删单个节点行（目录消失时的清理）。行不存在 → no-op。 */
+  deletePathNode(workspaceId: Id, dirPath: string): Promise<void>
+
+  /** 改节点状态（UI 排除目录）。节点不存在 → NOT_FOUND。 */
+  setPathNodeState(workspaceId: Id, dirPath: string, state: NodeState): Promise<void>
+
+  /** 节点列表，按 dirPath 升序。可按 workspaceId / dirPrefix 过滤（读宽松）。 */
+  listPathNodes(opts?: { workspaceId?: Id; dirPrefix?: string }): Promise<PathNode[]>
 
   // ---- 作品 collection（有序成员 + 锚条目承载标签） -----------------------
 
