@@ -3,9 +3,9 @@ import { computed, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { File, Film, Image, Music, FileText } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
-import { taghitFileUrl } from '../../lib/media'
+import { taghitFileUrl, masonryRatioOf } from '../../lib/media'
 import { useUiStore } from '../../stores/ui'
-import { formatSize } from '../../lib/format'
+import { formatDate, formatSize } from '../../lib/format'
 import TagChip from '../common/TagChip.vue'
 
 const props = withDefaults(
@@ -31,6 +31,10 @@ const thumbFailed = ref(false)
 watch(() => props.item.id, () => {
   thumbFailed.value = false
 })
+
+/** 瀑布流媒体宽高比（与 ItemGrid.ratioOf 同源：contentHash 派生，确定性不跳动） */
+const aspectRatio = computed(() => String(masonryRatioOf(props.item)))
+const isMasonry = computed(() => uiStore.layoutMode === 'masonry')
 
 // 非图片/无缩略图：统一图标占位
 const iconMap: Record<string, Component> = {
@@ -111,6 +115,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       <!-- 元信息列：大小 / 修改时间 / 类型 -->
       <div class="shrink-0 flex items-center gap-4 text-[11px] text-[var(--fg-dim)]">
         <span class="w-14 text-right tabular-nums">{{ formatSize(item.size) }}</span>
+        <span class="tabular-nums">{{ formatDate(item.fileModifiedAt) }}</span>
         <span class="uppercase w-8 text-right">{{ item.extension ?? item.mediaType }}</span>
       </div>
     </div>
@@ -128,7 +133,11 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
     @click="emit('select', item)"
     @dblclick="emit('open', item)"
   >
-    <div class="bg-[var(--bg)] flex items-center justify-center overflow-hidden aspect-[4/3]">
+    <div
+      class="bg-[var(--bg)] flex items-center justify-center overflow-hidden"
+      :class="isMasonry ? '' : 'aspect-[4/3]'"
+      :style="isMasonry ? { aspectRatio } : undefined"
+    >
       <img
         v-if="thumbUrl && !thumbFailed"
         :src="thumbUrl"

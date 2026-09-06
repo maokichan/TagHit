@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Inbox } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
+import { masonryRatioOf } from '../../lib/media'
 import { useUiStore } from '../../stores/ui'
 import ItemCard from './ItemCard.vue'
 
@@ -81,9 +82,9 @@ onUnmounted(() => {
 })
 
 /* ── 布局计算：瀑布流 = JS 列分配（追加不动旧卡片）；网格/列表 = 均匀行 ──
- * 0.2 无宽高元数据：统一 4:3（宽高比上限逻辑待字节闸门落地后随元数据恢复）。 */
-function ratioOf(_item: ItemView): number {
-  return 4 / 3
+ * 0.2 无宽高元数据：比值由 contentHash 确定性派生（lib/media），元数据落地后换实测值。 */
+function ratioOf(item: ItemView): number {
+  return masonryRatioOf(item)
 }
 
 const isMasonry = computed(() => uiStore.layoutMode === 'masonry')

@@ -22,7 +22,18 @@ const globalResults = ref<ItemView[]>([])
 const globalLoading = ref(false)
 let debounce: number | undefined
 
-onMounted(() => workspaceStore.refresh())
+onMounted(() => {
+  void workspaceStore.refresh().then(loadRootCounts)
+})
+
+/** 工作区卡「N 来源根」徽标（封面不在契约 v0，以根数代替老版的 paths 徽标） */
+const rootCountByWs = ref<Record<string, number>>({})
+async function loadRootCounts(): Promise<void> {
+  const entries = await Promise.all(
+    workspaceStore.workspaces.map(async (ws) => [ws.id, (await api.workspaces.listRoots(ws.id)).length] as const)
+  )
+  rootCountByWs.value = Object.fromEntries(entries)
+}
 
 /** 点击工作区：当前标签页直接变成该工作区（不新增标签） */
 function openWorkspace(id: string, name: string): void {
@@ -101,17 +112,18 @@ function openGlobalItem(item: ItemView): void {
         TagHit
       </h1>
 
-      <!-- 搜索中：结果显示网格 -->
+      <!-- 搜索中：结果显示瀑布流（CSS columns，卡片不拆行） -->
       <template v-if="globalQuery.trim()">
         <div class="text-[11px] text-[var(--fg-dim)] mb-2 self-start">
           {{ globalLoading ? '搜索中…' : `命中 ${globalResults.length} 项` }}
         </div>
-        <div v-if="globalResults.length" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 w-full">
+        <div v-if="globalResults.length" class="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3 w-full">
           <ItemCard
             v-for="item in globalResults"
             :key="item.id"
             :item="item"
             :interactive-tags="false"
+            class="break-inside-avoid"
             @open="openGlobalItem"
             @select="openGlobalItem"
           />
@@ -160,8 +172,14 @@ function openGlobalItem(item: ItemView): void {
             class="panel overflow-hidden text-left hover:border-[var(--accent)]/50 hover:shadow-lg transition-colors cursor-pointer"
             @click="openWorkspace(ws.id, ws.name)"
           >
-            <div class="aspect-video bg-[var(--bg)] flex items-center justify-center">
+            <div class="aspect-video bg-[var(--bg)] flex items-center justify-center relative">
               <FolderPlus :size="24" class="text-[var(--fg-dim)] opacity-40" />
+              <span
+                v-if="rootCountByWs[ws.id] !== undefined"
+                class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/50 text-white text-[10px]"
+              >
+                {{ rootCountByWs[ws.id] }} 来源根
+              </span>
             </div>
             <div class="p-2">
               <div class="font-medium text-[13px] truncate">{{ ws.name }}</div>
