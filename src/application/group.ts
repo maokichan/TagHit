@@ -8,11 +8,7 @@ import type { AppServices } from './services.ts'
 
 export async function createGroup(svc: AppServices, name: string): Promise<Group> {
   const now = svc.clock.now()
-  const groupId = svc.idGen.newId()
-  await svc.store.createGroup({ id: groupId, name, createdAt: now })
-  const created = await svc.store.getGroup(groupId)
-  if (!created) throw new Error('createGroup: 创建后组缺失')
-  return created
+  return svc.store.createGroup({ id: svc.idGen.newId(), name, createdAt: now })
 }
 
 export async function renameGroup(svc: AppServices, groupId: Id, name: string): Promise<void> {
