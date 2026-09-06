@@ -5,7 +5,7 @@
 
 ## 一、一句话
 
-0.2 领域先行重写：后端核心全部完成并通过校准；宿主契约 v0（32 端点 + 信封，单一事实源 src/host/ipc.ts）与旧 UI 吸收（frontend 全量换轨 window.taghit，缺口降级置灰）已完成；方向 = 插件生态（见 ARCHITECTURE §3/4）；下一步 = 贡献点 v0 类型化 + 真机接线 + 字节闸门。
+0.2 领域先行重写：后端核心全部完成并通过校准；宿主契约 v0（32 端点 + 信封，单一事实源 src/host/ipc.ts）与旧 UI 吸收（frontend 全量换轨 window.taghit，缺口降级置灰）已完成；方向 = 插件生态（见 ARCHITECTURE §3/4）；贡献点 v0 类型化已完成（Manifest 带 source 信任层、setup 可退订、活动栏由注册表驱动、workspaceInfo 切片消费 HostApi；插件选型理由固化在 ARCHITECTURE §4.1）；下一步 = 真机接线 + 字节闸门。
 
 ## 二、读序
 
@@ -13,9 +13,9 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 
 ## 三、下一步
 
-1. 贡献点 v0：features/registry 机制对齐 ARCHITECTURE §4 声明（mounts/manifest 类型化）。
-2. 真机：electron（freeze 有 33.4.11）+ **宿主 Store 换 better-sqlite3**（Node20.18 无 node:sqlite）；dev/打包。
-3. 字节闸门：taghit-file 协议 / readText → 恢复媒体预览与缩略图（ItemCard 预留图标占位）。
+1. 真机：electron（freeze 有 33.4.11）+ **宿主 Store 换 better-sqlite3**（Node20.18 无 node:sqlite）；dev/打包。
+2. 字节闸门：taghit-file 协议 / readText → 恢复媒体预览与缩略图（ItemCard 预留图标占位）。
+3. contentTab 贡献点槽（壳标签页仍为固定四类）。
 4. Backlog：事件（D6，扫描进度）、EAV 建模、标签语义带出、config 持久化、LICENSE、CI —— 见 ARCHITECTURE §5。
 
 ## 四、纪律

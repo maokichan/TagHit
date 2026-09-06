@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import type { Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { FolderOpen, Info, Puzzle, SlidersHorizontal, Tags } from 'lucide-vue-next'
 import TabBar from './components/layout/TabBar.vue'
 import StatusBar from './components/layout/StatusBar.vue'
 import ActivityBar, { type ActivityTool } from './components/layout/ActivityBar.vue'
-import PathsPanel from './components/workspace/PathsPanel.vue'
-import TagsPanel from './components/workspace/TagsPanel.vue'
-import DisplayPanel from './components/workspace/DisplayPanel.vue'
-import InfoPanel from './components/layout/InfoPanel.vue'
-import PluginsPanel from './components/layout/PluginsPanel.vue'
 import { useTabStore } from './stores/tab'
 import { useUiStore, type LeftTool, type RightTool } from './stores/ui'
+import { listFeatures, type FeatureDefinition } from './features/registry'
 
 const route = useRoute()
 const router = useRouter()
@@ -75,54 +71,62 @@ watch(
 // 右活动栏 + 工具面板在工作区与条目详情页都显示；详情页"媒体信息"移入内容页，故只保留插件
 const activeWsId = computed(() => tabStore.activeWorkspaceId)
 const showRightSidebar = computed(() => route.name === 'workspace' || route.name === 'item')
-const rightToolsShown = computed(() =>
-  route.name === 'item' ? rightTools.value.filter((t) => t.id !== 'info') : rightTools.value
-)
-const activeRightTool = computed(() => {
-  if (route.name === 'item') return uiStore.rightTool === 'plugins' ? 'plugins' : null
-  return uiStore.rightTool
-})
 
-// 工具清单（每侧互斥单开，点当前图标关闭）；顺序可由拖拽调整并持久化
-const DEFAULT_LEFT_TOOLS: ActivityTool[] = [
-  { id: 'paths', label: '路径', icon: FolderOpen },
-  { id: 'tags', label: '标签', icon: Tags },
-  { id: 'display', label: '显示', icon: SlidersHorizontal }
-]
-const DEFAULT_RIGHT_TOOLS: ActivityTool[] = [
-  { id: 'info', label: '媒体信息', icon: Info },
-  { id: 'plugins', label: '插件', icon: Puzzle }
-]
+// 工具清单来自功能组件注册表（贡献点驱动壳：宿主不 import 面板组件）；
+// 顺序可由拖拽调整并持久化。详情页右侧仅留 plugins（info 移入内容页）。
 const ORDER_KEY = 'taghit.activityBarOrder'
 
 type Side = 'left' | 'right'
 
-function loadOrder(side: Side, defaults: ActivityTool[]): ActivityTool[] {
+function loadOrder(side: Side, defs: FeatureDefinition[]): FeatureDefinition[] {
   try {
     const raw = localStorage.getItem(ORDER_KEY)
-    if (!raw) return defaults
+    if (!raw) return defs
     const parsed = JSON.parse(raw) as Record<Side, string[] | undefined>
     const ids = parsed[side]
-    if (!ids?.length) return defaults
-    const byId = new Map(defaults.map((t) => [t.id, t]))
-    const ordered = ids.map((id) => byId.get(id)).filter((t): t is ActivityTool => t != null)
-    const rest = defaults.filter((t) => !ids.includes(t.id))
+    if (!ids?.length) return defs
+    const byId = new Map(defs.map((t) => [t.id, t]))
+    const ordered = ids.map((id) => byId.get(id)).filter((t): t is FeatureDefinition => t != null)
+    const rest = defs.filter((t) => !ids.includes(t.id))
     return [...ordered, ...rest]
   } catch {
-    return defaults
+    return defs
   }
 }
 
-const leftTools = ref<ActivityTool[]>(loadOrder('left', DEFAULT_LEFT_TOOLS))
-const rightTools = ref<ActivityTool[]>(loadOrder('right', DEFAULT_RIGHT_TOOLS))
+const leftFeatures = ref<FeatureDefinition[]>(loadOrder('left', listFeatures('activityBar:left')))
+const rightFeatures = ref<FeatureDefinition[]>(loadOrder('right', listFeatures('activityBar:right')))
+
+const rightToolsShown = computed(() =>
+  route.name === 'item'
+    ? rightFeatures.value.filter((t) => t.id !== 'info')
+    : rightFeatures.value
+)
+
+function toToolItems(defs: FeatureDefinition[]): ActivityTool[] {
+  return defs
+    .filter((f) => f.icon != null)
+    .map((f) => ({ id: f.id, label: f.title, icon: f.icon as Component }))
+}
+const leftToolItems = computed(() => toToolItems(leftFeatures.value))
+const rightToolItems = computed(() => toToolItems(rightToolsShown.value))
+
+const activeLeftFeature = computed(
+  () => leftFeatures.value.find((f) => f.id === uiStore.leftTool) ?? null
+)
+const activeRightFeature = computed(() => {
+  const id: RightTool | null =
+    route.name === 'item' ? (uiStore.rightTool === 'plugins' ? 'plugins' : null) : uiStore.rightTool
+  return rightFeatures.value.find((f) => f.id === id) ?? null
+})
 
 function persistOrder(): void {
   try {
     localStorage.setItem(
       ORDER_KEY,
       JSON.stringify({
-        left: leftTools.value.map((t) => t.id),
-        right: rightTools.value.map((t) => t.id)
+        left: leftFeatures.value.map((t) => t.id),
+        right: rightFeatures.value.map((t) => t.id)
       })
     )
   } catch {
@@ -131,7 +135,7 @@ function persistOrder(): void {
 }
 
 function onReorder(side: Side, from: number, to: number): void {
-  const arr = side === 'left' ? leftTools.value : rightTools.value
+  const arr = side === 'left' ? leftFeatures.value : rightFeatures.value
   const [t] = arr.splice(from, 1)
   if (t) arr.splice(to, 0, t)
   persistOrder()
@@ -153,15 +157,18 @@ function onToggleRight(id: string): void {
       <!-- 左活动栏 + 工具面板（仅工作区标签页；内联条件以便模板类型收窄 activeWsId 为非空） -->
       <template v-if="route.name === 'workspace' && activeWsId != null">
         <ActivityBar
-          :tools="leftTools"
+          :tools="leftToolItems"
           :active="uiStore.leftTool"
           side="left"
           @toggle="onToggleLeft"
           @reorder="(from, to) => onReorder('left', from, to)"
         />
-        <PathsPanel v-if="uiStore.leftTool === 'paths'" :workspace-id="activeWsId" side="left" />
-        <TagsPanel v-else-if="uiStore.leftTool === 'tags'" :workspace-id="activeWsId" side="left" />
-        <DisplayPanel v-else-if="uiStore.leftTool === 'display'" side="left" />
+        <component
+          :is="activeLeftFeature.component"
+          v-if="activeLeftFeature?.component"
+          :workspace-id="activeWsId"
+          side="left"
+        />
       </template>
 
       <!-- 主内容区 -->
@@ -172,11 +179,14 @@ function onToggleRight(id: string): void {
 
       <!-- 右活动栏 + 工具面板（工作区 + 条目详情；详情页媒体信息移入内容页，仅剩插件） -->
       <template v-if="showRightSidebar">
-        <InfoPanel v-if="route.name !== 'item' && uiStore.rightTool === 'info'" side="right" />
-        <PluginsPanel v-else-if="uiStore.rightTool === 'plugins'" side="right" />
+        <component
+          :is="activeRightFeature.component"
+          v-if="activeRightFeature?.component"
+          side="right"
+        />
         <ActivityBar
-          :tools="rightToolsShown"
-          :active="activeRightTool"
+          :tools="rightToolItems"
+          :active="activeRightFeature?.id ?? null"
           side="right"
           @toggle="onToggleRight"
           @reorder="(from, to) => onReorder('right', from, to)"
