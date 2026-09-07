@@ -16,11 +16,13 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 
 已完成（细节见 DECISIONS D13–D15 与 git log）：契约 v0 ✅ 旧 UI 吸收 ✅ 贡献点 v0 ✅ 真机接线 ✅ 字节闸门 ✅ 界面美化 ✅ 图片尺寸落库 ✅ 注册表 v0.1（声明/实现分离 + 错误隔离 + per-entry 生命周期，2026-09-07）✅。
 
-1. **视频缩略图**：帧抓取管线（taghit-file 协议已就绪，缺 canvas 抓帧/封面提取/落盘通道；旧版 lib/thumbnailer.ts 思路可参考）；视频尺寸同理待 ffprobe/元数据。
-2. **贡献点待裁决**（接三方前定并写入 DECISIONS）：settings 命名空间与存储归属（key 语义改组件内、存储键 `featureId:key`、壳统一持有）；HostApi 冻结面与 33 端点窄桥的关系（建议冻结子集视图 + 版本号，权限闸门在宿主进程）；contributed 重复 id 的拒绝+报告装载策略。
-3. **contentTab 贡献点槽**（壳标签页仍为固定四类；接槽前先裁决插件标签页的状态归属——它是唯一一个壳须替插件持有状态的槽）。
-4. Backlog：事件（D6，扫描进度）、EAV 元数据建模、标签语义带出、config 持久化、LICENSE、CI。
-5. 常规：push（含 tag）由真人执行。
+1. **命令注册表 + 右键菜单闭环**（进行中，ARCHITECTURE §3.2）：命令注册表（when 谓词 + 壳装配）→ 自绘 Menu + context target/根部拦截 → 条目卡官方命令（item.open/copyPath）做测试桩。
+2. **容器标准化（SurfaceHost）**：停靠渲染收拢为统一容器（边界补全 App.vue/Settings）；dialog/toast 服务替换 PathsPanel/Settings 的 window.confirm。
+3. **视频缩略图**：帧抓取管线（taghit-file 协议已就绪，缺 canvas 抓帧/封面提取/落盘通道；旧版 lib/thumbnailer.ts 思路可参考）；视频尺寸同理待 ffprobe/元数据。
+4. **贡献点待裁决**（接三方前定并写入 DECISIONS）：settings 命名空间与存储归属（key 语义改组件内、存储键 `featureId:key`、壳统一持有）；HostApi 冻结面与 33 端点窄桥的关系（建议冻结子集视图 + 版本号，权限闸门在宿主进程；菜单命令权是其第一批真实条目，与右键菜单 manifest 开放耦合裁决）。
+5. **contentTab 贡献点槽**（壳标签页仍为固定四类；接槽前先裁决插件标签页的状态归属——它是唯一一个壳须替插件持有状态的槽）。
+6. Backlog：事件（D6，扫描进度）、EAV 元数据建模、标签语义带出、config 持久化、LICENSE、CI。
+7. 常规：push（含 tag）由真人执行。
 
 ## 四、纪律
 
