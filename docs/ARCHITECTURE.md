@@ -31,7 +31,7 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 
 - **边界纪律**：渲染层只认 uri；渲染层拿不到 Store/裸 Node——一切走窄桥用例；D9 错误按信封 code 转文案（frontend/shared/api.ts）。
 - **SQLite 驱动注入（D14）**：适配层只认最小接口 `SyncSqlite`；node:sqlite 在 nodeDriver.ts（Node ≥22 校准用），Electron 主进程注入 better-sqlite3（ABI 匹配 Electron，根 node_modules）。node:sqlite 不进 Electron 打包产物。
-- **字节闸门（D15）**：媒体经 `host/protocol.ts` 的 taghit-file:// 特权协议（白名单 = 各工作区来源根 + userData，从 Store 端口查；Range/MIME/ACAO）；文本经 `item.readText` 窄桥（application/content.ts：TEXT_EXTS 白名单 + 2MiB 上限）。
+- **字节闸门（D15）**：媒体经 `host/protocol.ts` 的 taghit-file:// 特权协议（白名单 = 各工作区来源根 + userData，从 Store 端口查；Range/MIME/ACAO）；文本经 `item.readText` 窄桥（application/content.ts：TEXT_EXTS 白名单 + 2MiB 上限）。视频缩略图（D16）：**派生小图**经专用窄桥 `thumbnail.save`（渲染层 canvas 抓帧 JPEG base64，≤2MiB）→ 宿主落盘 `{userData}/thumbnails/{contentHash}.jpg` → 应用层按 contentHash 回写 previewUri/width/height（同内容多条目共享；`ItemsQuery.contentHash` 查询下沉）。
 - **打包与真机运行**：esbuild 打 src/host → build/main.cjs + preload.cjs（external: electron/better-sqlite3）；`npm run bundle:host` / `dev:renderer` / `start:host`（命令细节见 CONTEXT §五）。
 - 数据流约定：渲染层持**视图状态**（工作区/勾选 tag/排序/页码）；任何改动 = 改意图 → 窄桥调用一次用例 → 失效并重查；**不本地排序/过滤**（分页语义依赖适配器一次完成）。
 
@@ -99,7 +99,7 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 
 1. **原子 = 命令**：菜单项不是容器成员，是命令 + 摆放元数据；命令面板/快捷键都是命令注册表的视图——一套注册表，不做三套平行系统。`run(ctx)` 只经 HostApi 门面（改意图 → 窄桥 → 失效重查），数据流单通道不破；命令注册表同时是三方插件"可做的事"的权限清单底座。
 2. **声明可序列化 + when 谓词**：命令 = 声明面（id/title/when/group/order，manifest 形状，三方为磁盘 JSON）+ 执行（handler 在实现侧），与 FeatureManifest/impl 分离同构。壳必须**不加载实现即可过滤菜单**，故 when 是壳可求值的最小谓词（targetIs/fieldEquals/all）；底线 = 相等/合取，不做表达式引擎。
-3. **上下文目标注册**：组件不挂 contextmenu 监听，只声明"这块 DOM 是 context target"（data-ctx-*）；壳根部统一拦截、就近取 target、构造 MenuContext（target + workspaceId，未来加 selection 多选集）。事件拦截权归壳。
+3. **上下文目标注册**：组件不挂 contextmenu 监听，只声明"这块 DOM 是 context target"（data-ctx-*）；壳根部统一拦截、就近取 target、构造 MenuContext（target + workspaceId + **selection 多选集**（target 已入多选 → 整集带出，否则单 target，2026-09-07 兑现））。事件拦截权归壳。
 4. **装配规则归壳**：分组（nav/modify/danger）、分隔线、组内排序、溢出折叠全是壳的策略，插件只有 group/order 两个建议字段；危险动作壳强制沉底 + 警示。菜单**自绘**（主题一致、可注入插件项、Esc/失焦关闭），不用原生。
 
 三类呈现面的机制 2026-09-07 全部落地；三方插件的**发现/分发**（目录扫描、安装、启用管理）仍未接入，等分发形态裁决。

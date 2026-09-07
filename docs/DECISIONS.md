@@ -51,6 +51,8 @@
 - HostApi 冻结面（2026-09-07）：HostApi = 窄桥的冻结子集视图 + HOST_API_VERSION（独立演进，破坏性变更升 major）；官方可用全量窄桥（同版本发布），contributed 只经 HostApi；命令与权限清单以此为底座。
 - 插件能力分层：UI 增强 → 渲染层贡献点；复杂运算/程序外能力 → **主进程能力工具 + manifest 声明式权限**；应用层不驻插件，未来扫描期解析器走窄端口 + 独立进程（utilityProcess），不做流程钩子。
 - 渲染层数据流：视图状态在渲染层；改动 → 窄桥用例 → 失效重查；不本地排序/过滤。
+- 视频缩略图（D16，2026-09-07）：视频缩略图 = **派生小图**，走专用窄桥 `thumbnail.save`（canvas 抓帧 JPEG base64，≤2MiB）→ 宿主落盘 `{userData}/thumbnails/{contentHash}.jpg` + 应用层 `recordThumbnail` 按 contentHash 回写 previewUri/width/height（同内容多条目共享一份；查询下沉 `ItemsQuery.contentHash`）。**不做 ffprobe/ffmpeg 依赖**——尺寸在抓帧时经 video 元素顺带取得。渲染层懒生成 + 幂等（pending/failed + 落库复用）。
+- 多选与批量（D16，2026-09-07）：`MenuContext.selection` = 调用瞬间的操作对象集（target 已入多选集 → 整集带出，否则 = 单 target）；批量打标经**受控服务弹层**（服务面 batchTag，标签多选 + 打/卸两钮）→ 应用层 `tagItems/untagItems`（单事务）→ 失效重查。**批量不新造端口写方法**：事务内循环复用 attach/detach（与级联删除同款模式）。多选交互：Ctrl/Cmd+单击 toggle、单选单击即聚合。
 
 ## 假设（仍开放的默认值）
 
@@ -65,6 +67,7 @@
 | D13 | 宿主 | Electron；typed IPC 窄桥暴露用例；核心零依赖。内嵌 Node 20.18 无 node:sqlite → 宿主 Store 注入 better-sqlite3（落地，见 D14） |
 | D14 | SQLite 驱动 | 适配层只认最小接口 `SyncSqlite`（store.ts），驱动注入：node:sqlite 在 nodeDriver.ts（Node≥22 校准用），宿主注入 better-sqlite3（Electron ABI，根 node_modules）；node:sqlite 不进 Electron 打包产物 |
 | D15 | 字节闸门 | 媒体字节不走 IPC：taghit-file:// 协议（白名单=各工作区来源根+userData，**按路径段匹配**（目录根相等或紧随分隔符，防同前缀兄弟目录越权），Range 206、MIME、ACAO）；文本走窄桥 item.readText（TEXT_EXTS 白名单 + 2MiB 上限；超限返回前段并 truncated:true，比旧版整篇拒读更好用）。白名单从 Store 端口查，不裸 SQL。图片固有尺寸扫描时从文件头解析（application/mediaMeta.ts，PNG/JPEG/GIF/WebP/BMP 零依赖，替代旧版 image-size），落 items.width/height（旧库 ALTER 迁移）；瀑布流比例优先实测值并钳制 [1/2.2, 2.2]（老版逻辑），缺失回退 contentHash 估计，非媒体类型恒 4:3 |
+| D16 | 视频缩略图/尺寸 | 渲染层 canvas 抓帧（<video> 经 taghit-file Range seek）+ 宿主落盘 + 按 contentHash 回写（previewUri/width/height，items 加列 ALTER 迁移）；不引入 ffprobe/ffmpeg 运行时依赖；JPEG ≤480px、base64 ≤2MiB 上限 |
 
 ## parked
 

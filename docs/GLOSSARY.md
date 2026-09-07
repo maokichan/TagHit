@@ -27,7 +27,7 @@
 ## 属性
 
 - tag：name（全局唯一）、description
-- item：来源 sourceUri、来源类型、内容哈希、大小、文件修改时间、状态；元数据 = 核心事实 + EAV 长尾
+- item：来源 sourceUri、来源类型、内容哈希、大小、文件修改时间、状态；元数据 = 核心事实 + EAV 长尾；previewUri（派生缩略图缓存路径，{userData}/thumbnails，按内容哈希共享）
 - collection：名称、成员顺序
 - 节点状态 nodeState：included / excluded —— 仅作用于该节点的直接条目，不级联
 
