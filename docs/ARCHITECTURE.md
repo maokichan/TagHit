@@ -35,15 +35,23 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 - **打包与真机运行**：esbuild 打 src/host → build/main.cjs + preload.cjs（external: electron/better-sqlite3）；`npm run bundle:host` / `dev:renderer` / `start:host`（命令细节见 CONTEXT §五）。
 - 数据流约定：渲染层持**视图状态**（工作区/勾选 tag/排序/页码）；任何改动 = 改意图 → 窄桥调用一次用例 → 失效并重查；**不本地排序/过滤**（分页语义依赖适配器一次完成）。
 
-### 渲染层功能组件（贡献点 v0）
+### 渲染层插件机制（已全部落地，2026-09-07）
 
-- `frontend/src/renderer/src/features/registry.ts` + `shared/types/feature.ts`：**注册表 = 声明表**——可序列化 FeatureManifest（槽位/settings）+ 按来源分层的实现绑定 FeatureImpl（official 构建期直连 / contributed 运行期 loader，类型先行未接线）；壳经 `listFeatures(mount)` 查表渲染，不 import 具体组件。错误隔离两条线：setup 调用处 try/catch（registry）+ 槽渲染 FeatureBoundary（onErrorCaptured）；生命周期 per-entry（setup/dispose 配对 + unregisterFeature，三方启停/卸载的承载）。同构验收：任一官方组件的 impl 换成 load 形态后壳行为不变。
-- **注册必须先于 app.mount**（App.vue 挂载时读注册表——顺序错了活动栏就是空轨，踩过）。
-- freeze 0.1 `main/plugins/*` + `shared/types/plugin.ts`：0.1 的两套未统一插件雏形（UI 功能 vs 主进程工具），0.2 在此统一。
+代码落点：`frontend/src/renderer/src/features/`（registry·commands·contextMenu·SurfaceHost·services·hostApi·context）+ `shared/types/{feature,command}.ts` + `stores/config.ts`。
+
+- **注册表 = 声明表**：可序列化 `FeatureManifest`（三方磁盘 JSON 的形状）+ 实现绑定 `FeatureImpl`（direct 静态直连 | async loader，与 source 正交）。壳经 `listFeatures(mount)` 查表渲染，不 import 具体组件。重复 id：official 抛错（开发期暴露）、contributed 拒绝并报告。
+- **SurfaceHost 标准容器**：所有功能组件的唯一渲染通道——槽查询 → 惰性解析（async 用 defineAsyncComponent）→ FeatureBoundary 错误隔离 → FeatureContext 注入（surface/workspaceId/side）。活动栏面板、显示面板块、内容区标签页共用。
+- **错误隔离双线**：setup try/catch（registry）+ 槽渲染 FeatureBoundary（onErrorCaptured）；官方组件同边界通过。生命周期 per-entry（setup/dispose 配对 + unregisterFeature）。
+- **命令注册表**：`commands.ts`——when 最小谓词壳求值（不加载实现即可过滤）、nav/modify/danger 分组装配归壳；ContextMenuHost 自绘 + App 根部拦截（组件只声明 data-ctx-target）。
+- **服务面**：`services/dialog.ts` confirmDialog/showToast + ServiceHost 统一渲染；manifest.surfaces 声明位就绪（v0 声明不校验）。
+- **config 仓**：`stores/config.ts` 按 `featureId:key` 持有并持久化（localStorage，迁移宿主端点时键形状不变）；Settings 页 SchemaControl 直接读 manifest default。
+- **HostApi 冻结面**：`hostApi.ts` = 窄桥冻结子集 + HOST_API_VERSION；contributed 只经此面。
+- **同构验收桩**：workspaceInfo 已转 async 装载，壳行为不变。**注册必须先于 app.mount**（App.vue 挂载时读表——顺序错了活动栏就是空轨，踩过）。
+- freeze 0.1 `main/plugins/*`：0.1 的两套未统一插件雏形，0.2 已按本机制统一。
 
 ## 三、前端与插件方向（已共识）
 
-- **插件 = 提供程序所没有的能力**：UI 增强（面板/展示/命令）→ 渲染层贡献点；复杂运算/程序外能力（OCR、哈希、转码、扫描等）→ **主进程能力工具** + manifest 声明式权限。两层都经统一 **HostApi 门面**（= 冻结的应用层用例 + 事件），核心保持对插件无知。
+- **插件 = 提供程序所没有的能力**：UI 增强（面板/展示/命令）→ 渲染层贡献点；复杂运算/程序外能力（OCR、哈希、转码、扫描等）→ **主进程能力工具** + manifest 声明式权限。两层都经统一 **HostApi 门面**（窄桥冻结子集视图 + HOST_API_VERSION），核心保持对插件无知。
 - **壳 = 插件容器与展示层**（不只 UI）：布局、标签页、面板拖拽/显隐都是壳/官方功能的行为。
 - **贡献点 v0**：`activityBar:left/right` · 内容区标签页 · `displayPanel` 块（排序/显隐）· `settings`。**不做任意跨区停靠（完整 dock）**。
 - 官方功能组件：居**左活动栏**（工具间切换/显隐）。三方插件：**左、右活动栏均可**，displayPanel 内可贡献块。
@@ -59,20 +67,17 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
   - *钩子/拦截式*（插件插进查询/扫描等核心流程）：让插件进入核心**控制流**；行为归属被稀释（流程在应用层、事务边界在用例），插件 bug 从"一块面板坏了"升级成"一次扫描/删除坏了"，还要定义顺序/await/抛错语义。否。
   - *中间件/管道式*：钩子变体，主流程（浏览/打标/扫描）不是管道形状。否。
   - *贡献点式*（VS Code 模型）：**壳声明槽位，插件只声明填充物**，壳按声明渲染，核心 import 图里永远没有插件。控制权反转，上述三条裁决全部保住。
-- 贡献点的三个对应价值：① 服务"壳 = 插件容器与展示层"裁决——布局/标签页/显隐是壳的权力，插件只能往槽里放东西；② 数据流不破——贡献物拿数据走 HostApi 门面，与官方 UI 同一条窄桥；③ 信任可分层——声明式注册使官方静态/三方动态共用一张表，差异只收敛在"从哪来、信多少、何时加载"。
-- 性能裁决（惰性加载 + 事件仅推活跃订阅者）的着力点就是声明式 manifest：壳先读声明，激活条件满足才 import 实现。
+- 贡献点的三个对应价值：① 服务"壳 = 插件容器与展示层"裁决——布局/标签页/显隐是壳的权力，插件只能往槽里放东西；② 数据流不破——贡献物拿数据走 HostApi 门面，与官方 UI 同一条窄桥；③ 信任可分层——声明式注册使官方静态/三方动态共用一张表，差异只收敛在"从哪来、信多少、何时加载"，且声明式 manifest 正是惰性加载的着力点。
 
 **两个概念是同一机制的两面**，不是两套系统：
 
 - **贡献点** = 壳侧的**槽**：`activityBar:left/right`、内容区标签页、`displayPanel` 块、`settings` 分区。回答"哪里可以插、插进来壳按什么规则渲染/排序/显隐"。槽是壳的权力清单（v0 不做任意 dock 就是这条清单的红线）。
-- **功能组件** = 贡献侧的**插头**：`FeatureManifest`（id/title/source/mounts/settings）+ 组件实现 + setup 钩子。回答"我声明自己是什么、挂哪些槽、有哪些配置项"。
-- **官方组件没有任何特权路径**：与三方走同一注册表（`features/registry.ts`），ActivityBar/DisplayPanel/SettingsPage 只问注册表"这个槽里有什么"，不 import 具体组件。官方组件是机制的持续测试桩。
-- 真正的设计差异在三个**分层**维度（不在机制上）：
-  1. 注册来源：官方 = 静态 import + 代码注册；三方 = 目录发现 + manifest 文件 + 惰性 import；
-  2. 信任与权限：官方全信；三方要权限门（0.1 PluginManifest 的 fs/network/shell 声明届时并入）+ 每贡献块错误隔离；
+- **功能组件** = 贡献侧的**插头**：`FeatureManifest`（id/title/source/mounts/settings/surfaces）+ 实现绑定 + setup 钩子。回答"我声明自己是什么、挂哪些槽、有哪些配置项"。
+- **官方组件没有任何特权路径**：与三方走同一注册表，槽只问注册表"这里有什么"，不 import 具体组件。真正的设计差异在三个**分层**维度（不在机制上）：
+  1. 注册来源：官方 = 静态 import + 代码注册；三方 = 目录发现 + manifest 文件 + 惰性 import（**发现/分发未接入**）；
+  2. 信任与权限：官方全信；三方要权限门（manifest.surfaces/权限清单审查）+ 每贡献块错误隔离；
   3. 生命周期：官方与版本同生共死；三方有安装/启停/卸载，事件订阅可退订、状态可丢弃。
-- **同构验收标准**：把任一官方功能组件改成动态加载后，壳行为完全不变。做不到即同构失效。
-- **注册表形状**（2026-09-07 落地）：注册表只存「可序列化声明 + 实现绑定」，两者分离是惰性加载与同构验收的类型前提——manifest（`shared/types/feature.ts`）是三方磁盘 JSON 的形状，实现绑定（`FeatureImpl`）按来源分层：official 直连、contributed loader。错误隔离与生命周期是机制层而非官方特权：setup try/catch + 槽渲染 FeatureBoundary（onErrorCaptured）两条隔离线，官方组件同边界通过；setup/dispose 按 per-entry 配对，unregisterFeature 承载三方卸载。
+- **同构验收标准**：把任一官方功能组件改成动态加载后，壳行为完全不变。做不到即同构失效（workspaceInfo 已作验收桩）。
 
 **应用层不驻插件**（选型推论，单向铁律）：
 
@@ -90,11 +95,11 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 | 服务面 service | 弹窗/确认/通知 | 壳提供的受控服务（经 FeatureContext 注入），调用时临时起；**不是插槽** |
 | 调用面 invoked | 右键菜单、（未来）命令面板/快捷键 | **多贡献者，调用瞬间按上下文现场聚合** |
 
-右键菜单是调用面的样板，也是贡献点机制里第一个要求"声明式条件"的槽（停靠槽常驻，无"何时出现"语义）。标准化四要件：
+右键菜单是调用面的样板，也是贡献点机制里第一个要求"声明式条件"的槽（停靠槽常驻，无"何时出现"语义）。标准化四要件（机制细节见 §二 命令注册表条目，裁决见 DECISIONS）：
 
 1. **原子 = 命令**：菜单项不是容器成员，是命令 + 摆放元数据；命令面板/快捷键都是命令注册表的视图——一套注册表，不做三套平行系统。`run(ctx)` 只经 HostApi 门面（改意图 → 窄桥 → 失效重查），数据流单通道不破；命令注册表同时是三方插件"可做的事"的权限清单底座。
 2. **声明可序列化 + when 谓词**：命令 = 声明面（id/title/when/group/order，manifest 形状，三方为磁盘 JSON）+ 执行（handler 在实现侧），与 FeatureManifest/impl 分离同构。壳必须**不加载实现即可过滤菜单**，故 when 是壳可求值的最小谓词（targetIs/fieldEquals/all）；底线 = 相等/合取，不做表达式引擎。
 3. **上下文目标注册**：组件不挂 contextmenu 监听，只声明"这块 DOM 是 context target"（data-ctx-*）；壳根部统一拦截、就近取 target、构造 MenuContext（target + workspaceId，未来加 selection 多选集）。事件拦截权归壳。
 4. **装配规则归壳**：分组（nav/modify/danger）、分隔线、组内排序、溢出折叠全是壳的策略，插件只有 group/order 两个建议字段；危险动作壳强制沉底 + 警示。菜单**自绘**（主题一致、可注入插件项、Esc/失焦关闭），不用原生。
 
-落地顺序：① 命令注册表 + 自绘 Menu + 官方命令做测试桩 ✅ → ② context target + 根部拦截 + 条目卡闭环 ✅ → ③ SurfaceHost 标准容器 + 服务面（dialog/toast）+ config 仓（featureId:key）+ contentTab 槽 + HostApi 冻结面 ✅（2026-09-07 全部落地，裁决见 DECISIONS）。三方插件的**发现/分发**（目录扫描、安装、启用管理）仍未接入——机制就绪，等分发形态裁决。
+三类呈现面的机制 2026-09-07 全部落地；三方插件的**发现/分发**（目录扫描、安装、启用管理）仍未接入，等分发形态裁决。

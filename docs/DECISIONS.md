@@ -37,25 +37,19 @@
 - 查询下沉到存储：ItemsQuery/TagsQuery 可扩展条件对象（不预造方法、不做通用查询引擎）。
 - 适配器一致性：memory 与 sqlite 跑同一份场景（scripts/s32、s33）。SQLite 外键会暴露排序/删除次序依赖（例：删作品先删 collection 行再删锚）。
 
-## 渲染层与插件（方向裁决，详见 ARCHITECTURE §3/§4）
+## 渲染层与插件（裁决基线；选型论证与机制细节见 ARCHITECTURE §3）
 
-- 壳 = 插件的**容器与展示层**（布局/标签页/面板拖拽显隐）；官方功能组件 = 内置 feature，与三方插件**注册机制同构**、信任/生命周期分层。
-- 贡献点 v0：`activityBar:left/right` · 内容区标签页 · `displayPanel` 块 · `settings`；**不做任意跨区停靠（完整 dock）**。
-- 官方基础组件居左活动栏（切换/显隐）；三方插件左、右活动栏均可，displayPanel 内可贡献块。
-- 插件能力分层：UI 增强 → 渲染层贡献点；复杂运算/程序外能力 → **主进程能力工具 + manifest 声明式权限**；统一 HostApi 门面（冻结的应用层用例 + 事件）。
-- 契约优先：贡献点 + HostApi + 生命周期为稳定面；性能用惰性加载与事件仅推活跃订阅者控制。
+- 壳 = 插件的**容器与展示层**；官方功能组件与三方插件**注册机制同构**，差异只收敛在信任/生命周期分层（官方静态全信；三方动态装载、权限门、错误隔离、启停卸载）。同构验收：任一官方组件改动态加载后壳行为不变（workspaceInfo 已作验收桩）。
+- 贡献点清单：`activityBar:left/right` · `displayPanel` 块 · `settings` 分区 · `contentTab` 内容标签页；**不做任意跨区停靠（完整 dock）**。官方组件居左活动栏；三方左右均可、displayPanel 可贡献块。
 - 扩展机制 = 贡献点（壳声明槽、插件声明填充、壳渲染），否决自由 API/钩子/管道（2026-09-06，理由见 ARCHITECTURE §3.1：保住数据流单通道与行为单一归属）。
-- 注册表 = 声明表（2026-09-07）：可序列化 FeatureManifest + 按来源分层的实现绑定（official 直连 / contributed loader，类型先行）分离；错误隔离双线（setup try/catch + 槽渲染 FeatureBoundary），官方组件同边界；生命周期 per-entry（setup/dispose 配对 + unregisterFeature）。
 - 呈现面三分类（2026-09-07）：停靠面（槽）/ 服务面（壳的受控服务，非插槽）/ 调用面（多贡献者调用瞬间按上下文聚合）；插件 UI 只经这三类落到壳里。
-- 命令为原子（2026-09-07）：右键菜单项 = 命令 + 摆放元数据；命令面板/快捷键是同一命令注册表的视图；run(ctx) 只经 HostApi；命令注册表即三方权限清单底座。when 为壳可求值的最小可序列化谓词（相等/合取；不加载实现即可过滤），防表达式引擎蔓延。
-- 右键菜单（2026-09-07）：事件拦截权归壳（context target 声明 + 根部拦截 + MenuContext 构造）；装配规则（分组 nav/modify/danger、排序、溢出、危险区强制沉底）归壳，插件只有 group/order 建议字段；菜单自绘不用原生。
-- 服务面权力（2026-09-07）：dialog/toast 是壳的受控服务（ServiceHost 统一渲染），不是插槽；功能组件禁止自起弹层（window.confirm/DOM 注入违规）；manifest.surfaces 声明所需服务 = 权限清单的渲染侧雏形（v0 仅声明不校验）。
-- settings 归属（2026-09-07）：SettingSchema.key 语义 = 组件内 key；实际存储键 = `featureId:key`，由壳 config 仓统一持有并持久化（localStorage 起步，宿主 config 端点落地后整体迁移、存储键形状不变）；ui store 只保留壳自身外观（主题/缩放/封面/活动栏开合）。
-- contentTab 状态归属（2026-09-07）：壳持有标签项（featureId/title/激活），组件自持内容状态、经 HostApi 取数；关闭标签即销毁；同一 feature 单实例（重复打开 = 激活）；路由 `/feature/:featureId` 是标签的投影，内容经 SurfaceHost（surface=contentTab）渲染。
-- HostApi 冻结面（2026-09-07）：HostApi = 窄桥的冻结子集视图 + HOST_API_VERSION（独立演进，破坏性变更升 major）；官方组件允许全量窄桥（同版本发布），contributed 只经 HostApi；命令注册表与权限清单以此为底座。contributed 装载：重复 id → 拒绝并报告（不炸注册表），装载失败由 SurfaceHost async 边界隔离。
-- 实现绑定与来源正交（2026-09-07）：FeatureImpl = direct | async，source 只在 manifest；官方 workspaceInfo 转 async 装载 = 同构验收桩（壳行为不变）。
-- 应用层不驻插件：三方代码不进主进程核心；重运算走主进程能力工具；未来扫描期解析器类需求走窄端口 + 独立进程（utilityProcess），不做流程钩子。
-- 同构验收：任一官方功能组件改为动态加载后壳行为不变，官方组件无特权路径。
+- 注册表 = 声明表（2026-09-07）：可序列化 FeatureManifest + 实现绑定 FeatureImpl（direct | async，**与 source 正交**）；错误隔离双线（setup try/catch + 槽渲染 FeatureBoundary），官方组件同边界；生命周期 per-entry（setup/dispose 配对 + unregisterFeature）；contributed 重复 id 拒绝并报告，不炸注册表。
+- 命令为原子（2026-09-07）：菜单项 = 命令 + 摆放元数据，命令面板/快捷键是同一注册表的视图；`run(ctx)` 只经 HostApi，命令注册表即三方权限清单底座。when 为壳可求值的最小可序列化谓词（相等/合取，不加载实现即可过滤），防表达式引擎蔓延。事件拦截权与装配规则（分组/排序/溢出/危险区沉底）归壳，菜单自绘不用原生。
+- 服务面权力（2026-09-07）：dialog/toast 是壳的受控服务（ServiceHost 统一渲染）；功能组件禁止自起弹层；manifest.surfaces 声明所需服务 = 权限清单渲染侧雏形（v0 仅声明不校验）。
+- settings 归属（2026-09-07）：SettingSchema.key = 组件内 key；存储键 = `featureId:key`，由壳 config 仓统一持有并持久化（localStorage 起步，迁宿主 config 端点时键形状不变）；ui store 只保留壳自身外观。
+- contentTab 状态归属（2026-09-07）：壳持标签项（featureId/title/激活），组件自持内容状态、经 HostApi 取数；关闭即销毁；同一 feature 单实例；路由 `/feature/:featureId` 是标签的投影。
+- HostApi 冻结面（2026-09-07）：HostApi = 窄桥的冻结子集视图 + HOST_API_VERSION（独立演进，破坏性变更升 major）；官方可用全量窄桥（同版本发布），contributed 只经 HostApi；命令与权限清单以此为底座。
+- 插件能力分层：UI 增强 → 渲染层贡献点；复杂运算/程序外能力 → **主进程能力工具 + manifest 声明式权限**；应用层不驻插件，未来扫描期解析器走窄端口 + 独立进程（utilityProcess），不做流程钩子。
 - 渲染层数据流：视图状态在渲染层；改动 → 窄桥用例 → 失效重查；不本地排序/过滤。
 
 ## 假设（仍开放的默认值）
@@ -68,7 +62,7 @@
 | D10 | SQLite 驱动 | node:sqlite（Node 内置）；**仅限 Node ≥ 23.4 环境** |
 | D11 | 消失策略 | 缺省 keep；discard 可选 |
 | D12 | 内容签名 | 头/中/尾三采样（64 KiB/段），适配器共用 sampleHash |
-| D13 | 宿主 | Electron；typed IPC 窄桥暴露用例；核心零依赖。**Electron 33 内嵌 Node 20.18 → 宿主 Store 需换 better-sqlite3 实现（或升级 Electron）** |
+| D13 | 宿主 | Electron；typed IPC 窄桥暴露用例；核心零依赖。内嵌 Node 20.18 无 node:sqlite → 宿主 Store 注入 better-sqlite3（落地，见 D14） |
 | D14 | SQLite 驱动 | 适配层只认最小接口 `SyncSqlite`（store.ts），驱动注入：node:sqlite 在 nodeDriver.ts（Node≥22 校准用），宿主注入 better-sqlite3（Electron ABI，根 node_modules）；node:sqlite 不进 Electron 打包产物 |
 | D15 | 字节闸门 | 媒体字节不走 IPC：taghit-file:// 协议（白名单=各工作区来源根+userData，**按路径段匹配**（目录根相等或紧随分隔符，防同前缀兄弟目录越权），Range 206、MIME、ACAO）；文本走窄桥 item.readText（TEXT_EXTS 白名单 + 2MiB 上限；超限返回前段并 truncated:true，比旧版整篇拒读更好用）。白名单从 Store 端口查，不裸 SQL。图片固有尺寸扫描时从文件头解析（application/mediaMeta.ts，PNG/JPEG/GIF/WebP/BMP 零依赖，替代旧版 image-size），落 items.width/height（旧库 ALTER 迁移）；瀑布流比例优先实测值并钳制 [1/2.2, 2.2]（老版逻辑），缺失回退 contentHash 估计，非媒体类型恒 4:3 |
 

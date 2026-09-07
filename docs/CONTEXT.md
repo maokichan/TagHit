@@ -44,7 +44,11 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 ```
 src/domain/ · src/ports/ · src/adapters/ · src/application/   ← 后端核心（ARCHITECTURE §一）
 src/host/      main（装配+IPC）· preload · ipc（typed 契约）· protocol（taghit-file）· sqliteDriver
-frontend/      渲染层（shared/contract=契约桥 · shared/api=门面+D9 文案 · lib/{viewModel,media}=视图/媒体适配）
+frontend/      渲染层
+  shared/      contract（契约 type-only 桥）· api（门面+D9 文案）· types/{feature,command}
+  renderer/    lib/{viewModel,media,format} · stores/{item,tab,ui,workspace,tag,config}
+               features/（registry·commands·hostApi·SurfaceHost·contextMenu·services·context）
+               components/（item 网格卡片 · workspace 面板 · layout 壳）· views/（含 FeatureTabView）
 scripts/       s32（六用例）· s33（扫描）—— memory/sqlite 各入口
 docs/          GLOSSARY · DECISIONS · ARCHITECTURE · 本文件
 build/         esbuild 产物 + 真机 dev 库（gitignore）
