@@ -7,8 +7,10 @@ import ActivityBar, { type ActivityTool } from './components/layout/ActivityBar.
 import { useTabStore } from './stores/tab'
 import { useUiStore, type LeftTool, type RightTool } from './stores/ui'
 import ContextMenuHost from './features/ContextMenuHost.vue'
+import SurfaceHost from './features/SurfaceHost.vue'
+import ServiceHost from './features/services/ServiceHost.vue'
 import { openContextMenu } from './features/contextMenu'
-import { listFeatures, resolvedComponent, resolvedIcon, type FeatureEntry } from './features/registry'
+import { listFeatures, resolvedIcon, type FeatureEntry } from './features/registry'
 
 const route = useRoute()
 const router = useRouter()
@@ -49,6 +51,25 @@ watch(
           )
         else router.replace('/')
       }
+    } else if (name === 'feature' && typeof id === 'string') {
+      // 功能组件标签页：路由必须与标签状态一致（手改 URL 无对应标签 → 回活动标签）
+      const key = `feature:${id}`
+      if (tabStore.activeKey !== key) {
+        const tab = tabStore.tabs.find((t) => t.key === key)
+        if (tab) {
+          tabStore.setActive(key)
+        } else {
+          const active = tabStore.activeTab
+          if (active?.kind === 'workspace') router.replace(`/workspace/${active.workspaceId}`)
+          else if (active?.kind === 'settings') router.replace('/settings')
+          else if (active?.kind === 'item')
+            router.replace(
+              `/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`
+            )
+          else if (active?.kind === 'feature') router.replace(`/feature/${active.featureId}`)
+          else router.replace('/')
+        }
+      }
     } else if (name === 'start') {
       // 主页只在"激活标签是 home"时显示；鼠标侧键后退等 URL 跳转不得进入主页
       const active = tabStore.activeTab
@@ -62,6 +83,7 @@ watch(
           router.replace(
             `/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`
           )
+        else if (active.kind === 'feature') router.replace(`/feature/${active.featureId}`)
         else router.replace('/')
       }
     }
@@ -121,14 +143,6 @@ const activeRightFeature = computed(() => {
   return rightFeatures.value.find((f) => f.manifest.id === id) ?? null
 })
 
-// 槽渲染取实现：contributed 未解析时为 undefined（v0 仅官方，恒有值）
-const activeLeftComponent = computed(() =>
-  activeLeftFeature.value ? resolvedComponent(activeLeftFeature.value) : undefined
-)
-const activeRightComponent = computed(() =>
-  activeRightFeature.value ? resolvedComponent(activeRightFeature.value) : undefined
-)
-
 function persistOrder(): void {
   try {
     localStorage.setItem(
@@ -184,11 +198,12 @@ function onContextMenu(e: MouseEvent): void {
           @toggle="onToggleLeft"
           @reorder="(from, to) => onReorder('left', from, to)"
         />
-        <component
-          :is="activeLeftComponent"
-          v-if="activeLeftComponent"
+        <SurfaceHost
+          :feature="activeLeftFeature"
+          surface="activityBar"
           :workspace-id="activeWsId"
           side="left"
+          :component-props="{ workspaceId: activeWsId, side: 'left' }"
         />
       </template>
 
@@ -200,10 +215,11 @@ function onContextMenu(e: MouseEvent): void {
 
       <!-- 右活动栏 + 工具面板（工作区 + 条目详情；详情页媒体信息移入内容页，仅剩插件） -->
       <template v-if="showRightSidebar">
-        <component
-          :is="activeRightComponent"
-          v-if="activeRightComponent"
+        <SurfaceHost
+          :feature="activeRightFeature"
+          surface="activityBar"
           side="right"
+          :component-props="{ side: 'right' }"
         />
         <ActivityBar
           :tools="rightToolItems"
@@ -217,5 +233,6 @@ function onContextMenu(e: MouseEvent): void {
 
     <StatusBar />
     <ContextMenuHost />
+    <ServiceHost />
   </div>
 </template>

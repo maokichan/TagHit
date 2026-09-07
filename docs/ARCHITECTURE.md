@@ -97,4 +97,4 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 3. **上下文目标注册**：组件不挂 contextmenu 监听，只声明"这块 DOM 是 context target"（data-ctx-*）；壳根部统一拦截、就近取 target、构造 MenuContext（target + workspaceId，未来加 selection 多选集）。事件拦截权归壳。
 4. **装配规则归壳**：分组（nav/modify/danger）、分隔线、组内排序、溢出折叠全是壳的策略，插件只有 group/order 两个建议字段；危险动作壳强制沉底 + 警示。菜单**自绘**（主题一致、可注入插件项、Esc/失焦关闭），不用原生。
 
-落地顺序：① 命令注册表 + 自绘 Menu + 官方命令做测试桩 → ② context target + 根部拦截 + 条目卡闭环 → ③ manifest 开放菜单贡献 + 权限（与 HostApi 冻结面裁决耦合，见 CONTEXT §三）。容器标准化（SurfaceHost 收拢停靠渲染 + dialog/toast 服务替换 window.confirm）平行推进。
+落地顺序：① 命令注册表 + 自绘 Menu + 官方命令做测试桩 ✅ → ② context target + 根部拦截 + 条目卡闭环 ✅ → ③ SurfaceHost 标准容器 + 服务面（dialog/toast）+ config 仓（featureId:key）+ contentTab 槽 + HostApi 冻结面 ✅（2026-09-07 全部落地，裁决见 DECISIONS）。三方插件的**发现/分发**（目录扫描、安装、启用管理）仍未接入——机制就绪，等分发形态裁决。

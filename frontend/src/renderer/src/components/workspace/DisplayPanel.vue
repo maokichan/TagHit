@@ -4,8 +4,8 @@
  * 遍历注册表挂载 displayPanel 的功能组件渲染区块；组件各自独立、互不 import。
  * 当前区块：媒体类型 / 排序 / 布局（卡片标题已按用户决策仅入设置页）。
  */
-import { listFeatures, resolvedComponent } from '../../features/registry'
-import FeatureBoundary from '../../features/FeatureBoundary.vue'
+import { listFeatures } from '../../features/registry'
+import SurfaceHost from '../../features/SurfaceHost.vue'
 
 defineProps<{ side?: 'left' | 'right' }>()
 
@@ -22,10 +22,8 @@ const blocks = listFeatures('displayPanel')
         显示
       </div>
 
-      <!-- 功能组件区块（壳只渲染声明，不关心具体组件；每块过错误隔离边界） -->
-      <FeatureBoundary v-for="f in blocks" :key="f.manifest.id" :label="f.manifest.title">
-        <component :is="resolvedComponent(f)" v-if="resolvedComponent(f)" />
-      </FeatureBoundary>
+      <!-- 功能组件区块（壳只渲染声明；统一经 SurfaceHost：惰性解析 + 错误隔离 + 上下文注入） -->
+      <SurfaceHost v-for="f in blocks" :key="f.manifest.id" :feature="f" surface="displayPanel" />
 
       <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">
         瀑布流模式下，图片卡片按真实比例渲染（比例上限

@@ -4,7 +4,7 @@ import type { FeatureManifest, FeatureSource, MountPoint } from '@shared/types/f
 import MediaTypeFeature from './display/mediaType/MediaTypeFeature.vue'
 import SortFeature from './display/sort/SortFeature.vue'
 import LayoutFeature from './display/layout/LayoutFeature.vue'
-import WorkspaceInfoFeature from './display/workspaceInfo/WorkspaceInfoFeature.vue'
+import GlobalSearchFeature from './content/globalSearch/GlobalSearchFeature.vue'
 import PathsPanel from '../components/workspace/PathsPanel.vue'
 import TagsPanel from '../components/workspace/TagsPanel.vue'
 import DisplayPanel from '../components/workspace/DisplayPanel.vue'
@@ -16,15 +16,14 @@ import { setupKeyboardMouse } from './keyboardMouse/setup'
 export type SetupHook = () => void | (() => void)
 
 /**
- * 实现绑定（渲染层关注点，不进 manifest）——按来源分层，机制同构：
- * - official：构建期直连（静态 import，随壳同版本发布）；
- * - contributed：运行期 loader（声明先到、实现后到；权限门/错误隔离届时接在这层）。
- * 同构验收：任一官方组件的 impl 换成 load 形态后壳行为不变（ARCHITECTURE §3.1）。
+ * 实现绑定（渲染层关注点，不进 manifest）——与来源**正交**（source 在 manifest 上）：
+ * - direct：构建期直连（静态 import）；
+ * - async：运行期 loader（声明先到、实现后到；惰性加载的承载，官方亦可用——同构验收桩）。
  */
 export type FeatureImpl =
   // component 可选：仅设置页的功能组件（如 showTitles）无面板 UI
-  | { source: 'official'; component?: Component; icon?: Component; setup?: SetupHook }
-  | { source: 'contributed'; load: () => Promise<{ component: Component; setup?: SetupHook }> }
+  | { type: 'direct'; component?: Component; icon?: Component; setup?: SetupHook }
+  | { type: 'async'; load: () => Promise<{ component: Component; icon?: Component; setup?: SetupHook }> }
 
 /** 注册表条目 = 可序列化声明 + 实现绑定。声明表是壳的唯一查询面。 */
 export interface FeatureEntry {
@@ -39,13 +38,29 @@ const disposers = new Map<string, () => void>()
 
 /**
  * 注册一个功能组件。重复 id 抛错——官方静态注册期望开发期暴露；
- * contributed 源的重复 id 届时在动态装载处降级为"拒绝该插件并报告"，不炸注册流程。
+ * contributed 源走 registerContributedFeature（重复 id 拒绝+报告，不炸注册表）。
  */
 export function registerFeature(manifest: FeatureManifest, impl: FeatureImpl): void {
   if (registry.has(manifest.id)) {
     throw new Error(`功能组件 id 重复：${manifest.id}`)
   }
   registry.set(manifest.id, { manifest, impl })
+}
+
+/**
+ * 三方功能组件注册（声明 + loader）。重复 id → 拒绝并报告（返回 false），不炸注册表；
+ * 装载失败由 SurfaceHost 的 async 边界隔离。权限门（manifest.surfaces 审查）届时接在此处。
+ */
+export function registerContributedFeature(
+  manifest: Omit<FeatureManifest, 'source'>,
+  load: Extract<FeatureImpl, { type: 'async' }>['load']
+): boolean {
+  if (registry.has(manifest.id)) {
+    console.warn(`[features] 拒绝 contributed 注册（id 重复）：${manifest.id}`)
+    return false
+  }
+  registerFeature({ ...manifest, source: 'contributed' }, { type: 'async', load })
+  return true
 }
 
 /** 移除单个组件：先执行其行为清理再出表（三方启停/卸载的机制承载；官方 v0 不调用）。 */
@@ -70,22 +85,17 @@ export function listFeatures(mount: MountPoint): FeatureEntry[] {
   return [...registry.values()].filter((f) => f.manifest.mounts.includes(mount))
 }
 
-/** 槽渲染取实现：contributed 未解析时返回 undefined——槽渲染处需处理该态（v0 仅官方，恒有值）。 */
-export function resolvedComponent(entry: FeatureEntry): Component | undefined {
-  return entry.impl.source === 'official' ? entry.impl.component : undefined
-}
-
-/** 活动栏图标（渲染层关注点，不进 manifest）。 */
+/** 活动栏图标（渲染层关注点，不进 manifest；async 装载的图标经 loader 结果提供）。 */
 export function resolvedIcon(entry: FeatureEntry): Component | undefined {
-  return entry.impl.source === 'official' ? entry.impl.icon : undefined
+  return entry.impl.type === 'direct' ? entry.impl.icon : undefined
 }
 
 /**
- * 执行单个组件的行为钩子（错误隔离：一个 setup 抛错只废掉自己，不炸注册流程与其余组件；
- * 官方组件同样过此边界——同构验收的一部分）。幂等：已 setup 的条目跳过。
+ * 执行单个组件的行为钩子（错误隔离：一个 setup 抛错只废掉自己，不炸注册流程与其余组件）。
+ * 幂等：已 setup 的条目跳过。
  */
 export function setupFeature(entry: FeatureEntry): void {
-  if (entry.impl.source !== 'official' || entry.impl.setup == null) return
+  if (entry.impl.type !== 'direct' || entry.impl.setup == null) return
   if (disposers.has(entry.manifest.id)) return
   try {
     const d = entry.impl.setup()
@@ -115,11 +125,11 @@ export function disposeFeatureBehaviors(): void {
 /** 官方组件注册（静态可信，构建期直连）：manifest 缺省 source=official。 */
 function official(
   manifest: Omit<FeatureManifest, 'source'> & { source?: FeatureSource },
-  impl: Omit<Extract<FeatureImpl, { source: 'official' }>, 'source'>
+  impl: Omit<Extract<FeatureImpl, { type: 'direct' }>, 'type'>
 ): void {
   registerFeature(
     { ...manifest, source: manifest.source ?? 'official' },
-    { source: 'official', ...impl }
+    { type: 'direct', ...impl }
   )
 }
 
@@ -189,10 +199,20 @@ export function registerBuiltinFeatures(): void {
     },
     { component: LayoutFeature }
   )
-  // 贡献点 v0 垂直切片：消费 HostApi（listRoots/declaredTags）的官方组件
+  // 贡献点垂直切片：消费 HostApi（listRoots/declaredTags）的官方组件。
+  // async 装载 = 同构验收桩：官方组件走 loader 后壳行为不变（ARCHITECTURE §3.1）。
+  registerFeature(
+    { id: 'workspaceInfo', title: '工作区信息', source: 'official', mounts: ['displayPanel'] },
+    {
+      type: 'async',
+      load: async () => ({ component: (await import('./display/workspaceInfo/WorkspaceInfoFeature.vue')).default })
+    }
+  )
+
+  // ── 内容区标签页（contentTab）：壳持标签项，组件自持内容状态 ──
   official(
-    { id: 'workspaceInfo', title: '工作区信息', mounts: ['displayPanel'] },
-    { component: WorkspaceInfoFeature }
+    { id: 'globalSearch', title: '全局搜索', mounts: ['contentTab'] },
+    { component: GlobalSearchFeature }
   )
 
   // ── 仅设置页 ──

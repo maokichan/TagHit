@@ -1,23 +1,22 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { LayoutMode, Theme } from '@shared/types/config'
+import type { Theme } from '@shared/types/config'
 
 /** 左活动栏工具：路径 / 标签 / 显示 */
 export type LeftTool = 'paths' | 'tags' | 'display'
 /** 右活动栏工具：媒体信息 / 插件 */
 export type RightTool = 'info' | 'plugins'
 
+/**
+ * 壳自身外观状态。功能组件的设置不在此处：经 stores/config.ts 按
+ * `featureId:key` 命名空间持有（DECISIONS 2026-09-07）。
+ */
 export const useUiStore = defineStore('ui', () => {
   const theme = ref<Theme>('dark')
-  const layoutMode = ref<LayoutMode>('masonry')
-  /** 网格卡片是否显示标题 */
-  const showTitles = ref(true)
   /** 开始界面工作区卡片是否显示封面 */
   const showWorkspaceCovers = ref(true)
   /** 全局 UI 缩放系数（CSS zoom：图标/字号/间距/媒体预览等比缩放，连续可调） */
   const uiScale = ref(1)
-  /** 键鼠交互：Ctrl+F 搜索快捷键（功能组件 keyboardMouse 的设置项） */
-  const enableSearchShortcut = ref(true)
 
   // VSCode 式活动栏：每侧同时只开一个面板（点当前图标关闭，点其他图标切换）
   const leftTool = ref<LeftTool | null>('paths')
@@ -68,14 +67,6 @@ export const useUiStore = defineStore('ui', () => {
     applyTheme()
   }
 
-  async function setLayoutMode(m: LayoutMode): Promise<void> {
-    layoutMode.value = m
-  }
-
-  async function toggleShowTitles(): Promise<void> {
-    showTitles.value = !showTitles.value
-  }
-
   async function toggleWorkspaceCovers(): Promise<void> {
     showWorkspaceCovers.value = !showWorkspaceCovers.value
   }
@@ -92,27 +83,17 @@ export const useUiStore = defineStore('ui', () => {
     applyScale()
   }
 
-  async function setSearchShortcut(v: boolean): Promise<void> {
-    enableSearchShortcut.value = v
-  }
-
   return {
     theme,
-    layoutMode,
-    showTitles,
     showWorkspaceCovers,
     uiScale,
-    enableSearchShortcut,
     leftTool,
     rightTool,
     toggleLeft,
     toggleRight,
     init,
     setTheme,
-    setLayoutMode,
-    toggleShowTitles,
     toggleWorkspaceCovers,
-    setUiScale,
-    setSearchShortcut
+    setUiScale
   }
 })

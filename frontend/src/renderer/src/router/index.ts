@@ -3,6 +3,7 @@ import StartScreen from '../views/StartScreen.vue'
 import WorkspaceTab from '../views/WorkspaceTab.vue'
 import Settings from '../views/Settings.vue'
 import ItemDetail from '../views/ItemDetail.vue'
+import FeatureTabView from '../views/FeatureTabView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -13,7 +14,9 @@ const router = createRouter({
     { path: '/workspace/:id', name: 'workspace', component: WorkspaceTab, props: true },
     // 设置（全屏）：全局控制，含工作区管理与统一标签管理
     { path: '/settings', name: 'settings', component: Settings },
-    { path: '/item/:id', name: 'item', component: ItemDetail, props: true }
+    { path: '/item/:id', name: 'item', component: ItemDetail, props: true },
+    // 功能组件内容标签页（contentTab 贡献点）：路由是标签的投影
+    { path: '/feature/:featureId', name: 'feature', component: FeatureTabView, props: true }
   ]
 })
 

@@ -21,6 +21,9 @@ function go(key: string): void {
   } else if (tab.kind === 'settings') {
     tabStore.openSettings()
     router.push('/settings')
+  } else if (tab.kind === 'feature') {
+    tabStore.setActive(key)
+    router.push(`/feature/${tab.featureId}`)
   } else if (tab.kind === 'item') {
     tabStore.setActive(key)
     router.push(`/item/${tab.itemId}${tab.workspaceId != null ? `?workspace=${tab.workspaceId}` : ''}`)
@@ -37,6 +40,8 @@ function close(key: string): void {
     router.push(`/workspace/${active.workspaceId}`)
   } else if (active?.kind === 'settings') {
     router.push('/settings')
+  } else if (active?.kind === 'feature') {
+    router.push(`/feature/${active.featureId}`)
   } else if (active?.kind === 'item') {
     router.push(`/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`)
   } else {

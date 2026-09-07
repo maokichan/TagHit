@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import { FolderOpen, Plus, Trash2 } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useItemStore } from '../../stores/item'
+import { confirmDialog } from '../../features/services/dialog'
 import type { WorkspaceRoot } from '@shared/contract'
 
 /**
@@ -33,10 +34,13 @@ async function addPath(): Promise<void> {
 }
 
 async function removePath(root: WorkspaceRoot): Promise<void> {
-  // 原生确认框不在契约 v0：用渲染层 confirm 兜底
-  const ok = window.confirm(
-    `确定从工作区移除路径「${root.path}」？\n其下条目将脱离本工作区视图（条目/标签保留，重新挂载即可恢复）。`
-  )
+  // 确认走壳的服务面（不再 window.confirm）
+  const ok = await confirmDialog({
+    title: '移除来源根',
+    message: `确定从工作区移除路径「${root.path}」？\n其下条目将脱离本工作区视图（条目/标签保留，重新挂载即可恢复）。`,
+    confirmText: '移除',
+    danger: true
+  })
   if (!ok) return
   await workspaceStore.removePath(props.workspaceId, root.path)
   await refresh()

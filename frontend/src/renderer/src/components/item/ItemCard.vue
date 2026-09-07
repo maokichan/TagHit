@@ -4,7 +4,8 @@ import type { Component } from 'vue'
 import { File, Film, Image, Music, FileText } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
 import { taghitFileUrl, masonryRatioOf } from '../../lib/media'
-import { useUiStore } from '../../stores/ui'
+import { useConfigStore } from '../../stores/config'
+import type { LayoutMode } from '@shared/types/config'
 import { formatDate, formatSize } from '../../lib/format'
 import TagChip from '../common/TagChip.vue'
 
@@ -18,10 +19,10 @@ const emit = defineEmits<{
   (e: 'tag-click', tagId: string): void
 }>()
 
-const uiStore = useUiStore()
+const config = useConfigStore()
 
 /** 列表布局（文件管理器样式）：行式渲染，区别于卡片（瀑布流/网格） */
-const isList = computed(() => uiStore.layoutMode === 'list')
+const isList = computed(() => config.value<LayoutMode>('layout', 'layoutMode', 'masonry') === 'list')
 
 // 缩略图（字节闸门）：图片类经 taghit-file 协议直取；加载失败回落图标占位
 const thumbUrl = computed(() =>
@@ -34,7 +35,8 @@ watch(() => props.item.id, () => {
 
 /** 瀑布流媒体宽高比（与 ItemGrid.ratioOf 同源：contentHash 派生，确定性不跳动） */
 const aspectRatio = computed(() => String(masonryRatioOf(props.item)))
-const isMasonry = computed(() => uiStore.layoutMode === 'masonry')
+const isMasonry = computed(() => config.value<LayoutMode>('layout', 'layoutMode', 'masonry') === 'masonry')
+const showTitles = computed(() => config.value('showTitles', 'showTitles', true))
 
 // 非图片/无缩略图：统一图标占位
 const iconMap: Record<string, Component> = {
@@ -164,7 +166,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
 
     <!-- 标题区：固定高度（与 ItemGrid 布局常量一致，保证虚拟化高度精确） -->
     <div
-      v-if="uiStore.showTitles"
+      v-if="showTitles"
       class="p-2 space-y-1.5 h-[56px] overflow-hidden"
     >
       <div class="text-[12px] leading-snug truncate" :title="item.title">{{ item.title }}</div>

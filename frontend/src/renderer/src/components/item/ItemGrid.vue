@@ -3,7 +3,8 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Inbox } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
 import { masonryRatioOf } from '../../lib/media'
-import { useUiStore } from '../../stores/ui'
+import { useConfigStore } from '../../stores/config'
+import type { LayoutMode } from '@shared/types/config'
 import ItemCard from './ItemCard.vue'
 
 const props = defineProps<{
@@ -19,7 +20,7 @@ const emit = defineEmits<{
   (e: 'tag-click', tagId: string): void
   (e: 'load-more'): void
 }>()
-const uiStore = useUiStore()
+const config = useConfigStore()
 
 /* ── 布局常量（与 ItemCard 保持一致） ── */
 const PAD = 12 // p-3
@@ -87,7 +88,10 @@ function ratioOf(item: ItemView): number {
   return masonryRatioOf(item)
 }
 
-const isMasonry = computed(() => uiStore.layoutMode === 'masonry')
+const isMasonry = computed(() => config.value<LayoutMode>('layout', 'layoutMode', 'masonry') === 'masonry')
+const isListMode = computed(() => config.value<LayoutMode>('layout', 'layoutMode', 'masonry') === 'list')
+const isGridMode = computed(() => config.value<LayoutMode>('layout', 'layoutMode', 'masonry') === 'grid')
+const showTitles = computed(() => config.value('showTitles', 'showTitles', true))
 
 interface LayoutResult {
   places: { item: ItemView; left: number; top: number; width: number; height: number }[]
@@ -106,7 +110,7 @@ const layout = computed<LayoutResult>(() => {
   const items = props.items
   const cols = Math.min(Math.max(2, Math.floor((w - PAD * 2 + GAP) / (MIN_COL + GAP))), 8)
   const colW = (w - PAD * 2 - GAP * (cols - 1)) / cols
-  const infoH = uiStore.showTitles ? INFO_H : 0
+  const infoH = showTitles.value ? INFO_H : 0
 
   if (isMasonry.value) {
     // 瀑布流：按当前最短列分配，已放置的卡片位置永不改变（追加新页不跳动）
@@ -125,7 +129,7 @@ const layout = computed<LayoutResult>(() => {
   }
 
   // 列表：单列固定行高（文件管理器样式），虚拟化按 1 列行进，与渲染列数一致
-  if (uiStore.layoutMode === 'list') {
+  if (isListMode.value) {
     const rowH = LIST_ROW_H + LIST_GAP
     const totalRows = items.length
     return {
@@ -263,7 +267,7 @@ watch(
       <template v-else>
         <div :style="{ height: rowSlice.topPad + 'px' }" />
         <div
-          v-if="uiStore.layoutMode === 'grid'"
+          v-if="isGridMode"
           class="grid gap-3"
           :style="{
             gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,

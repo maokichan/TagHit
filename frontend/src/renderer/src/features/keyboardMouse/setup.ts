@@ -9,14 +9,14 @@
  * 生命周期守契约：setup 返回 disposer，退订由注册表管理（D6：事件订阅必须可退订）；
  * 幂等由 setupFeature 的 per-entry 守卫保证，此处不再自设标志位。
  */
-import { useUiStore } from '../../stores/ui'
+import { useConfigStore } from '../../stores/config'
 
 export function setupKeyboardMouse(): () => void {
   const onKeydown = (e: KeyboardEvent): void => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
       e.preventDefault()
-      const ui = useUiStore()
-      if (!ui.enableSearchShortcut) return
+      const config = useConfigStore()
+      if (!config.value('keyboardMouse', 'enableSearchShortcut', true)) return
       // 当前页面有搜索框才聚焦（工作区/主页；详情/设置页无搜索框则忽略）
       const input = document.querySelector<HTMLInputElement>('[data-shortcut="search"]')
       if (input) {

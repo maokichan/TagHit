@@ -4,9 +4,10 @@ import { Plus, Trash2 } from 'lucide-vue-next'
 import { useUiStore } from '../stores/ui'
 import { useWorkspaceStore } from '../stores/workspace'
 import { useTagStore } from '../stores/tag'
-import type { LayoutMode } from '@shared/types/config'
+import { useConfigStore } from '../stores/config'
 import SchemaControl from '../components/settings/SchemaControl.vue'
 import { listFeatures } from '../features/registry'
+import { confirmDialog } from '../features/services/dialog'
 
 /**
  * 设置页（0.2 契约 v0）：
@@ -21,27 +22,17 @@ const tagStore = useTagStore()
 const settingsFeatures = computed(() => listFeatures('settings'))
 
 /**
- * 设置项读写路由：manifest 的 key → [读, 写]，声明式（新增设置项只需加一行）。
- * 值读写均收敛在 uiStore，面板与设置页共享同一份状态。
- * （key 的命名空间化/持久化归属为待裁决项——DECISIONS；裁决前由 uiStore 人肉路由。）
+ * 设置项读写（机制化）：key 是**组件内 key**，实际存储 = config 仓的
+ * `featureId:key`（DECISIONS 2026-09-07）；缺省值取 manifest 声明的 default。
+ * 面板与设置页读写同一份 config，天然一致；新增设置项零代码（仅声明 schema）。
  */
-const settingHandlers: Record<string, { get: () => unknown; set: (v: unknown) => void }> = {
-  layoutMode: {
-    get: () => uiStore.layoutMode,
-    set: (v) => void uiStore.setLayoutMode(v as LayoutMode)
-  },
-  showTitles: { get: () => uiStore.showTitles, set: () => void uiStore.toggleShowTitles() },
-  enableSearchShortcut: {
-    get: () => uiStore.enableSearchShortcut,
-    set: (v) => void uiStore.setSearchShortcut(Boolean(v))
-  }
-}
+const config = useConfigStore()
 
-function settingValue(key: string): unknown {
-  return settingHandlers[key]?.get()
+function settingValue(featureId: string, key: string, fallback: unknown): unknown {
+  return config.value(featureId, key, fallback)
 }
-function setSetting(key: string, value: unknown): void {
-  settingHandlers[key]?.set(value)
+function setSetting(featureId: string, key: string, v: unknown): void {
+  config.setValue(featureId, key, v)
 }
 
 // 统一标签管理
@@ -61,7 +52,12 @@ onMounted(async () => {
 })
 
 async function deleteWorkspace(id: string): Promise<void> {
-  const ok = window.confirm('删除该工作区？其来源根、节点与标签声明将一并删除。')
+  const ok = await confirmDialog({
+    title: '删除工作区',
+    message: '删除该工作区？其来源根、节点与标签声明将一并删除。',
+    confirmText: '删除',
+    danger: true
+  })
   if (!ok) return
   await workspaceStore.remove(id)
 }
@@ -79,7 +75,12 @@ async function createTag(): Promise<void> {
   }
 }
 async function deleteTag(id: string): Promise<void> {
-  const ok = window.confirm('删除该全局标签？其挂载、声明与组内成员关系将一并删除。')
+  const ok = await confirmDialog({
+    title: '删除标签',
+    message: '删除该全局标签？其挂载、声明与组内成员关系将一并删除。',
+    confirmText: '删除',
+    danger: true
+  })
   if (!ok) return
   await tagStore.remove(id)
 }
@@ -142,8 +143,8 @@ async function deleteTag(id: string): Promise<void> {
             <div v-for="s in f.manifest.settings ?? []" :key="s.key">
               <SchemaControl
                 :schema="s"
-                :model-value="settingValue(s.key)"
-                @update:model-value="setSetting(s.key, $event)"
+                :model-value="settingValue(f.manifest.id, s.key, s.default)"
+                @update:model-value="setSetting(f.manifest.id, s.key, $event)"
               />
             </div>
           </div>

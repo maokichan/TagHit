@@ -28,7 +28,19 @@ export interface ItemTab {
   title: string
 }
 
-export type Tab = HomeTab | WorkspaceTabItem | SettingsTab | ItemTab
+/**
+ * 功能组件内容标签页（contentTab 贡献点，DECISIONS 2026-09-07）：
+ * 壳持有标签项（featureId/title/激活），组件自持内容状态；关闭即销毁；
+ * 同一 feature 单实例（重复打开 = 激活既有标签）。
+ */
+export interface FeatureTab {
+  key: string
+  kind: 'feature'
+  featureId: string
+  title: string
+}
+
+export type Tab = HomeTab | WorkspaceTabItem | SettingsTab | ItemTab | FeatureTab
 
 let homeSeq = 0
 
@@ -127,6 +139,19 @@ export const useTabStore = defineStore('tab', () => {
     activeKey.value = tab.key
   }
 
+  /** 打开功能组件内容标签页（contentTab）：单实例，重复打开 = 激活既有标签 */
+  function openFeature(featureId: string, title: string): void {
+    const key = `feature:${featureId}`
+    const existing = tabs.value.find((t) => t.key === key)
+    if (existing) {
+      activeKey.value = key
+      return
+    }
+    const tab: FeatureTab = { key, kind: 'feature', featureId, title }
+    tabs.value.push(tab)
+    activeKey.value = key
+  }
+
   function setActive(key: string): void {
     if (tabs.value.some((t) => t.key === key)) activeKey.value = key
   }
@@ -171,6 +196,7 @@ export const useTabStore = defineStore('tab', () => {
     openNewHome,
     openWorkspace,
     openItem,
+    openFeature,
     openSettings,
     setActive,
     close,
