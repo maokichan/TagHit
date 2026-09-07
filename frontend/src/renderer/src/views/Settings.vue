@@ -21,8 +21,9 @@ const tagStore = useTagStore()
 const settingsFeatures = computed(() => listFeatures('settings'))
 
 /**
- * 设置项读写路由：key → [读, 写]，声明式（新增设置项只需加一行）。
+ * 设置项读写路由：manifest 的 key → [读, 写]，声明式（新增设置项只需加一行）。
  * 值读写均收敛在 uiStore，面板与设置页共享同一份状态。
+ * （key 的命名空间化/持久化归属为待裁决项——DECISIONS；裁决前由 uiStore 人肉路由。）
  */
 const settingHandlers: Record<string, { get: () => unknown; set: (v: unknown) => void }> = {
   layoutMode: {
@@ -134,11 +135,11 @@ async function deleteTag(id: string): Promise<void> {
       </section>
 
       <!-- 功能组件设置分区：由注册表按组件分组渲染（每个组件一个分区，标题 = 组件 title） -->
-      <template v-for="f in settingsFeatures" :key="f.id">
+      <template v-for="f in settingsFeatures" :key="f.manifest.id">
         <section class="panel p-4">
-          <div class="text-sm font-medium mb-3">{{ f.title }}</div>
+          <div class="text-sm font-medium mb-3">{{ f.manifest.title }}</div>
           <div class="flex flex-wrap items-start gap-6">
-            <div v-for="s in f.settings ?? []" :key="s.key">
+            <div v-for="s in f.manifest.settings ?? []" :key="s.key">
               <SchemaControl
                 :schema="s"
                 :model-value="settingValue(s.key)"

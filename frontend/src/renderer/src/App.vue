@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import type { Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TabBar from './components/layout/TabBar.vue'
 import StatusBar from './components/layout/StatusBar.vue'
 import ActivityBar, { type ActivityTool } from './components/layout/ActivityBar.vue'
 import { useTabStore } from './stores/tab'
 import { useUiStore, type LeftTool, type RightTool } from './stores/ui'
-import { listFeatures, type FeatureDefinition } from './features/registry'
+import { listFeatures, resolvedComponent, resolvedIcon, type FeatureEntry } from './features/registry'
 
 const route = useRoute()
 const router = useRouter()
@@ -72,61 +71,69 @@ watch(
 const activeWsId = computed(() => tabStore.activeWorkspaceId)
 const showRightSidebar = computed(() => route.name === 'workspace' || route.name === 'item')
 
-// 工具清单来自功能组件注册表（贡献点驱动壳：宿主不 import 面板组件）；
+// 工具清单来自功能组件注册表（贡献点驱动壳：壳不 import 面板组件）；
 // 顺序可由拖拽调整并持久化。详情页右侧仅留 plugins（info 移入内容页）。
 const ORDER_KEY = 'taghit.activityBarOrder'
 
 type Side = 'left' | 'right'
 
-function loadOrder(side: Side, defs: FeatureDefinition[]): FeatureDefinition[] {
+function loadOrder(side: Side, defs: FeatureEntry[]): FeatureEntry[] {
   try {
     const raw = localStorage.getItem(ORDER_KEY)
     if (!raw) return defs
     const parsed = JSON.parse(raw) as Record<Side, string[] | undefined>
     const ids = parsed[side]
     if (!ids?.length) return defs
-    const byId = new Map(defs.map((t) => [t.id, t]))
-    const ordered = ids.map((id) => byId.get(id)).filter((t): t is FeatureDefinition => t != null)
-    const rest = defs.filter((t) => !ids.includes(t.id))
+    const byId = new Map(defs.map((t) => [t.manifest.id, t]))
+    const ordered = ids.map((id) => byId.get(id)).filter((t): t is FeatureEntry => t != null)
+    const rest = defs.filter((t) => !ids.includes(t.manifest.id))
     return [...ordered, ...rest]
   } catch {
     return defs
   }
 }
 
-const leftFeatures = ref<FeatureDefinition[]>(loadOrder('left', listFeatures('activityBar:left')))
-const rightFeatures = ref<FeatureDefinition[]>(loadOrder('right', listFeatures('activityBar:right')))
+const leftFeatures = ref<FeatureEntry[]>(loadOrder('left', listFeatures('activityBar:left')))
+const rightFeatures = ref<FeatureEntry[]>(loadOrder('right', listFeatures('activityBar:right')))
 
 const rightToolsShown = computed(() =>
   route.name === 'item'
-    ? rightFeatures.value.filter((t) => t.id !== 'info')
+    ? rightFeatures.value.filter((t) => t.manifest.id !== 'info')
     : rightFeatures.value
 )
 
-function toToolItems(defs: FeatureDefinition[]): ActivityTool[] {
+function toToolItems(defs: FeatureEntry[]): ActivityTool[] {
   return defs
-    .filter((f) => f.icon != null)
-    .map((f) => ({ id: f.id, label: f.title, icon: f.icon as Component }))
+    .map((f) => ({ id: f.manifest.id, label: f.manifest.title, icon: resolvedIcon(f) }))
+    .filter((t): t is ActivityTool => t.icon != null)
 }
 const leftToolItems = computed(() => toToolItems(leftFeatures.value))
 const rightToolItems = computed(() => toToolItems(rightToolsShown.value))
 
 const activeLeftFeature = computed(
-  () => leftFeatures.value.find((f) => f.id === uiStore.leftTool) ?? null
+  () => leftFeatures.value.find((f) => f.manifest.id === uiStore.leftTool) ?? null
 )
 const activeRightFeature = computed(() => {
   const id: RightTool | null =
     route.name === 'item' ? (uiStore.rightTool === 'plugins' ? 'plugins' : null) : uiStore.rightTool
-  return rightFeatures.value.find((f) => f.id === id) ?? null
+  return rightFeatures.value.find((f) => f.manifest.id === id) ?? null
 })
+
+// 槽渲染取实现：contributed 未解析时为 undefined（v0 仅官方，恒有值）
+const activeLeftComponent = computed(() =>
+  activeLeftFeature.value ? resolvedComponent(activeLeftFeature.value) : undefined
+)
+const activeRightComponent = computed(() =>
+  activeRightFeature.value ? resolvedComponent(activeRightFeature.value) : undefined
+)
 
 function persistOrder(): void {
   try {
     localStorage.setItem(
       ORDER_KEY,
       JSON.stringify({
-        left: leftFeatures.value.map((t) => t.id),
-        right: rightFeatures.value.map((t) => t.id)
+        left: leftFeatures.value.map((t) => t.manifest.id),
+        right: rightFeatures.value.map((t) => t.manifest.id)
       })
     )
   } catch {
@@ -164,8 +171,8 @@ function onToggleRight(id: string): void {
           @reorder="(from, to) => onReorder('left', from, to)"
         />
         <component
-          :is="activeLeftFeature.component"
-          v-if="activeLeftFeature?.component"
+          :is="activeLeftComponent"
+          v-if="activeLeftComponent"
           :workspace-id="activeWsId"
           side="left"
         />
@@ -180,13 +187,13 @@ function onToggleRight(id: string): void {
       <!-- 右活动栏 + 工具面板（工作区 + 条目详情；详情页媒体信息移入内容页，仅剩插件） -->
       <template v-if="showRightSidebar">
         <component
-          :is="activeRightFeature.component"
-          v-if="activeRightFeature?.component"
+          :is="activeRightComponent"
+          v-if="activeRightComponent"
           side="right"
         />
         <ActivityBar
           :tools="rightToolItems"
-          :active="activeRightFeature?.id ?? null"
+          :active="activeRightFeature?.manifest.id ?? null"
           side="right"
           @toggle="onToggleRight"
           @reorder="(from, to) => onReorder('right', from, to)"

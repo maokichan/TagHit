@@ -14,17 +14,18 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 
 ## 三、下一步（唯一进度跟踪点）
 
-已完成（细节见 DECISIONS D13–D15 与 git log）：契约 v0 ✅ 旧 UI 吸收 ✅ 贡献点 v0 ✅ 真机接线 ✅ 字节闸门 ✅ 界面美化 ✅ 图片尺寸落库 ✅。
+已完成（细节见 DECISIONS D13–D15 与 git log）：契约 v0 ✅ 旧 UI 吸收 ✅ 贡献点 v0 ✅ 真机接线 ✅ 字节闸门 ✅ 界面美化 ✅ 图片尺寸落库 ✅ 注册表 v0.1（声明/实现分离 + 错误隔离 + per-entry 生命周期，2026-09-07）✅。
 
 1. **视频缩略图**：帧抓取管线（taghit-file 协议已就绪，缺 canvas 抓帧/封面提取/落盘通道；旧版 lib/thumbnailer.ts 思路可参考）；视频尺寸同理待 ffprobe/元数据。
-2. **contentTab 贡献点槽**（壳标签页仍为固定四类）。
-3. Backlog：事件（D6，扫描进度）、EAV 元数据建模、标签语义带出、config 持久化、LICENSE、CI。
-4. 常规：push（含 tag）由真人执行。
+2. **贡献点待裁决**（接三方前定并写入 DECISIONS）：settings 命名空间与存储归属（key 语义改组件内、存储键 `featureId:key`、壳统一持有）；HostApi 冻结面与 33 端点窄桥的关系（建议冻结子集视图 + 版本号，权限闸门在宿主进程）；contributed 重复 id 的拒绝+报告装载策略。
+3. **contentTab 贡献点槽**（壳标签页仍为固定四类；接槽前先裁决插件标签页的状态归属——它是唯一一个壳须替插件持有状态的槽）。
+4. Backlog：事件（D6，扫描进度）、EAV 元数据建模、标签语义带出、config 持久化、LICENSE、CI。
+5. 常规：push（含 tag）由真人执行。
 
 ## 四、纪律
 
 1. 层纪律：领域纯类型+规则；流程在应用层；存储/IO 在适配器；宿主只装配与边界；端口不做业务判定。
-2. 术语纪律：只用 GLOSSARY 词；禁自造语义词（历史：is-a/修饰曾致幻觉）。
+2. 术语纪律：只用 GLOSSARY / ARCHITECTURE 已定义词；禁自造语义词（历史：is-a/修饰曾致幻觉）；**一词一义**——领域词定义于 GLOSSARY、架构/渲染层词定义于 ARCHITECTURE，跨层含义冲突优先改词消除（先例：插件语境"宿主"→「壳」；「宿主/宿主进程」只指 src/host 主进程）。
 3. 文档纪律：维护 GLOSSARY / DECISIONS / CONTEXT / **ARCHITECTURE** + README；不留轮次记录；**进度只记本文件 §三**。
 4. 不预建模：parked 项不进代码。
 5. 提交前所改层 `tsc -p tsconfig.<domain|ports|adapters|application|host>.json` 通过；语义变更即同步文档；动契约/适配器后跑三份校准。

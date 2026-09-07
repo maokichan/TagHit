@@ -37,7 +37,7 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 
 ### 渲染层功能组件（贡献点 v0）
 
-- `frontend/src/renderer/src/features/registry.ts` + `shared/types/feature.ts`：FeatureManifest + MountPoint（activityBar:left/right、displayPanel、settings；statusBar/grid 预留）——官方组件注册、宿主按声明渲染；source 信任层 + Disposer 生命周期。
+- `frontend/src/renderer/src/features/registry.ts` + `shared/types/feature.ts`：**注册表 = 声明表**——可序列化 FeatureManifest（槽位/settings）+ 按来源分层的实现绑定 FeatureImpl（official 构建期直连 / contributed 运行期 loader，类型先行未接线）；壳经 `listFeatures(mount)` 查表渲染，不 import 具体组件。错误隔离两条线：setup 调用处 try/catch（registry）+ 槽渲染 FeatureBoundary（onErrorCaptured）；生命周期 per-entry（setup/dispose 配对 + unregisterFeature，三方启停/卸载的承载）。同构验收：任一官方组件的 impl 换成 load 形态后壳行为不变。
 - **注册必须先于 app.mount**（App.vue 挂载时读注册表——顺序错了活动栏就是空轨，踩过）。
 - freeze 0.1 `main/plugins/*` + `shared/types/plugin.ts`：0.1 的两套未统一插件雏形（UI 功能 vs 主进程工具），0.2 在此统一。
 
@@ -58,20 +58,21 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
   - *自由 API 式*（暴露全局对象随便调/随便渲染）：插件绕开"改动 → 窄桥 → 失效重查"的数据流单通道，投影语义（声明裁剪/hiddenCount）会出现第二份实现。否。
   - *钩子/拦截式*（插件插进查询/扫描等核心流程）：让插件进入核心**控制流**；行为归属被稀释（流程在应用层、事务边界在用例），插件 bug 从"一块面板坏了"升级成"一次扫描/删除坏了"，还要定义顺序/await/抛错语义。否。
   - *中间件/管道式*：钩子变体，主流程（浏览/打标/扫描）不是管道形状。否。
-  - *贡献点式*（VS Code 模型）：**宿主声明槽位，插件只声明填充物**，宿主按声明渲染，核心 import 图里永远没有插件。控制权反转，上述三条裁决全部保住。
+  - *贡献点式*（VS Code 模型）：**壳声明槽位，插件只声明填充物**，壳按声明渲染，核心 import 图里永远没有插件。控制权反转，上述三条裁决全部保住。
 - 贡献点的三个对应价值：① 服务"壳 = 插件容器与展示层"裁决——布局/标签页/显隐是壳的权力，插件只能往槽里放东西；② 数据流不破——贡献物拿数据走 HostApi 门面，与官方 UI 同一条窄桥；③ 信任可分层——声明式注册使官方静态/三方动态共用一张表，差异只收敛在"从哪来、信多少、何时加载"。
-- 性能裁决（惰性加载 + 事件仅推活跃订阅者）的着力点就是声明式 manifest：宿主先读声明，激活条件满足才 import 实现。
+- 性能裁决（惰性加载 + 事件仅推活跃订阅者）的着力点就是声明式 manifest：壳先读声明，激活条件满足才 import 实现。
 
 **两个概念是同一机制的两面**，不是两套系统：
 
-- **贡献点** = 宿主侧的**槽**：`activityBar:left/right`、内容区标签页、`displayPanel` 块、`settings` 分区。回答"哪里可以插、插进来宿主按什么规则渲染/排序/显隐"。槽是壳的权力清单（v0 不做任意 dock 就是这条清单的红线）。
+- **贡献点** = 壳侧的**槽**：`activityBar:left/right`、内容区标签页、`displayPanel` 块、`settings` 分区。回答"哪里可以插、插进来壳按什么规则渲染/排序/显隐"。槽是壳的权力清单（v0 不做任意 dock 就是这条清单的红线）。
 - **功能组件** = 贡献侧的**插头**：`FeatureManifest`（id/title/source/mounts/settings）+ 组件实现 + setup 钩子。回答"我声明自己是什么、挂哪些槽、有哪些配置项"。
 - **官方组件没有任何特权路径**：与三方走同一注册表（`features/registry.ts`），ActivityBar/DisplayPanel/SettingsPage 只问注册表"这个槽里有什么"，不 import 具体组件。官方组件是机制的持续测试桩。
 - 真正的设计差异在三个**分层**维度（不在机制上）：
   1. 注册来源：官方 = 静态 import + 代码注册；三方 = 目录发现 + manifest 文件 + 惰性 import；
   2. 信任与权限：官方全信；三方要权限门（0.1 PluginManifest 的 fs/network/shell 声明届时并入）+ 每贡献块错误隔离；
   3. 生命周期：官方与版本同生共死；三方有安装/启停/卸载，事件订阅可退订、状态可丢弃。
-- **同构验收标准**：把任一官方功能组件改成动态加载后，宿主行为完全不变。做不到即同构失效。
+- **同构验收标准**：把任一官方功能组件改成动态加载后，壳行为完全不变。做不到即同构失效。
+- **注册表形状**（2026-09-07 落地）：注册表只存「可序列化声明 + 实现绑定」，两者分离是惰性加载与同构验收的类型前提——manifest（`shared/types/feature.ts`）是三方磁盘 JSON 的形状，实现绑定（`FeatureImpl`）按来源分层：official 直连、contributed loader。错误隔离与生命周期是机制层而非官方特权：setup try/catch + 槽渲染 FeatureBoundary（onErrorCaptured）两条隔离线，官方组件同边界通过；setup/dispose 按 per-entry 配对，unregisterFeature 承载三方卸载。
 
 **应用层不驻插件**（选型推论，单向铁律）：
 
