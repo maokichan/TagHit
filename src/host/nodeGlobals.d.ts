@@ -10,6 +10,7 @@ declare module 'node:url' {
 declare module 'node:path' {
   export const sep: string
   export function normalize(path: string): string
+  export function join(...parts: string[]): string
 }
 
 declare module 'node:fs' {
@@ -19,10 +20,17 @@ declare module 'node:fs' {
   export function createReadStream(path: string, options?: { start?: number; end?: number }): ReadStream
   export function statSync(path: string): { size: number }
   export function readFileSync(path: string, encoding: 'utf8'): string
+  export function mkdirSync(path: string, options?: { recursive?: boolean }): void
+  export function writeFileSync(path: string, data: Uint8Array): void
 }
 
 declare module 'node:stream' {
   export const Readable: {
     toWeb(stream: unknown): ReadableStream<Uint8Array>
   }
+}
+
+/** 主进程真实运行在完整 Node（better-sqlite3 场景），此处仅补类型检查用最小面。 */
+declare const Buffer: {
+  from(data: string, encoding: string): Uint8Array
 }

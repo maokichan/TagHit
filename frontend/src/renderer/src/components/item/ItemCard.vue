@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { Component } from 'vue'
-import { File, Film, Image, Music, FileText } from 'lucide-vue-next'
+import { Check, File, Film, Image, Music, FileText } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
 import { taghitFileUrl, masonryRatioOf } from '../../lib/media'
+import { requestVideoThumbnail } from '../../lib/thumbnailer'
+import { useItemStore } from '../../stores/item'
 import { useConfigStore } from '../../stores/config'
 import type { LayoutMode } from '@shared/types/config'
 import { formatDate, formatSize } from '../../lib/format'
@@ -16,21 +18,31 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'open', item: ItemView): void
   (e: 'select', item: ItemView): void
+  (e: 'select-toggle', item: ItemView): void
   (e: 'tag-click', tagId: string): void
 }>()
 
 const config = useConfigStore()
+const itemStore = useItemStore()
 
 /** 列表布局（文件管理器样式）：行式渲染，区别于卡片（瀑布流/网格） */
 const isList = computed(() => config.value<LayoutMode>('layout', 'layoutMode', 'masonry') === 'list')
 
-// 缩略图（字节闸门）：图片类经 taghit-file 协议直取；加载失败回落图标占位
-const thumbUrl = computed(() =>
-  props.item.mediaType === 'image' && props.item.sourceUri ? taghitFileUrl(props.item.sourceUri) : null
-)
+// 缩略图（字节闸门）：图片经 taghit-file 协议直出原图；视频有缓存缩略图（previewUri）时直取，
+// 无则触发渲染层抓帧生成（thumbnailer 按 contentHash 幂等，落盘后落库复用）
+const thumbUrl = computed(() => {
+  if (!props.item.sourceUri) return null
+  if (props.item.mediaType === 'image') return taghitFileUrl(props.item.sourceUri)
+  if (props.item.mediaType === 'video' && props.item.previewUri) return taghitFileUrl(props.item.previewUri)
+  return null
+})
 const thumbFailed = ref(false)
 watch(() => props.item.id, () => {
   thumbFailed.value = false
+})
+onMounted(() => {
+  if (props.item.mediaType !== 'video' || props.item.previewUri != null) return
+  requestVideoThumbnail(props.item, (itemId, patch) => itemStore.patchItemThumbnail(itemId, patch))
 })
 
 /** 瀑布流媒体宽高比（与 ItemGrid.ratioOf 同源：contentHash 派生，确定性不跳动） */
@@ -61,7 +73,9 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
     :title="`${item.title}（双击打开详情）`"
     data-ctx-target="item"
     :data-ctx-id="item.id"
-    @click="emit('select', item)"
+    @click.exact="emit('select', item)"
+    @click.ctrl.exact="emit('select-toggle', item)"
+    @click.meta.exact="emit('select-toggle', item)"
     @dblclick="emit('open', item)"
   >
     <div class="flex items-center gap-3 px-3 py-2">
@@ -78,6 +92,12 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           <component :is="TypeIcon" :size="20" />
           <span class="text-[8px] uppercase">{{ item.extension ?? item.mediaType }}</span>
         </div>
+        <span
+          v-if="selected"
+          class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full flex items-center justify-center bg-[var(--accent)] text-white"
+        >
+          <Check :size="12" stroke-width={3} />
+        </span>
         <span
           v-if="item.status === 'missing'"
           class="absolute top-0.5 right-0.5 px-1 py-px rounded bg-[var(--danger)] text-white text-[9px]"
@@ -136,7 +156,9 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
     :title="`${item.title}（双击打开详情）`"
     data-ctx-target="item"
     :data-ctx-id="item.id"
-    @click="emit('select', item)"
+    @click.exact="emit('select', item)"
+    @click.ctrl.exact="emit('select-toggle', item)"
+    @click.meta.exact="emit('select-toggle', item)"
     @dblclick="emit('open', item)"
   >
     <div
@@ -156,6 +178,12 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
         <component :is="TypeIcon" :size="28" />
         <span class="text-[10px] uppercase">{{ item.extension ?? item.mediaType }}</span>
       </div>
+      <span
+        v-if="selected"
+        class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-[var(--accent)] text-white shadow"
+      >
+        <Check :size="14" stroke-width={3} />
+      </span>
       <span
         v-if="item.status === 'missing'"
         class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-[var(--danger)] text-white text-[10px]"

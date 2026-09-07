@@ -90,6 +90,8 @@ export interface ItemsQuery {
   titleContains?: string
   /** sourceUri 前缀（大小写敏感，路径语义）；仅命中 file 条目。 */
   sourceUriPrefix?: string
+  /** 内容哈希相等（派生元数据回写：缩略图/尺寸按内容为单位共享）。 */
+  contentHash?: string
   /** 命中任一挂载标签。 */
   withAnyTag?: Id[]
   /** 命中全部挂载标签。 */
@@ -161,6 +163,7 @@ export interface Store {
       fileModifiedAt?: string | null
       width?: number | null
       height?: number | null
+      previewUri?: string | null
     }
   ): Promise<void>
 

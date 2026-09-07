@@ -11,7 +11,8 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
@@ -38,6 +39,7 @@ import {
   listWorkspaces,
   mountWorkspaceRoot,
   readItemText,
+  recordThumbnail,
   removeCollectionMember,
   removeGroupMember,
   renameCollection,
@@ -46,9 +48,11 @@ import {
   scanWorkspace,
   searchTags,
   tagItem,
+  tagItems,
   undeclareTag,
   unmountWorkspaceRoot,
   untagItem,
+  untagItems,
   queryItems,
 } from '../application/index.ts'
 import type { AppServices, ScanOptions } from '../application/index.ts'
@@ -114,11 +118,44 @@ function registerHandlers(): void {
   ipcMain.handle('item.untag', (_event, input: { itemId: Id; tagIds: Id[] }) =>
     envelope(untagItem(services, input.itemId, input.tagIds).then(() => null))
   )
+  ipcMain.handle('items.tag', (_event, input: { itemIds: Id[]; tagIds: Id[] }) =>
+    envelope(tagItems(services, input.itemIds, input.tagIds).then(() => null))
+  )
+  ipcMain.handle('items.untag', (_event, input: { itemIds: Id[]; tagIds: Id[] }) =>
+    envelope(untagItems(services, input.itemIds, input.tagIds).then(() => null))
+  )
   ipcMain.handle('items.delete', (_event, itemId: Id) =>
     envelope(deleteItemCascade(services, itemId).then(() => null))
   )
   ipcMain.handle('item.readText', (_event, itemId: Id, maxBytes?: number) =>
     envelope(readItemText(services, nodeFs, itemId, maxBytes))
+  )
+
+  // ---- 缩略图：base64 落盘 {userData}/thumbnails/{contentHash}.jpg + 按哈希回写 ----
+  // 写入键 = contentHash（路径注入不可达）；base64 超 2MiB 拒绝（INVALID）。
+  ipcMain.handle(
+    'thumbnail.save',
+    (_event, input: { contentHash: string; base64: string; width?: number | null; height?: number | null }) => {
+      const buf = Buffer.from(input.base64, 'base64')
+      if (buf.byteLength > 2 * 1024 * 1024) {
+        return Promise.resolve({
+          ok: false as const,
+          error: { code: 'INVALID' as const, message: '缩略图数据超过 2MiB 上限' },
+        })
+      }
+      const dir = join(app.getPath('userData'), 'thumbnails')
+      mkdirSync(dir, { recursive: true })
+      const previewUri = join(dir, `${input.contentHash}.jpg`)
+      writeFileSync(previewUri, buf)
+      return envelope(
+        recordThumbnail(services, {
+          contentHash: input.contentHash,
+          previewUri,
+          width: input.width,
+          height: input.height,
+        }).then(() => ({ previewUri }))
+      )
+    }
   )
 
   // ---- 工作区 ----

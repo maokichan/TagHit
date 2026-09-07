@@ -7,7 +7,7 @@
  */
 
 import { DomainError } from '../src/domain/index.ts'
-import type { Id, Tag } from '../src/domain/index.ts'
+import type { FileItem, Id, Tag } from '../src/domain/index.ts'
 import type { Store } from '../src/ports/index.ts'
 import {
   addGroupMember,
@@ -28,7 +28,10 @@ import {
   searchItems,
   searchTags,
   tagItem,
+  tagItems,
   untagItem,
+  untagItems,
+  recordThumbnail,
 } from '../src/application/index.ts'
 import type { AppServices } from '../src/application/index.ts'
 
@@ -375,6 +378,59 @@ export async function runScenario(store: Store): Promise<void> {
     (await store.queryItems({})).map((h) => h.item.id),
     [it.night, it.portrait, it.sunset],
     '收尾：存活条目 = 夜景/人物肖像/日落'
+  )
+
+  // ---- ⑦ 批量打标 + 缩略图回写 + contentHash 查询（v0.2.9） --------------
+  // 用独立数据，避免扰动上方级联/收尾断言。
+  const vid = { a: 'item-vid-a', b: 'item-vid-b' }
+  const SHARED_HASH = 'abc123def456'
+  for (const item of [
+    { ...fileItem(vid.a, '片段A.mp4', 'C:/素材/videos/片段A.mp4'), contentHash: SHARED_HASH },
+    { ...fileItem(vid.b, '片段B.mp4', 'C:/素材/videos/片段B.mp4'), contentHash: SHARED_HASH },
+  ]) {
+    await store.createItem(item)
+  }
+
+  assertEqual(
+    (await store.queryItems({ contentHash: SHARED_HASH }))
+      .map((h) => h.item.id)
+      .sort(),
+    [vid.a, vid.b],
+    '查询：按 contentHash 命中同内容两个条目'
+  )
+
+  await tagItems(svc, [vid.a, vid.b], [tagIds.collect])
+  assertEqual(
+    (await store.listAttachments({ tagId: tagIds.collect }))
+      .map((r) => r.itemId)
+      .sort(),
+    [vid.a, vid.b],
+    '批量打标：两条目同挂「收藏级」'
+  )
+
+  await untagItems(svc, [vid.a, vid.b], [tagIds.collect])
+  assertEqual(
+    (await store.listAttachments({ tagId: tagIds.collect })).length,
+    0,
+    '批量卸标：卸下后「收藏级」无挂载'
+  )
+
+  const PREVIEW = 'C:/thumbnails/abc123def456.jpg'
+  await recordThumbnail(svc, { contentHash: SHARED_HASH, previewUri: PREVIEW, width: 1920, height: 1080 })
+  const vidHits = await store.queryItems({ contentHash: SHARED_HASH })
+  const vidItems = vidHits.map((h) => h.item as FileItem)
+  assertEqual(
+    vidItems.map((i) => i.previewUri),
+    [PREVIEW, PREVIEW],
+    '缩略图回写：同哈希两条目共享同一 previewUri'
+  )
+  assertEqual(
+    vidItems.map((i) => [i.width, i.height]),
+    [
+      [1920, 1080],
+      [1920, 1080],
+    ],
+    '缩略图回写：尺寸一并落库'
   )
 
   console.log(`\nALL CHECKS PASSED（断言执行 ${executedAsserts} 个）`)

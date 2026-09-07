@@ -11,8 +11,9 @@
  *   frontend 仅 type-only 引用本文件，零运行时依赖。
  *
  * v0 范围：已落地的应用层用例全覆盖。明确**不进**契约（旧 UI 对应处置灰）：
- * config、插件调用、原生 dialog、缩略图、条目 readText/openWithSystem、
+ * config、插件调用、原生 dialog、条目 readText/openWithSystem、
  * 标签关联语义、扫描进度事件（事件面随 D6 落地）。
+ * 缩略图（thumbnail.save）为派生小图通道：仅收视频 canvas 抓帧 JPEG（≤2MiB），非原媒体字节。
  */
 
 import type {
@@ -78,9 +79,18 @@ export interface IpcContracts {
   'items.query': { args: [query: ItemsQuery]; result: ItemHit[] }
   'item.tag': { args: [{ itemId: Id; tagIds: Id[] }]; result: null }
   'item.untag': { args: [{ itemId: Id; tagIds: Id[] }]; result: null }
+  'items.tag': { args: [{ itemIds: Id[]; tagIds: Id[] }]; result: null }
+  'items.untag': { args: [{ itemIds: Id[]; tagIds: Id[] }]; result: null }
   'items.delete': { args: [itemId: Id]; result: null }
   /** 文本条目内容（字节闸门）：不可文本预览 → null；截断由 truncated 标记 */
   'item.readText': { args: [itemId: Id, maxBytes?: number]; result: { text: string; truncated: boolean } | null }
+
+  // ---- 缩略图 thumbnail：视频帧抓取结果落盘 + 回写（主进程能力，字节进闸门一次） ----
+  /** base64 JPEG（渲染层 canvas 抓帧）→ 宿主落盘 {userData}/thumbnails/{contentHash}.jpg + 按哈希回写 */
+  'thumbnail.save': {
+    args: [{ contentHash: string; base64: string; width?: number | null; height?: number | null }]
+    result: { previewUri: string }
+  }
 
   // ---- 工作区 workspace：建 / 列 / 浏览 / 来源根 ---------------------------
   'workspace.create': { args: [name: string]; result: Workspace }
@@ -130,8 +140,17 @@ export interface TaghitRendererApi {
   queryItems(query: ItemsQuery): Promise<IpcResult<'items.query'>>
   tagItem(input: { itemId: Id; tagIds: Id[] }): Promise<IpcResult<'item.tag'>>
   untagItem(input: { itemId: Id; tagIds: Id[] }): Promise<IpcResult<'item.untag'>>
+  tagItems(input: { itemIds: Id[]; tagIds: Id[] }): Promise<IpcResult<'items.tag'>>
+  untagItems(input: { itemIds: Id[]; tagIds: Id[] }): Promise<IpcResult<'items.untag'>>
   deleteItem(itemId: Id): Promise<IpcResult<'items.delete'>>
   readText(itemId: Id, maxBytes?: number): Promise<IpcResult<'item.readText'>>
+
+  saveThumbnail(input: {
+    contentHash: string
+    base64: string
+    width?: number | null
+    height?: number | null
+  }): Promise<IpcResult<'thumbnail.save'>>
 
   createWorkspace(name: string): Promise<IpcResult<'workspace.create'>>
   listWorkspaces(): Promise<IpcResult<'workspace.list'>>

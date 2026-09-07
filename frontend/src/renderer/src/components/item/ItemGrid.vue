@@ -12,15 +12,22 @@ const props = defineProps<{
   loading: boolean
   interactiveTags?: boolean
   selectedId?: string | null
+  /** 多选集（Ctrl/Cmd+单击聚合；勾选角标依据） */
+  selectedIds?: string[]
   hasMore?: boolean
 }>()
 const emit = defineEmits<{
   (e: 'open', item: ItemView): void
   (e: 'select', item: ItemView): void
+  (e: 'select-toggle', item: ItemView): void
   (e: 'tag-click', tagId: string): void
   (e: 'load-more'): void
 }>()
 const config = useConfigStore()
+
+function isSelected(id: string): boolean {
+  return props.selectedId === id || (props.selectedIds?.includes(id) ?? false)
+}
 
 /* ── 布局常量（与 ItemCard 保持一致） ── */
 const PAD = 12 // p-3
@@ -250,9 +257,10 @@ watch(
           >
             <ItemCard
               :item="p.item"
-              :selected="selectedId != null && p.item.id === selectedId"
+              :selected="isSelected(p.item.id)"
               @open="emit('open', $event)"
               @select="emit('select', $event)"
+              @select-toggle="emit('select-toggle', $event)"
               @tag-click="emit('tag-click', $event)"
             />
           </div>
@@ -278,9 +286,10 @@ watch(
             v-for="item in rowSlice.slice"
             :key="item.id"
             :item="item"
-            :selected="selectedId != null && item.id === selectedId"
+            :selected="isSelected(item.id)"
             @open="emit('open', $event)"
             @select="emit('select', $event)"
+            @select-toggle="emit('select-toggle', $event)"
             @tag-click="emit('tag-click', $event)"
           />
         </div>
@@ -293,9 +302,10 @@ watch(
             v-for="item in rowSlice.slice"
             :key="item.id"
             :item="item"
-            :selected="selectedId != null && item.id === selectedId"
+            :selected="isSelected(item.id)"
             @open="emit('open', $event)"
             @select="emit('select', $event)"
+            @select-toggle="emit('select-toggle', $event)"
             @tag-click="emit('tag-click', $event)"
           />
         </div>

@@ -25,8 +25,12 @@ const api: TaghitRendererApi = {
   queryItems: (query) => invoke('items.query', query),
   tagItem: (input) => invoke('item.tag', input),
   untagItem: (input) => invoke('item.untag', input),
+  tagItems: (input) => invoke('items.tag', input),
+  untagItems: (input) => invoke('items.untag', input),
   deleteItem: (itemId) => invoke('items.delete', itemId),
   readText: (itemId, maxBytes) => invoke('item.readText', itemId, maxBytes),
+
+  saveThumbnail: (input) => invoke('thumbnail.save', input),
 
   createWorkspace: (name) => invoke('workspace.create', name),
   listWorkspaces: () => invoke('workspace.list'),

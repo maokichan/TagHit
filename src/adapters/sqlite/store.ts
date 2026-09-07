@@ -115,6 +115,7 @@ function toItem(row: Row): Item {
     createdAt: row.createdAt as string,
     width: row.width == null ? null : Number(row.width),
     height: row.height == null ? null : Number(row.height),
+    previewUri: (row.previewUri as string | null) ?? null,
   }
 }
 
@@ -144,7 +145,8 @@ CREATE TABLE IF NOT EXISTS items (
   status TEXT CHECK (status IN ('active','missing')),
   createdAt TEXT NOT NULL,
   width INTEGER,
-  height INTEGER
+  height INTEGER,
+  previewUri TEXT
 );
 
 CREATE TABLE IF NOT EXISTS workspaces (
@@ -227,6 +229,12 @@ export class SqliteStore implements Store {
     }
     try {
       this.db.exec('ALTER TABLE items ADD COLUMN height INTEGER')
+    } catch {
+      /* 列已存在 */
+    }
+    // v0.2.9：缩略图缓存路径（派生元数据，运行时生成）
+    try {
+      this.db.exec('ALTER TABLE items ADD COLUMN previewUri TEXT')
     } catch {
       /* 列已存在 */
     }
@@ -325,7 +333,7 @@ export class SqliteStore implements Store {
     if (this.idExists('items', item.id)) throw conflict(`条目 id 重复：${item.id}`)
     if (item.kind === 'file') {
       this.run(
-        'INSERT INTO items (id, kind, title, sourceUri, contentHash, size, fileModifiedAt, status, createdAt, width, height) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+        'INSERT INTO items (id, kind, title, sourceUri, contentHash, size, fileModifiedAt, status, createdAt, width, height, previewUri) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
         [
           item.id,
           'file',
@@ -338,6 +346,7 @@ export class SqliteStore implements Store {
           item.createdAt,
           item.width ?? null,
           item.height ?? null,
+          item.previewUri ?? null,
         ]
       )
     } else {
@@ -361,6 +370,7 @@ export class SqliteStore implements Store {
       fileModifiedAt?: string | null
       width?: number | null
       height?: number | null
+      previewUri?: string | null
     }
   ): Promise<void> {
     const row = this.get('SELECT * FROM items WHERE id = ?', [id])
@@ -375,6 +385,7 @@ export class SqliteStore implements Store {
       }
       if (patch.width !== undefined) this.run('UPDATE items SET width = ? WHERE id = ?', [patch.width, id])
       if (patch.height !== undefined) this.run('UPDATE items SET height = ? WHERE id = ?', [patch.height, id])
+      if (patch.previewUri !== undefined) this.run('UPDATE items SET previewUri = ? WHERE id = ?', [patch.previewUri, id])
     }
   }
 
@@ -410,6 +421,10 @@ export class SqliteStore implements Store {
     if (q.sourceUriPrefix) {
       where.push(`i.kind = 'file' AND instr(i.sourceUri, ?) = 1`)
       params.push(q.sourceUriPrefix)
+    }
+    if (q.contentHash) {
+      where.push(`i.kind = 'file' AND i.contentHash = ?`)
+      params.push(q.contentHash)
     }
     if (q.withAnyTag?.length) {
       where.push(`EXISTS (SELECT 1 FROM attachments a WHERE a.itemId = i.id AND a.tagId IN (${q.withAnyTag.map(() => '?').join(',')}))`)

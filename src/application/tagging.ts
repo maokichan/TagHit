@@ -39,6 +39,28 @@ export async function untagItem(svc: AppServices, itemId: Id, tagIds: Id[]): Pro
   })
 }
 
+/** 批量打标：给一组条目挂一组标签（单事务整体原子；任一失败 → 全部回滚）。 */
+export async function tagItems(svc: AppServices, itemIds: Id[], tagIds: Id[]): Promise<void> {
+  await svc.store.transaction(async (tx) => {
+    for (const itemId of itemIds) {
+      for (const tagId of tagIds) {
+        await tx.attachTag(itemId, tagId)
+      }
+    }
+  })
+}
+
+/** 批量卸标：从一组条目卸下一组标签（单事务整体原子；不存在的挂载行是 no-op）。 */
+export async function untagItems(svc: AppServices, itemIds: Id[], tagIds: Id[]): Promise<void> {
+  await svc.store.transaction(async (tx) => {
+    for (const itemId of itemIds) {
+      for (const tagId of tagIds) {
+        await tx.detachTag(itemId, tagId)
+      }
+    }
+  })
+}
+
 /** 声明：工作区 × 标签（浏览投影的依据；已声明 → no-op）。 */
 export async function declareTag(svc: AppServices, workspaceId: Id, tagId: Id): Promise<void> {
   await svc.store.declareTag(workspaceId, tagId)

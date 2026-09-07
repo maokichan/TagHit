@@ -46,6 +46,8 @@ export interface ItemView {
   /** 媒体固有尺寸（扫描时从文件头解析；未解析/不适用 → null） */
   width: number | null
   height: number | null
+  /** 缩略图缓存绝对路径（{userData}/thumbnails，运行时生成；无 → null） */
+  previewUri: string | null
   tags: Tag[]
   /** 工作区投影未交付的标签数（全局搜索结果恒为 0） */
   hiddenCount: number
@@ -69,6 +71,7 @@ export function toItemView(hit: { item: Item; tags: Tag[]; hiddenCount?: number 
     mediaType: mediaTypeOf(ext),
     width: isFile ? (item.width ?? null) : null,
     height: isFile ? (item.height ?? null) : null,
+    previewUri: isFile ? (item.previewUri ?? null) : null,
     tags: hit.tags,
     hiddenCount: hit.hiddenCount ?? 0
   }

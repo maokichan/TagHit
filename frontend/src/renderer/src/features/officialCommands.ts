@@ -1,7 +1,9 @@
 import { useTabStore } from '../stores/tab'
 import { useItemStore } from '../stores/item'
 import { registerCommand, type CommandEntry } from './commands'
-import type { CommandManifest } from '@shared/types/command'
+import { openBatchTagDialog } from './services/batchTag'
+import { api } from '@shared/api'
+import type { CommandManifest, MenuContext } from '@shared/types/command'
 
 /**
  * 官方命令 —— 命令注册表机制的持续测试桩（同构：三方将来走同一张表）。
@@ -43,4 +45,56 @@ export function registerBuiltinCommands(): void {
       if (view?.sourceUri != null) await navigator.clipboard.writeText(view.sourceUri)
     }
   )
+
+  // 批量打标（调用面样板：selection 多选集 → 受控服务弹层 → 批量用例 → 失效重查）
+  official(
+    {
+      id: 'items.tagBatch',
+      title: '批量打标签…',
+      menu: { group: 'modify', order: 1 },
+      when: { kind: 'targetIs', value: 'item' }
+    },
+    (ctx) => {
+      const ids = batchItemIds(ctx)
+      if (ctx.workspaceId == null || ids.length === 0) return
+      openBatchTagDialog({
+        mode: 'add',
+        workspaceId: ctx.workspaceId,
+        count: ids.length,
+        onApply: async (_mode, tagIds) => {
+          await api.items.tagMany(ids, tagIds)
+          await useItemStore().load(ctx.workspaceId!)
+        }
+      })
+    }
+  )
+
+  // 批量移除标签
+  official(
+    {
+      id: 'items.untagBatch',
+      title: '批量移除标签…',
+      menu: { group: 'modify', order: 2 },
+      when: { kind: 'targetIs', value: 'item' }
+    },
+    (ctx) => {
+      const ids = batchItemIds(ctx)
+      if (ctx.workspaceId == null || ids.length === 0) return
+      openBatchTagDialog({
+        mode: 'remove',
+        workspaceId: ctx.workspaceId,
+        count: ids.length,
+        onApply: async (_mode, tagIds) => {
+          await api.items.untagMany(ids, tagIds)
+          await useItemStore().load(ctx.workspaceId!)
+        }
+      })
+    }
+  )
+}
+
+/** 批量命令的操作对象集：selection ∩ 当前工作区视图条目（过滤离屏/删除 id，防 NOT_FOUND）。 */
+function batchItemIds(ctx: MenuContext): string[] {
+  const inView = new Set(useItemStore().items.map((i) => i.id))
+  return (ctx.selection?.ids ?? []).filter((id) => inView.has(id))
 }

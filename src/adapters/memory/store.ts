@@ -224,6 +224,7 @@ export class MemoryStore implements Store {
       fileModifiedAt?: string | null
       width?: number | null
       height?: number | null
+      previewUri?: string | null
     }
   ): Promise<void> {
     const old = this.state.items.get(id)
@@ -239,6 +240,7 @@ export class MemoryStore implements Store {
             ...(patch.fileModifiedAt !== undefined ? { fileModifiedAt: patch.fileModifiedAt } : {}),
             ...(patch.width !== undefined ? { width: patch.width } : {}),
             ...(patch.height !== undefined ? { height: patch.height } : {}),
+            ...(patch.previewUri !== undefined ? { previewUri: patch.previewUri } : {}),
           }
         : {
             ...old,
@@ -260,6 +262,7 @@ export class MemoryStore implements Store {
     const kinds = q.kinds ? new Set(q.kinds) : null
     const titleContains = q.titleContains?.trim().toLowerCase()
     const prefix = q.sourceUriPrefix
+    const hash = q.contentHash
     const anyTags = q.withAnyTag ? new Set(q.withAnyTag) : null
     const allTags = q.withAllTags ? new Set(q.withAllTags) : null
 
@@ -270,6 +273,7 @@ export class MemoryStore implements Store {
       if (q.status !== undefined && (item.kind !== 'file' || item.status !== q.status)) continue
       if (titleContains && !item.title.toLowerCase().includes(titleContains)) continue
       if (prefix && (item.kind !== 'file' || !item.sourceUri.startsWith(prefix))) continue
+      if (hash && (item.kind !== 'file' || item.contentHash !== hash)) continue
 
       const tags = this.tagsOf(item.id)
       if (anyTags && !tags.some((t) => anyTags.has(t.id))) continue

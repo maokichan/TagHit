@@ -10,11 +10,13 @@ export type MenuGroup = 'nav' | 'modify' | 'danger'
 
 /**
  * 命令上下文：壳在拦截点构造（context target 就近声明 + 视图状态投影）。
- * selection 多选集为后续扩展位。
+ * selection：target 落入多选集时为多选集、否则为单个 target——批量命令经此取操作对象。
  */
 export interface MenuContext {
   target: { kind: string; id?: string }
   workspaceId: string | null
+  /** 本次操作的对象集（id 列表）。target.kind='item' 时非空。 */
+  selection?: { ids: string[] }
 }
 
 /**

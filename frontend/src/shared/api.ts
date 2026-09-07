@@ -81,11 +81,28 @@ export const api = {
     async untag(itemId: Id, tagIds: Id[]): Promise<void> {
       unwrap(await bridge().untagItem({ itemId, tagIds }))
     },
+    async tagMany(itemIds: Id[], tagIds: Id[]): Promise<void> {
+      unwrap(await bridge().tagItems({ itemIds, tagIds }))
+    },
+    async untagMany(itemIds: Id[], tagIds: Id[]): Promise<void> {
+      unwrap(await bridge().untagItems({ itemIds, tagIds }))
+    },
     async remove(itemId: Id): Promise<void> {
       unwrap(await bridge().deleteItem(itemId))
     },
     async readText(itemId: Id, maxBytes?: number): Promise<{ text: string; truncated: boolean } | null> {
       return unwrap(await bridge().readText(itemId, maxBytes))
+    }
+  },
+  thumbnails: {
+    /** 视频抓帧 JPEG base64 → 宿主落盘 + 按 contentHash 回写；返回缓存绝对路径。 */
+    async save(input: {
+      contentHash: string
+      base64: string
+      width?: number | null
+      height?: number | null
+    }): Promise<{ previewUri: string }> {
+      return unwrap(await bridge().saveThumbnail(input))
     }
   },
   workspaces: {

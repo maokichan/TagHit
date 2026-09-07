@@ -23,6 +23,8 @@ export const useItemStore = defineStore('item', () => {
   const lastScanResult = ref<ScanSummary | null>(null)
   /** 信息面板当前选中条目（工作区网格内单选） */
   const selected = ref<ItemView | null>(null)
+  /** 多选集（Ctrl/Cmd+单击与右键聚合；批量打标/MenuContext.selection 的依据） */
+  const selectedIds = ref<Id[]>([])
 
   const filter = ref<{ tagIds: Id[]; keyword: string }>({ tagIds: [], keyword: '' })
 
@@ -87,13 +89,69 @@ export const useItemStore = defineStore('item', () => {
     }
   }
 
-  /** 选中条目（信息面板）。0.2 无 EAV 补全：选中即完整视图。 */
+  /** 选中条目（信息面板）。0.2 无 EAV 补全：选中即完整视图。单击 = 单选。 */
   function select(item: ItemView): void {
     selected.value = item
+    selectedIds.value = [item.id]
+  }
+
+  /** Ctrl/Cmd+单击：切换条目进入/退出多选集；selected 跟随最后一次点击。 */
+  function toggleSelect(item: ItemView): void {
+    const has = selectedIds.value.includes(item.id)
+    selectedIds.value = has
+      ? selectedIds.value.filter((id) => id !== item.id)
+      : [...selectedIds.value, item.id]
+    if (selectedIds.value.length === 0) selected.value = null
+    else selected.value = item
+  }
+
+  /** 是否在多选集内（ItemCard 勾选角标与右键 selection 投影用）。 */
+  function isSelected(id: Id): boolean {
+    return selectedIds.value.includes(id)
+  }
+
+  /** 多选集计数（右键/批量入口判断）。 */
+  function selectionCount(): number {
+    return selectedIds.value.length
   }
 
   function clearSelection(): void {
     selected.value = null
+    selectedIds.value = []
+  }
+
+  /** 缩略图回写后就地更新视图（列表项 + 信息面板），避免整页重查。 */
+  function patchItemThumbnail(
+    itemId: Id,
+    patch: { previewUri: string; width: number; height: number }
+  ): void {
+    const list = items.value
+    const i = list.findIndex((it) => it.id === itemId)
+    if (i >= 0) {
+      list[i] = { ...list[i], ...patch }
+      items.value = [...list]
+    }
+    if (selected.value?.id === itemId) {
+      selected.value = { ...selected.value, ...patch }
+    }
+  }
+
+  /** 批量打标：对多选集挂标签（单事务原子），完成后刷新当前工作区视图。 */
+  async function tagSelected(workspaceId: Id, tagIds: Id[]): Promise<void> {
+    await api.items.tagMany(selectionIdsInView(), tagIds)
+    await load(workspaceId)
+  }
+
+  /** 批量卸标：对多选集卸标签，完成后刷新。 */
+  async function untagSelected(workspaceId: Id, tagIds: Id[]): Promise<void> {
+    await api.items.untagMany(selectionIdsInView(), tagIds)
+    await load(workspaceId)
+  }
+
+  /** 多选集 ∩ 当前视图条目（过滤已离屏/删除的 id，避免批量命令对不存在的条目 NOT_FOUND）。 */
+  function selectionIdsInView(): Id[] {
+    const inView = new Set(items.value.map((it) => it.id))
+    return selectedIds.value.filter((id) => inView.has(id))
   }
 
   function toggleTagFilter(tagId: Id): void {
@@ -117,6 +175,7 @@ export const useItemStore = defineStore('item', () => {
     scanError,
     lastScanResult,
     selected,
+    selectedIds,
     filter,
     sortBy,
     sortDir,
@@ -126,7 +185,13 @@ export const useItemStore = defineStore('item', () => {
     loadMore,
     scan,
     select,
+    toggleSelect,
+    isSelected,
+    selectionCount,
     clearSelection,
+    patchItemThumbnail,
+    tagSelected,
+    untagSelected,
     toggleTagFilter,
     clearTagFilters,
     setKeyword,

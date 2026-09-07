@@ -11,11 +11,13 @@ import SurfaceHost from './features/SurfaceHost.vue'
 import ServiceHost from './features/services/ServiceHost.vue'
 import { openContextMenu } from './features/contextMenu'
 import { listFeatures, resolvedIcon, type FeatureEntry } from './features/registry'
+import { useItemStore } from './stores/item'
 
 const route = useRoute()
 const router = useRouter()
 const tabStore = useTabStore()
 const uiStore = useUiStore()
+const itemStore = useItemStore()
 
 onMounted(() => {
   tabStore.ensureHome()
@@ -174,13 +176,22 @@ function onToggleRight(id: string): void {
 // ── 右键菜单：事件拦截权归壳（ARCHITECTURE §3.2）──
 // 组件只声明 context target（data-ctx-*）；根部统一拦截、就近取 target、构造上下文。
 // 无 target 时不拦截：文本选择等场景保留原生菜单。
+// selection 投影：target 已在多选集内 → 带出整个多选集（批量操作）；否则 = 单个 target。
 function onContextMenu(e: MouseEvent): void {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-ctx-target]')
   if (el == null) return
   e.preventDefault()
   const kind = el.dataset.ctxTarget ?? ''
   const id = el.dataset.ctxId
-  openContextMenu({ target: { kind, id }, workspaceId: tabStore.activeWorkspaceId }, e.clientX, e.clientY)
+  let selection: string[] = []
+  if (kind === 'item' && id != null) {
+    selection = itemStore.isSelected(id) ? itemStore.selectedIds : [id]
+  }
+  openContextMenu(
+    { target: { kind, id }, workspaceId: tabStore.activeWorkspaceId, selection: { ids: selection } },
+    e.clientX,
+    e.clientY
+  )
 }
 </script>
 
