@@ -2,7 +2,7 @@
 
 > 面向 AI 会话的**快速交接**：一句话状态、读序、下一步（唯一进度跟踪点）、纪律、环境。
 > 架构细节见 ARCHITECTURE；词汇 GLOSSARY；裁决 DECISIONS。
-> 版本：0.2.5。
+> 版本：0.2.6。
 
 ## 一、一句话
 
@@ -14,9 +14,9 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 
 ## 三、下一步（唯一进度跟踪点）
 
-已完成（细节见 DECISIONS D13–D15 与 git log）：契约 v0 ✅ 旧 UI 吸收 ✅ 贡献点 v0 ✅ 真机接线 ✅ 字节闸门 ✅ 界面美化 ✅ 图片尺寸落库 ✅ 注册表 v0.1（声明/实现分离 + 错误隔离 + per-entry 生命周期，2026-09-07）✅。
+已完成（细节见 DECISIONS D13–D15 与 git log）：契约 v0 ✅ 旧 UI 吸收 ✅ 贡献点 v0 ✅ 真机接线 ✅ 字节闸门 ✅ 界面美化 ✅ 图片尺寸落库 ✅ 注册表 v0.1（声明/实现分离 + 错误隔离 + per-entry 生命周期）✅ 命令注册表 + 右键菜单闭环 ✅。
 
-1. **命令注册表 + 右键菜单闭环**（进行中，ARCHITECTURE §3.2）：命令注册表（when 谓词 + 壳装配）→ 自绘 Menu + context target/根部拦截 → 条目卡官方命令（item.open/copyPath）做测试桩。
+1. ~~命令注册表 + 右键菜单闭环~~（已完成，2026-09-07，ARCHITECTURE §3.2）：命令注册表（when 谓词 + 壳装配）✅ 自绘 ContextMenuHost + App 根部拦截 + ItemCard context target ✅ 官方命令测试桩 item.open/copyPath ✅；三方 manifest 开放与 HostApi 冻结面裁决耦合（见 4）。
 2. **容器标准化（SurfaceHost）**：停靠渲染收拢为统一容器（边界补全 App.vue/Settings）；dialog/toast 服务替换 PathsPanel/Settings 的 window.confirm。
 3. **视频缩略图**：帧抓取管线（taghit-file 协议已就绪，缺 canvas 抓帧/封面提取/落盘通道；旧版 lib/thumbnailer.ts 思路可参考）；视频尺寸同理待 ffprobe/元数据。
 4. **贡献点待裁决**（接三方前定并写入 DECISIONS）：settings 命名空间与存储归属（key 语义改组件内、存储键 `featureId:key`、壳统一持有）；HostApi 冻结面与 33 端点窄桥的关系（建议冻结子集视图 + 版本号，权限闸门在宿主进程；菜单命令权是其第一批真实条目，与右键菜单 manifest 开放耦合裁决）。

@@ -57,6 +57,8 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       'border-[var(--accent)]': selected
     }"
     :title="`${item.title}（双击打开详情）`"
+    data-ctx-target="item"
+    :data-ctx-id="item.id"
     @click="emit('select', item)"
     @dblclick="emit('open', item)"
   >
@@ -130,6 +132,8 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       'border-[var(--accent)] shadow-lg': selected
     }"
     :title="`${item.title}（双击打开详情）`"
+    data-ctx-target="item"
+    :data-ctx-id="item.id"
     @click="emit('select', item)"
     @dblclick="emit('open', item)"
   >

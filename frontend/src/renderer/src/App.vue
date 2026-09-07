@@ -6,6 +6,8 @@ import StatusBar from './components/layout/StatusBar.vue'
 import ActivityBar, { type ActivityTool } from './components/layout/ActivityBar.vue'
 import { useTabStore } from './stores/tab'
 import { useUiStore, type LeftTool, type RightTool } from './stores/ui'
+import ContextMenuHost from './features/ContextMenuHost.vue'
+import { openContextMenu } from './features/contextMenu'
 import { listFeatures, resolvedComponent, resolvedIcon, type FeatureEntry } from './features/registry'
 
 const route = useRoute()
@@ -154,10 +156,22 @@ function onToggleLeft(id: string): void {
 function onToggleRight(id: string): void {
   uiStore.toggleRight(id as RightTool)
 }
+
+// ── 右键菜单：事件拦截权归壳（ARCHITECTURE §3.2）──
+// 组件只声明 context target（data-ctx-*）；根部统一拦截、就近取 target、构造上下文。
+// 无 target 时不拦截：文本选择等场景保留原生菜单。
+function onContextMenu(e: MouseEvent): void {
+  const el = (e.target as HTMLElement | null)?.closest?.('[data-ctx-target]') as HTMLElement | null
+  if (el == null) return
+  e.preventDefault()
+  const kind = el.dataset.ctxTarget ?? ''
+  const id = el.dataset.ctxId
+  openContextMenu({ target: { kind, id }, workspaceId: tabStore.activeWorkspaceId }, e.clientX, e.clientY)
+}
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col" @contextmenu="onContextMenu">
     <TabBar />
 
     <div class="flex-1 flex min-h-0">
@@ -202,5 +216,6 @@ function onToggleRight(id: string): void {
     </div>
 
     <StatusBar />
+    <ContextMenuHost />
   </div>
 </template>
