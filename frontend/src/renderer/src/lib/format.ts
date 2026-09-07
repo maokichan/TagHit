@@ -1,6 +1,5 @@
 /**
  * 渲染层通用格式化工具（大小 / 日期）。
- * 与 InfoPanel.vue / ItemDetail.vue 中的内联实现同逻辑，后续可统一收敛到此处。
  */
 
 export function formatSize(size: number | null | undefined): string {

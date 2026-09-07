@@ -161,7 +161,7 @@ function onToggleRight(id: string): void {
 // 组件只声明 context target（data-ctx-*）；根部统一拦截、就近取 target、构造上下文。
 // 无 target 时不拦截：文本选择等场景保留原生菜单。
 function onContextMenu(e: MouseEvent): void {
-  const el = (e.target as HTMLElement | null)?.closest?.('[data-ctx-target]') as HTMLElement | null
+  const el = (e.target as HTMLElement).closest<HTMLElement>('[data-ctx-target]')
   if (el == null) return
   e.preventDefault()
   const kind = el.dataset.ctxTarget ?? ''

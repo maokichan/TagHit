@@ -9,7 +9,7 @@
 
 import { app, net, protocol } from 'electron'
 import { pathToFileURL } from 'node:url'
-import { normalize } from 'node:path'
+import { normalize, sep } from 'node:path'
 import { createReadStream, statSync } from 'node:fs'
 import { Readable } from 'node:stream'
 import type { AppServices } from '../application/index.ts'
@@ -85,9 +85,14 @@ function extractPath(rawUrl: string): string {
 export function registerTaghitFileProtocol(services: AppServices): void {
   protocol.handle(TAGHIT_FILE_SCHEME, async (request) => {
     const normalized = extractPath(request.url)
-    const ok = (await allowedRoots(services)).some(
-      (root) => normalized.toLowerCase().startsWith(root.toLowerCase())
-    )
+    // 白名单按路径段匹配：目录根的裸前缀会放行同前缀兄弟目录（D:\media 放行 D:\media-archive），
+    // 故要求完全相等或紧随路径分隔符
+    const candidate = normalized.toLowerCase()
+    const ok = (await allowedRoots(services)).some((root) => {
+      const r = root.toLowerCase()
+      const scoped = r.endsWith(sep) ? r : r + sep
+      return candidate === r || candidate.startsWith(scoped)
+    })
     if (!ok) {
       console.warn(`[protocol] 拒绝访问路径: ${normalized}`)
       return new Response('forbidden', { status: 403 })

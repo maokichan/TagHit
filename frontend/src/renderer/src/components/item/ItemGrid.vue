@@ -82,7 +82,7 @@ onUnmounted(() => {
 })
 
 /* ── 布局计算：瀑布流 = JS 列分配（追加不动旧卡片）；网格/列表 = 均匀行 ──
- * 0.2 无宽高元数据：比值由 contentHash 确定性派生（lib/media），元数据落地后换实测值。 */
+ * 比值经 lib/media.masonryRatioOf：优先扫描实测 width/height，缺失回退 contentHash 派生。 */
 function ratioOf(item: ItemView): number {
   return masonryRatioOf(item)
 }

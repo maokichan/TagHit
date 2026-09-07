@@ -11,6 +11,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
@@ -48,6 +49,7 @@ import {
   undeclareTag,
   unmountWorkspaceRoot,
   untagItem,
+  queryItems,
 } from '../application/index.ts'
 import type { AppServices, ScanOptions } from '../application/index.ts'
 import type { Id } from '../domain/index.ts'
@@ -57,6 +59,9 @@ import type { DomainErrorCode } from '../domain/index.ts'
 function dbPath(): string {
   return process.env.TAGHIT_DB ?? `${app.getPath('userData')}/taghit.db`
 }
+
+/** 版本单一事实源 = package.json（ping 端点用；字面量会随迭代过期）。 */
+const HOST_VERSION: string = JSON.parse(readFileSync(`${app.getAppPath()}/package.json`, 'utf8')).version
 
 const services: AppServices = {
   store: createSqliteStoreFromDriver(openSqlite(dbPath())),
@@ -82,7 +87,7 @@ async function envelope<T>(work: Promise<T>): Promise<{ ok: boolean; data?: T; e
 const nodeFs = createNodeFileSystem()
 
 function registerHandlers(): void {
-  ipcMain.handle('ping', () => envelope(Promise.resolve({ version: '0.2.3' })))
+  ipcMain.handle('ping', () => envelope(Promise.resolve({ version: HOST_VERSION })))
 
   // ---- 标签 ----
   ipcMain.handle('tags.search', (_event, text: string) => envelope(searchTags(services, text)))
@@ -101,7 +106,7 @@ function registerHandlers(): void {
 
   // ---- 条目 ----
   ipcMain.handle('items.query', (_event, query: ItemsQuery) =>
-    envelope(services.store.queryItems(query))
+    envelope(queryItems(services, query))
   )
   ipcMain.handle('item.tag', (_event, input: { itemId: Id; tagIds: Id[] }) =>
     envelope(tagItem(services, input.itemId, input.tagIds).then(() => null))

@@ -70,9 +70,14 @@ const workspaceId = computed<Id | null>(() => {
 
 async function load(): Promise<void> {
   error.value = ''
-  const hits = await api.items.query({ ids: [props.id] })
-  item.value = hits.length ? toItemView(hits[0]) : null
-  if (!item.value) error.value = '条目不存在或已被删除'
+  try {
+    const hits = await api.items.query({ ids: [props.id] })
+    item.value = hits.length ? toItemView(hits[0]) : null
+    if (!item.value) error.value = '条目不存在或已被删除'
+  } catch (e) {
+    item.value = null
+    error.value = e instanceof Error ? e.message : String(e)
+  }
 }
 
 onMounted(async () => {

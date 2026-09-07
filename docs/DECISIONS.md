@@ -65,7 +65,7 @@
 | D12 | 内容签名 | 头/中/尾三采样（64 KiB/段），适配器共用 sampleHash |
 | D13 | 宿主 | Electron；typed IPC 窄桥暴露用例；核心零依赖。**Electron 33 内嵌 Node 20.18 → 宿主 Store 需换 better-sqlite3 实现（或升级 Electron）** |
 | D14 | SQLite 驱动 | 适配层只认最小接口 `SyncSqlite`（store.ts），驱动注入：node:sqlite 在 nodeDriver.ts（Node≥22 校准用），宿主注入 better-sqlite3（Electron ABI，根 node_modules）；node:sqlite 不进 Electron 打包产物 |
-| D15 | 字节闸门 | 媒体字节不走 IPC：taghit-file:// 协议（白名单=各工作区来源根+userData，Range 206、MIME、ACAO）；文本走窄桥 item.readText（TEXT_EXTS 白名单 + 2MiB 上限；超限返回前段并 truncated:true，比旧版整篇拒读更好用）。白名单从 Store 端口查，不裸 SQL。图片固有尺寸扫描时从文件头解析（application/mediaMeta.ts，PNG/JPEG/GIF/WebP/BMP 零依赖，替代旧版 image-size），落 items.width/height（旧库 ALTER 迁移）；瀑布流比例优先实测值并钳制 [1/2.2, 2.2]（老版逻辑），缺失回退 contentHash 估计，非媒体类型恒 4:3 |
+| D15 | 字节闸门 | 媒体字节不走 IPC：taghit-file:// 协议（白名单=各工作区来源根+userData，**按路径段匹配**（目录根相等或紧随分隔符，防同前缀兄弟目录越权），Range 206、MIME、ACAO）；文本走窄桥 item.readText（TEXT_EXTS 白名单 + 2MiB 上限；超限返回前段并 truncated:true，比旧版整篇拒读更好用）。白名单从 Store 端口查，不裸 SQL。图片固有尺寸扫描时从文件头解析（application/mediaMeta.ts，PNG/JPEG/GIF/WebP/BMP 零依赖，替代旧版 image-size），落 items.width/height（旧库 ALTER 迁移）；瀑布流比例优先实测值并钳制 [1/2.2, 2.2]（老版逻辑），缺失回退 contentHash 估计，非媒体类型恒 4:3 |
 
 ## parked
 

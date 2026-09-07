@@ -39,3 +39,11 @@ export async function searchTags(svc: AppServices, text?: string): Promise<Tag[]
   const trimmed = text?.trim()
   return svc.store.queryTags(trimmed ? { nameContains: trimmed } : undefined)
 }
+
+/**
+ * 条目查询（契约级透传）：查询下沉到存储（DECISIONS），应用层不做二次判定。
+ * 独立成用例只为窄桥一致性——宿主只装配用例，不直连端口。
+ */
+export async function queryItems(svc: AppServices, q: ItemsQuery = {}): Promise<ItemHit[]> {
+  return svc.store.queryItems(q)
+}

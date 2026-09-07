@@ -8,6 +8,7 @@ declare module 'node:url' {
 }
 
 declare module 'node:path' {
+  export const sep: string
   export function normalize(path: string): string
 }
 
@@ -17,6 +18,7 @@ declare module 'node:fs' {
   }
   export function createReadStream(path: string, options?: { start?: number; end?: number }): ReadStream
   export function statSync(path: string): { size: number }
+  export function readFileSync(path: string, encoding: 'utf8'): string
 }
 
 declare module 'node:stream' {

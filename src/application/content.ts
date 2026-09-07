@@ -10,7 +10,9 @@ import { DomainError } from '../domain/index.ts'
 import type { FileSystem } from '../ports/filesystem.ts'
 import type { AppServices } from './services.ts'
 
-/** 文本可读扩展名（对齐旧版 TEXT_EXTS；静态文本预览白名单） */
+/** 文本可读扩展名（对齐旧版 TEXT_EXTS；静态文本预览白名单）。
+ *  本表是闸门本体；渲染侧 lib/media.ts 有一份同名单用于预览类别预判（渲染层
+ *  零运行时依赖根 src，无法直接复用）——两侧需人工同步，漂移只影响 UX 不影响安全。 */
 const TEXT_EXTS = new Set([
   'txt', 'md', 'markdown', 'json', 'js', 'ts', 'jsx', 'tsx',
   'css', 'html', 'htm', 'xml', 'yml', 'yaml', 'ini', 'log', 'csv', 'mjs', 'cjs',

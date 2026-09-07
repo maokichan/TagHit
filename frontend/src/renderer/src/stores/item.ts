@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { api, ApiError } from '@shared/api'
+import { api } from '@shared/api'
 import { toItemView, type ItemView } from '../lib/viewModel'
 import type { Id, ItemsQuery, ScanSummary } from '@shared/contract'
 
@@ -81,7 +81,7 @@ export const useItemStore = defineStore('item', () => {
       lastScanResult.value = await api.workspaces.scan(workspaceId)
       await load(workspaceId)
     } catch (e) {
-      scanError.value = e instanceof ApiError ? e.message : e instanceof Error ? e.message : String(e)
+      scanError.value = e instanceof Error ? e.message : String(e)
     } finally {
       scanning.value = false
     }
@@ -110,11 +110,6 @@ export const useItemStore = defineStore('item', () => {
     filter.value.keyword = kw
   }
 
-  /** 媒体类别过滤不在契约 v0（条目无 mediaType 事实）：保留 no-op 以免视图崩溃。 */
-  function setMediaType(_mt: string): void {
-    /* 降级：待后端补文件事实后恢复 */
-  }
-
   return {
     items,
     loading,
@@ -135,7 +130,6 @@ export const useItemStore = defineStore('item', () => {
     toggleTagFilter,
     clearTagFilters,
     setKeyword,
-    setMediaType,
     toggleSortDir
   }
 })
