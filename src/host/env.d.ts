@@ -7,6 +7,8 @@ declare module 'electron' {
   export interface BrowserWindowConstructorOptions {
     width?: number
     height?: number
+    frame?: boolean
+    backgroundColor?: string
     webPreferences?: {
       preload?: string
       contextIsolation?: boolean
@@ -16,8 +18,22 @@ declare module 'electron' {
 
   export class BrowserWindow {
     constructor(options?: BrowserWindowConstructorOptions)
+    static fromWebContents(webContents: WebContents): BrowserWindow | null
     loadURL(url: string): Promise<void>
     loadFile(filePath: string): Promise<void>
+    minimize(): void
+    maximize(): void
+    unmaximize(): void
+    isMaximized(): boolean
+    close(): void
+  }
+
+  export interface WebContents {
+    send(channel: string, ...args: unknown[]): void
+  }
+
+  export const Menu: {
+    setApplicationMenu(menu: null): void
   }
 
   export const app: {
@@ -29,7 +45,7 @@ declare module 'electron' {
   }
 
   export const ipcMain: {
-    handle(channel: string, listener: (event: unknown, ...args: any[]) => any): void
+    handle(channel: string, listener: (event: { sender: WebContents }, ...args: any[]) => any): void
   }
 
   export const contextBridge: {

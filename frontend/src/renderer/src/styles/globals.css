@@ -11,8 +11,8 @@
   --border: #262b36;
   --fg: #e6e9ef;
   --fg-dim: #9aa3b2;
-  --accent: #3b82f6;
-  --accent-soft: rgba(59, 130, 246, 0.15);
+  --accent: #f59e0b;
+  --accent-soft: rgba(245, 158, 11, 0.15);
   --danger: #ef4444;
 }
 
@@ -24,8 +24,8 @@
   --border: #e3e6ec;
   --fg: #1c2330;
   --fg-dim: #5c6675;
-  --accent: #2563eb;
-  --accent-soft: rgba(37, 99, 235, 0.12);
+  --accent: #d97706;
+  --accent-soft: rgba(217, 119, 6, 0.12);
   --danger: #dc2626;
 }
 
@@ -50,6 +50,14 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
   user-select: none;
+}
+
+/* ── 无边框窗口：TabBar 兼任标题栏，拖拽区/交互区两用类 ── */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 
 /* ── 滚动条 ── */

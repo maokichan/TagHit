@@ -64,6 +64,9 @@ export interface Err {
 
 export type Result<T> = Ok<T> | Err
 
+/** 壳级窗口动作（无边框窗口的自绘控制键）。 */
+export type WindowAction = 'minimize' | 'toggleMaximize' | 'close'
+
 /** 端点契约：args → result。新增端点在此加一行即获得两端类型。 */
 export interface IpcContracts {
   ping: { args: []; result: { version: string } }
@@ -120,6 +123,10 @@ export interface IpcContracts {
   'group.addMember': { args: [{ groupId: Id; tagId: Id }]; result: null }
   'group.removeMember': { args: [{ groupId: Id; tagId: Id }]; result: null }
   'group.delete': { args: [groupId: Id]; result: null }
+
+  // ---- 窗口 window：壳级控制（无边框窗口的自绘控制键；主进程能力，非业务用例） ----
+  'window.control': { args: [action: WindowAction]; result: null }
+  'window.isMaximized': { args: []; result: boolean }
 }
 
 export type IpcKind = keyof IpcContracts
@@ -176,4 +183,7 @@ export interface TaghitRendererApi {
   addGroupMember(input: { groupId: Id; tagId: Id }): Promise<IpcResult<'group.addMember'>>
   removeGroupMember(input: { groupId: Id; tagId: Id }): Promise<IpcResult<'group.removeMember'>>
   deleteGroup(groupId: Id): Promise<IpcResult<'group.delete'>>
+
+  windowControl(action: WindowAction): Promise<IpcResult<'window.control'>>
+  isWindowMaximized(): Promise<IpcResult<'window.isMaximized'>>
 }

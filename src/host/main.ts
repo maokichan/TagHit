@@ -13,7 +13,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
 import { createNodeFileSystem } from '../adapters/node/index.ts'
@@ -218,12 +218,30 @@ function registerHandlers(): void {
   ipcMain.handle('group.delete', (_event, groupId: Id) =>
     envelope(deleteGroupCascade(services, groupId).then(() => null))
   )
+
+  // ---- 窗口（壳级：无边框窗口的自绘控制键，直接操作发起方所在窗口） ----
+  ipcMain.handle('window.control', (_event, action: 'minimize' | 'toggleMaximize' | 'close') => {
+    const win = BrowserWindow.fromWebContents(_event.sender)
+    if (win != null) {
+      if (action === 'minimize') win.minimize()
+      else if (action === 'toggleMaximize') (win.isMaximized() ? win.unmaximize() : win.maximize())
+      else win.close()
+    }
+    return envelope(Promise.resolve(null))
+  })
+  ipcMain.handle('window.isMaximized', (_event) => {
+    const win = BrowserWindow.fromWebContents(_event.sender)
+    return envelope(Promise.resolve(win?.isMaximized() ?? false))
+  })
 }
 
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
     height: 840,
+    // 无边框：原生标题栏/默认菜单一并去除，控制键由渲染层自绘（window.control 窄桥，D17）
+    frame: false,
+    backgroundColor: '#0f1115',
     webPreferences: {
       preload: `${app.getAppPath()}/build/preload.cjs`,
       contextIsolation: true,
@@ -239,6 +257,8 @@ registerPrivilegedSchemes()
 registerHandlers()
 
 app.whenReady().then(() => {
+  // 去掉 Electron 默认应用菜单（File/Edit/View…）；快捷键随菜单一并失效
+  Menu.setApplicationMenu(null)
   registerTaghitFileProtocol(services)
   createWindow()
   app.on('activate', () => createWindow())

@@ -56,6 +56,9 @@ const api: TaghitRendererApi = {
   addGroupMember: (input) => invoke('group.addMember', input),
   removeGroupMember: (input) => invoke('group.removeMember', input),
   deleteGroup: (groupId) => invoke('group.delete', groupId),
+
+  windowControl: (action) => invoke('window.control', action),
+  isWindowMaximized: () => invoke('window.isMaximized'),
 }
 
 contextBridge.exposeInMainWorld('taghit', api)

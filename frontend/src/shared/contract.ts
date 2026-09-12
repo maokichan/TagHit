@@ -31,6 +31,7 @@ export type {
   ScanOptions,
   ScanSummary,
   Tag,
+  WindowAction,
   Workspace,
   WorkspaceRoot
 } from '@host/ipc'

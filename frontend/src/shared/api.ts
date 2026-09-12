@@ -17,6 +17,7 @@ import type {
   ScanOptions,
   ScanSummary,
   Tag,
+  WindowAction,
   Workspace,
   WorkspaceRoot
 } from './contract'
@@ -135,6 +136,15 @@ export const api = {
     },
     async scan(workspaceId: Id, options?: ScanOptions): Promise<ScanSummary> {
       return unwrap(await bridge().runScan(workspaceId, options))
+    }
+  },
+  window: {
+    /** 壳级窗口控制（无边框窗口的自绘控制键）；发起方窗口由主进程按 sender 解析。 */
+    async control(action: WindowAction): Promise<void> {
+      unwrap(await bridge().windowControl(action))
+    },
+    async isMaximized(): Promise<boolean> {
+      return unwrap(await bridge().isWindowMaximized())
     }
   }
 }
