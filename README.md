@@ -28,7 +28,7 @@ TagHit 正在朝**插件生态**演进（VS Code / Obsidian 式）：核心保�
 
 ## 当前状态
 
-开发中（v0.2.x）：后端核心（领域/端口/应用层/双存储适配器）完成并通过全量校准；桌面端（Electron）已可真实运行，标签/检索/扫描/预览/多布局浏览/右键菜单全链路可用；**视频缩略图与尺寸**（抓帧 + 按内容共享落库）与**多选批量打标**已落地（0.2.9）；**无边框窗口**（自绘标题栏与窗口控制键、无默认菜单）已落地（0.2.10）；插件生态机制全部就位（贡献点四类槽、标准容器、命令注册表、服务面、HostApi 冻结面），三方插件的发现/分发未接入。
+开发中（v0.2.x）：后端核心（领域/端口/应用层/双存储适配器）完成并通过全量校准（memory/sqlite/扫描/边界输入四份）；桌面端（Electron）已可真实运行：标签/检索/扫描/预览/多布局浏览/右键菜单/多选批量打标/视频缩略图全链路可用；**无边框窗口**（自绘标题栏与窗口控制键、无默认菜单）；**来源根目录树**（逐级展开、节点可见性即浏览成员前提）；**文件管理**（真实文件改名/移动/删除进回收站，扫描按内容认领、标签随行）；插件生态机制全部就位（贡献点四类槽、标准容器、命令注册表、服务面、HostApi 冻结面），三方插件的发现/分发未接入。
 
 愿意现在试用的开发者请继续往下读。
 
@@ -37,15 +37,15 @@ TagHit 正在朝**插件生态**演进（VS Code / Obsidian 式）：核心保�
 架构一句话：**领域先行 + 六边形分层**——业务规则全部在纯 TS 的领域层与应用层，存储/文件系统在适配器后可替换，Electron 宿主只做装配与安全边界（渲染层经 typed IPC 窄桥访问用例，文件字节经白名单协议闸门）。这样设计是因为业务规则要有单一可验证的归属、宿主技术要可替换、未来多入口（UI/CLI/插件）必须共享同一套规则。
 
 ```bash
-# 分层类型检查 + 校准（memory 与 sqlite 跑同一场景，契约一致才绿）
+# 分层类型检查 + 校准（memory 与 sqlite 跑同一场景，契约一致才绿；boundary = 输入合法性专项）
 npm run typecheck:domain && npm run typecheck:ports && npm run typecheck:adapters
 npm run typecheck:application && npm run typecheck:host
-npm run calibrate && npm run calibrate:sqlite && npm run calibrate:scan
+npm run calibrate && npm run calibrate:sqlite && npm run calibrate:scan && npm run calibrate:boundary
 
 # 真机运行
-npm run dev             # 一键：bundle:host → vite dev server(5173) + Electron（dev 库 build/taghit-dev.db）
+npm run dev             # 一键：bundle:host → vite dev server（端口自适应）+ Electron（dev 库 build/taghit-dev.db）
 # 或手动分步：
-npm run dev:renderer   # 终端 A：渲染层 vite dev server（5173）
+npm run dev:renderer   # 终端 A：渲染层 vite dev server
 npm run bundle:host    # 终端 B：esbuild 打包 src/host → build/
 TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:host
 ```
@@ -56,5 +56,6 @@ TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:hos
 - `docs/DECISIONS.md` — 设计裁决基线（分层、驱动、字节闸门、插件选型）
 - `docs/ARCHITECTURE.md` — 架构与插件机制（含贡献点选型论证）
 - `docs/CONTEXT.md` — 开发交接与当前进度
+- `TODO.md` — 待办唯一清单（按主线/远期/组件/边界/工程化组织）
 
 历史版本存档于 `../freeze/`（Tauri 原型、Electron 0.1.x）。
