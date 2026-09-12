@@ -49,5 +49,5 @@
 ## 工程化
 
 - **LICENSE**：未定未加。
-- **CI**：六份校准 + 五层 typecheck 可直接脚本化。
+- **CI**：六份校准 + 五层 typecheck + 前端 `check:templates`（模板解析，vue-tsc 盲区）可直接脚本化。
 - **测试三件套落地**（2026-09-12 方案裁决：成熟工具为主，自研只留场景）：Vitest（运行器/断言，承接校准脚本可选）、fast-check（property-based，打输入边界）、Playwright（Electron E2E；把 GUI 冒烟脚本化：建工作区→挂根→树操作→右键）。

@@ -36,6 +36,8 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 
 - 层 typecheck：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；全局 tsc 亦可；freeze 路径已失效）；node v24 直跑 TS。
 - frontend：node_modules 已装（electron 33.4.11 含 exe）；`npx vue-tsc --noEmit -p tsconfig.web.json --composite false`；契约类型经 @host/* alias type-only 引用根 src/host/ipc.ts。
+- **模板解析检查（必跑）**：`npm --prefix frontend run check:templates`——用 Vue 官方编译器逐个解析 .vue。
+  **vue-tsc 走语言服务的宽容解析，会漏报模板标签不闭合**（2026-09-12 实际踩到：批量改外壳后 4 个面板多出 `</div>`，vue-tsc 通过、vite 开发服务器直接报 Invalid end tag 而白屏）。改过模板结构后必须跑这一项。
 - 校准：`npm run calibrate | calibrate:sqlite | calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots`（boundary = 对外暴露面的输入合法性专项，s34；view = 浏览窗口/成员派生专项，s35；roots = 来源根生命周期/退役根/脱根条目专项，s36。三者均 memory/sqlite 双跑）。
 - 真机运行：一键 `npm run dev`（scripts/dev.mjs：bundle:host → vite 直启（端口自适应回退）+ start:host，TAGHIT_DB 缺省 build/taghit-dev.db，环境变量透传；开发态 userData 按库隔离，同库双开单实例锁退出）；或手动：终端 A `npm --prefix frontend run dev:renderer`（vite），终端 B `npm run bundle:host` 后 `TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:host`。
 - 根 node_modules 仅 better-sqlite3/bindings/file-uri-to-path（复制自 freeze，Electron ABI；**勿让 node v24 直接加载**）。better-sqlite3 版本须与 electron 匹配（D13/D14）。

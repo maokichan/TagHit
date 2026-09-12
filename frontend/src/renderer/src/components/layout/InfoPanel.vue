@@ -37,46 +37,45 @@ function openDetail(): void {
 
 <template>
   <div class="px-3 py-3">
-      <div
-        class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2 flex items-center gap-1.5"
-      >
-        <Info :size="12" /> 媒体信息
+    <div
+      class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2 flex items-center gap-1.5"
+    >
+      <Info :size="12" /> 媒体信息
+    </div>
+
+    <template v-if="item">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="text-[12px] font-medium truncate flex-1" :title="item.title">
+          {{ item.title }}
+        </div>
+        <button class="btn text-[11px] p-1" title="打开详情页" @click="openDetail">
+          <ExternalLink :size="13" />
+        </button>
       </div>
 
-      <template v-if="item">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="text-[12px] font-medium truncate flex-1" :title="item.title">
-            {{ item.title }}
-          </div>
-          <button class="btn text-[11px] p-1" title="打开详情页" @click="openDetail">
-            <ExternalLink :size="13" />
-          </button>
-        </div>
-
-        <div v-if="item.tags.length" class="flex flex-wrap gap-1 mb-3">
-          <span
-            v-for="tag in item.tags"
-            :key="tag.id"
-            class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
-          >
-            #{{ tag.name }}
-          </span>
-        </div>
-        <p v-if="item.hiddenCount > 0" class="text-[10px] text-[var(--fg-dim)] mb-2">
-          另有 {{ item.hiddenCount }} 个未声明标签未显示
-        </p>
-
-        <dl class="space-y-1 text-[12px]">
-          <div v-for="[k, v] in rows" :key="k" class="flex gap-2">
-            <dt class="w-16 shrink-0 text-[var(--fg-dim)] truncate" :title="k">{{ k }}</dt>
-            <dd class="break-all min-w-0">{{ v }}</dd>
-          </div>
-        </dl>
-      </template>
-
-      <p v-else class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
-        点击网格中的条目，在此查看媒体信息。<br />双击条目可打开详情页。
+      <div v-if="item.tags.length" class="flex flex-wrap gap-1 mb-3">
+        <span
+          v-for="tag in item.tags"
+          :key="tag.id"
+          class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
+        >
+          #{{ tag.name }}
+        </span>
+      </div>
+      <p v-if="item.hiddenCount > 0" class="text-[10px] text-[var(--fg-dim)] mb-2">
+        另有 {{ item.hiddenCount }} 个未声明标签未显示
       </p>
-    </div>
+
+      <dl class="space-y-1 text-[12px]">
+        <div v-for="[k, v] in rows" :key="k" class="flex gap-2">
+          <dt class="w-16 shrink-0 text-[var(--fg-dim)] truncate" :title="k">{{ k }}</dt>
+          <dd class="break-all min-w-0">{{ v }}</dd>
+        </div>
+      </dl>
+    </template>
+
+    <p v-else class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
+      点击网格中的条目，在此查看媒体信息。<br />双击条目可打开详情页。
+    </p>
   </div>
 </template>
