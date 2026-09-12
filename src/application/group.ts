@@ -5,14 +5,15 @@
 
 import type { Group, Id } from '../domain/index.ts'
 import type { AppServices } from './services.ts'
+import { normalizeName } from './input.ts'
 
 export async function createGroup(svc: AppServices, name: string): Promise<Group> {
   const now = svc.clock.now()
-  return svc.store.createGroup({ id: svc.idGen.newId(), name, createdAt: now })
+  return svc.store.createGroup({ id: svc.idGen.newId(), name: normalizeName(name, '组名'), createdAt: now })
 }
 
 export async function renameGroup(svc: AppServices, groupId: Id, name: string): Promise<void> {
-  await svc.store.renameGroup(groupId, name)
+  await svc.store.renameGroup(groupId, normalizeName(name, '组名'))
 }
 
 export async function addGroupMember(

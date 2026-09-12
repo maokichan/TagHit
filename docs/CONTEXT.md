@@ -6,7 +6,7 @@
 
 ## 一、一句话
 
-0.2 领域先行重写：后端核心全部完成并通过校准；宿主契约 v0（36 端点 + 信封，单一事实源 src/host/ipc.ts）与旧 UI 吸收完成；**真机运行已打通**（Electron 33 + better-sqlite3 + esbuild 打包，D14）；**字节闸门已落地**（taghit-file:// 媒体协议 + item.readText 文本窄桥 + 图片固有尺寸扫描落库，D15）；界面已按老版观感补齐（瀑布流用真实宽高比）。**插件生态机制全部就位**（贡献点/命令/右键菜单/三类呈现面/HostApi 冻结面，ARCHITECTURE §三）。**视频缩略图与多选批量已落地（0.2.9，D16）**：视频 canvas 抓帧 → 宿主落盘 + 按哈希回写尺寸/缩略图（同内容共享）；Ctrl/Cmd 多选 + 右键/操作条批量打标。**无边框窗口（0.2.10，D17）**：默认菜单移除，TabBar 兼任标题栏（拖拽区 + 窗口控制键走 window.control 窄桥）；暗/亮主题主色去蓝换琥珀（--accent 单点）。术语：无边框窗口 / 标题栏 / 窗口控制键（ARCHITECTURE §二）。**来源根树 + 文件管理（D18）**：来源根面板 = 每根一个目录树容器（nodes.list/node.setState 窄桥，可见性不级联、Shift=子树批量）；「文件管理」功能组件 = 对多选集做真实文件改名/移动/删除进回收站（fs.move/fs.trash 窄桥，路径闸门=来源根）；扫描加 contentHash 认领——移动后条目 id 与标签原样保留。停靠面板右下角角标 → 打开功能组件内容标签页（暂全页复用窄面板）。
+0.2 领域先行重写：后端核心全部完成并通过校准；宿主契约 v0（36 端点 + 信封，单一事实源 src/host/ipc.ts）与旧 UI 吸收完成；**真机运行已打通**（Electron 33 + better-sqlite3 + esbuild 打包，D14）；**字节闸门已落地**（taghit-file:// 媒体协议 + item.readText 文本窄桥 + 图片固有尺寸扫描落库，D15）；界面已按老版观感补齐（瀑布流用真实宽高比）。**插件生态机制全部就位**（贡献点/命令/右键菜单/三类呈现面/HostApi 冻结面，ARCHITECTURE §三）。**视频缩略图与多选批量已落地（0.2.9，D16）**：视频 canvas 抓帧 → 宿主落盘 + 按哈希回写尺寸/缩略图（同内容共享）；Ctrl/Cmd 多选 + 右键/操作条批量打标。**无边框窗口（0.2.10，D17）**：默认菜单移除，TabBar 兼任标题栏（拖拽区 + 窗口控制键走 window.control 窄桥）；暗/亮主题主色去蓝换琥珀（--accent 单点）。术语：无边框窗口 / 标题栏 / 窗口控制键（ARCHITECTURE §二）。**来源根树 + 文件管理（D18）**：来源根面板 = 每根一个目录树容器（nodes.list/node.setState 窄桥，可见性不级联、Shift=子树批量）；「文件管理」功能组件 = 对多选集做真实文件改名/移动/删除进回收站（fs.move/fs.trash 窄桥，路径闸门=来源根）；扫描加 contentHash 认领——移动后条目 id 与标签原样保留。停靠面板右下角角标 → 打开功能组件内容标签页（暂全页复用窄面板）。**输入边界专项（s34）**：名称类输入统一应用层闸（trim/空判/限长 → INVALID）；normalizePath 词汇解析 `..`（堵文本前缀穿透）；渲染层控制台转发主进程 + render-process-gone 自恢复。
 
 ## 二、读序
 
@@ -27,14 +27,14 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 2. 术语纪律：只用 GLOSSARY / ARCHITECTURE 已定义词；禁自造语义词（历史：is-a/修饰曾致幻觉）；**一词一义**——领域词定义于 GLOSSARY、架构/渲染层词定义于 ARCHITECTURE，跨层含义冲突优先改词消除（先例：插件语境"宿主"→「壳」；「宿主/宿主进程」只指 src/host 主进程）。
 3. 文档纪律：维护 GLOSSARY / DECISIONS / CONTEXT / **ARCHITECTURE** + README；不留轮次记录；**进度只记本文件 §三**。
 4. 不预建模：parked 项不进代码。
-5. 提交前所改层 `tsc -p tsconfig.<domain|ports|adapters|application|host>.json` 通过；语义变更即同步文档；动契约/适配器后跑三份校准。
+5. 提交前所改层 `tsc -p tsconfig.<domain|ports|adapters|application|host>.json` 通过；语义变更即同步文档；动契约/适配器后跑全部校准（memory / sqlite / scan / **boundary 输入边界**）。
 6. git：本地提交积极做；**版本号只在开发者明示时升（AI 不得自升）**，**升版本必打 tag**（随升随打，不必再确认）；非版本类 tag 打前向用户确认一次；push（含 tag）由真人执行；版本迭代只对应代码/功能变更，纯文档变更不打版本。（2026-09-12 修订）
 
 ## 五、环境与运行
 
 - 层 typecheck：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；全局 tsc 亦可；freeze 路径已失效）；node v24 直跑 TS。
 - frontend：node_modules 已装（electron 33.4.11 含 exe）；`npx vue-tsc --noEmit -p tsconfig.web.json --composite false`；契约类型经 @host/* alias type-only 引用根 src/host/ipc.ts。
-- 校准：`npm run calibrate | calibrate:sqlite | calibrate:scan`。
+- 校准：`npm run calibrate | calibrate:sqlite | calibrate:scan | calibrate:boundary`（boundary = 对外暴露面的输入合法性专项，s34，memory/sqlite 双跑）。
 - 真机运行：一键 `npm run dev`（scripts/dev.mjs：bundle:host → 并行 dev:renderer@5173 + start:host，TAGHIT_DB 缺省 build/taghit-dev.db，环境变量透传）；或手动：终端 A `npm run dev:renderer`（vite@5173），终端 B `npm run bundle:host` 后 `TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:host`。
 - 根 node_modules 仅 better-sqlite3/bindings/file-uri-to-path（复制自 freeze，Electron ABI；**勿让 node v24 直接加载**）。better-sqlite3 版本须与 electron 匹配（D13/D14）。
 

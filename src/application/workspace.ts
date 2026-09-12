@@ -6,11 +6,12 @@
 
 import type { Id, Workspace, WorkspaceRoot } from '../domain/index.ts'
 import type { AppServices } from './services.ts'
+import { normalizeName } from './input.ts'
 
 /** 建工作区（薄封装：id / createdAt 注入后落库）。 */
 export async function createWorkspace(svc: AppServices, name: string): Promise<Workspace> {
   const now = svc.clock.now()
-  return svc.store.createWorkspace({ id: svc.idGen.newId(), name, createdAt: now })
+  return svc.store.createWorkspace({ id: svc.idGen.newId(), name: normalizeName(name, '工作区名'), createdAt: now })
 }
 
 /** 工作区列表（按存储序）。 */

@@ -284,6 +284,10 @@ function createWindow(): void {
     },
   })
   const rendererUrl = () => process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173'
+  // 渲染层控制台转发：warning 以上打到主进程 stdout（渲染层早崩/黑屏的唯一诊断窗口）
+  win.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+    if (level >= 2) console.log(`[renderer] ${message} (${sourceId}:${line})`)
+  })
   // 渲染进程崩溃自恢复（黑屏 = 渲染层死亡露出窗口底色）：记日志并重载，连崩则停手
   let reloads = 0
   win.webContents.on('render-process-gone', (_e, details) => {

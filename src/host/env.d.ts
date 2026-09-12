@@ -28,6 +28,10 @@ declare module 'electron' {
     close(): void
     isDestroyed(): boolean
     readonly webContents: {
+      on(
+        event: 'console-message',
+        listener: (event: unknown, level: number, message: string, line: number, sourceId: string) => void
+      ): void
       on(event: 'render-process-gone', listener: (event: unknown, details: { reason: string; exitCode: number }) => void): void
     }
   }

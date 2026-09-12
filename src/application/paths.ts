@@ -27,11 +27,30 @@ export function isUnderRoot(roots: string[], path: string): boolean {
 }
 
 /**
- * 归一化：反斜杠 → 正斜杠，去尾部分隔符（保留 'X:/' 盘根）。
+ * 归一化：反斜杠 → 正斜杠、去尾部分隔符（保留 'X:/' 盘根）、**词汇解析 `.`/`..` 段**。
  * 域约定"路径为归一化绝对路径"的执行点：一切**外部进入**的路径（用户输入、
- * 原生选择器返回）必须先过这里，避免混合分隔符产生双身份节点/条目。
+ * 原生选择器返回）必须先过这里。`..` 解析是安全项：来源根闸门按文本前缀匹配，
+ * 不解析相对段则 `D:/库/../其他` 可穿透闸门。
+ * 盘符/绝对路径越出根的 `..` 钳到根（Windows 语义）；相对路径顶部的 `..` 保留。
  */
 export function normalizePath(path: string): string {
-  const out = path.replace(/\\/g, '/')
-  return out.length > 3 && out.endsWith('/') ? out.slice(0, -1) : out
+  const slashed = path.replace(/\\/g, '/')
+  const trimmed = slashed.length > 3 && slashed.endsWith('/') ? slashed.slice(0, -1) : slashed
+  // 无相对段则原样返回（绝大多数输入走这条快路）
+  if (!/(?:^|\/)\.{1,2}(?:\/|$)/.test(trimmed)) return trimmed
+  const drive = /^[A-Za-z]:/.exec(trimmed)?.[0] ?? null
+  const body = drive != null ? trimmed.slice(drive.length) : trimmed
+  const absolute = body.startsWith('/')
+  const segs: string[] = []
+  for (const seg of body.split('/')) {
+    if (seg === '' || seg === '.') continue
+    if (seg === '..') {
+      if (segs.length > 0 && segs[segs.length - 1] !== '..') segs.pop()
+      else if (drive == null && !absolute) segs.push('..')
+    } else {
+      segs.push(seg)
+    }
+  }
+  if (drive != null) return `${drive}/${segs.join('/')}`
+  return (absolute ? '/' : '') + segs.join('/')
 }

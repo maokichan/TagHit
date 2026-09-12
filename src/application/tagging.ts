@@ -6,6 +6,7 @@
 
 import type { Id, Tag } from '../domain/index.ts'
 import type { AppServices } from './services.ts'
+import { normalizeName } from './input.ts'
 
 /** 建标签（薄封装：id / createdAt 注入后落库；空名 / 重名判定在 Store）。 */
 export async function createTag(
@@ -15,7 +16,7 @@ export async function createTag(
   const now = svc.clock.now()
   return svc.store.createTag({
     id: svc.idGen.newId(),
-    name: input.name,
+    name: normalizeName(input.name, '标签名'),
     description: input.description,
     createdAt: now,
   })

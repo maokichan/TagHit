@@ -21,6 +21,7 @@ import type { AppServices } from './services.ts'
 import { basename, normalizePath } from './paths.ts'
 import { isImageFile, parseImageSize } from './mediaMeta.ts'
 import { deleteItemIn } from './cascade.ts'
+import { DomainError } from '../domain/index.ts'
 
 export type MissingPolicy = 'keep' | 'discard'
 
@@ -47,7 +48,10 @@ export async function mountWorkspaceRoot(
   path: string
 ): Promise<void> {
   // 归一化在边界执行：用户输入/原生选择器可能带反斜杠或尾分隔符（混合分隔符 = 双身份节点）
-  await svc.store.addWorkspaceRoot(workspaceId, normalizePath(path))
+  if (path.trim() === '') throw new DomainError('INVALID', '来源根路径不能为空白')
+  const normalized = normalizePath(path)
+  if (normalized === '' || normalized === '/') throw new DomainError('INVALID', '来源根路径不能为空')
+  await svc.store.addWorkspaceRoot(workspaceId, normalized)
 }
 
 export async function unmountWorkspaceRoot(

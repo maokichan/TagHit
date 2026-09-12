@@ -17,6 +17,7 @@
     "dev:renderer": "npm --prefix frontend run dev:renderer",
     "dev": "node scripts/dev.mjs",
     "start:host": "node frontend/node_modules/electron/cli.js .",
-    "typecheck:host": "tsc -p tsconfig.host.json"
+    "typecheck:host": "tsc -p tsconfig.host.json",
+    "calibrate:boundary": "node scripts/s34-boundary.ts"
   }
 }
