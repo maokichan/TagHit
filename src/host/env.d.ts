@@ -61,6 +61,8 @@ declare module 'electron' {
     on(event: 'window-all-closed' | 'activate', listener: () => void): void
     getAppPath(): string
     getPath(name: string): string
+    setPath(name: string, path: string): void
+    requestSingleInstanceLock(): boolean
   }
 
   export const ipcMain: {

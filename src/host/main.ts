@@ -10,7 +10,7 @@
  * 打包态改 loadFile 本地产物。真实 node:fs 由扫描端点按需注入（NodeFileSystem 已就绪）。
  */
 
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
@@ -67,6 +67,22 @@ import type { DomainErrorCode } from '../domain/index.ts'
 
 function dbPath(): string {
   return process.env.TAGHIT_DB ?? `${app.getPath('userData')}/taghit.db`
+}
+
+// 开发态 userData 按库文件隔离：两个实例共用 userData 时 GPU/磁盘缓存锁冲突
+// （cache_util_win 拒绝访问 0x5），后启动者渲染层直接黑屏。按 TAGHIT_DB 派生
+// 目录键，不同库的多实例互不争锁；缩略图目录随实例走，与库内 previewUri 自洽。
+if (process.env.TAGHIT_RENDERER_URL != null) {
+  const key = createHash('sha1').update(dbPath()).digest('hex').slice(0, 8)
+  app.setPath('userData', `${app.getPath('userData')}-dev-${key}`)
+}
+
+// 单实例锁（按 userData = 按库）：同库双开必撞缓存锁 → 后者干净退出并提示，
+// 而不是黑屏；不同库实例各自持锁，互不影响。
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  console.error('[host] 已有同库实例在运行：退出本次启动（关掉旧窗口或换 TAGHIT_DB 再开）')
+  app.quit()
 }
 
 /** 版本单一事实源 = package.json（ping 端点用；字面量会随迭代过期）。 */

@@ -1,14 +1,36 @@
-// 一键开发启动：bundle:host（一次性打包）→ 并行 dev:renderer（vite 5173）+ start:host（Electron）。
-// 环境变量透传：TAGHIT_RENDERER_URL 缺省 http://localhost:5173；TAGHIT_DB 缺省 build/taghit-dev.db。
+// 一键开发启动：bundle:host（一次性打包）→ 并行 dev:renderer（vite，端口自适应）+ start:host（Electron）。
+// 环境变量透传：TAGHIT_RENDERER_URL 缺省 http://localhost:<首选空闲端口>；TAGHIT_DB 缺省 build/taghit-dev.db。
 import { spawn } from 'node:child_process'
+import { createServer } from 'node:net'
 
 // Windows 下直接 spawn npm.cmd 会 EINVAL（.cmd 需经 cmd.exe 包装），故统一走 shell。
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 const children = new Set()
 let shuttingDown = false
 
+/** 端口在 127.0.0.1 与 ::1 上都空闲才算可用（vite localhost 双栈监听）。 */
+function portFree(port) {
+  const probe = (host) =>
+    new Promise((resolve) => {
+      const srv = createServer()
+      srv.once('error', () => resolve(false))
+      srv.once('listening', () => srv.close(() => resolve(true)))
+      srv.listen(port, host)
+    })
+  return Promise.all([probe('127.0.0.1'), probe('::1')]).then(([a, b]) => a && b)
+}
+
+async function pickPort() {
+  // 5173 被占（上一场次的孤儿 vite 等）→ 自增回退，Electron 侧同步指向实际端口
+  let port = 5173
+  while (!(await portFree(port))) port++
+  return port
+}
+
 function run(args, opts = {}) {
-  const child = spawn([npmCmd, ...args].join(' '), {
+  // raw: true = 直接执行命令（不经 npm run 包装——嵌套 npm 会吞掉传给 vite 的 --port）
+  const cmd = opts.raw === true ? args.join(' ') : [npmCmd, ...args].join(' ')
+  const child = spawn(cmd, {
     stdio: 'inherit',
     shell: true,
     windowsHide: true,
@@ -17,7 +39,7 @@ function run(args, opts = {}) {
   children.add(child)
   child.on('exit', (code, signal) => {
     children.delete(child)
-    console.log(`[dev] ${args.join(' ')} 退出（${signal ?? code}）`)
+    console.log(`[dev] ${opts.raw === true ? args[1] : args.join(' ')} 退出（${signal ?? code}）`)
     if (shuttingDown) {
       if (children.size === 0) process.exit(0)
       return
@@ -53,16 +75,22 @@ const bundle = spawn([npmCmd, 'run', 'bundle:host'].join(' '), {
   shell: true,
   windowsHide: true,
 })
-bundle.on('exit', (code) => {
+bundle.on('exit', async (code) => {
   if (code !== 0) {
     console.error('[dev] bundle:host 失败，终止。')
     process.exit(code ?? 1)
   }
-  run(['run', 'dev:renderer'])
+  const port = await pickPort()
+  if (port !== 5173) console.log(`[dev] 5173 被占用，vite 回退到 ${port}`)
+  // 直接拉 vite（不经 npm run：嵌套 npm 会吞 --port）；cwd=frontend 使 config 相对路径成立
+  run(['node', 'node_modules/vite/bin/vite.js', '--config', 'vite.renderer.config.ts', '--port', String(port), '--strictPort'], {
+    raw: true,
+    cwd: 'frontend',
+  })
   run(['run', 'start:host'], {
     env: {
       ...process.env,
-      TAGHIT_RENDERER_URL: process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173',
+      TAGHIT_RENDERER_URL: process.env.TAGHIT_RENDERER_URL ?? `http://localhost:${port}`,
       TAGHIT_DB: process.env.TAGHIT_DB ?? 'build/taghit-dev.db',
     },
   })

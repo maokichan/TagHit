@@ -1,4 +1,5 @@
 import type { Component } from 'vue'
+import { markRaw } from 'vue'
 import { FolderOpen, Info, Puzzle, SlidersHorizontal, Tags, FileCog } from 'lucide-vue-next'
 import type { FeatureManifest, FeatureSource, MountPoint } from '@shared/types/feature'
 import MediaTypeFeature from './display/mediaType/MediaTypeFeature.vue'
@@ -44,6 +45,10 @@ const disposers = new Map<string, () => void>()
 export function registerFeature(manifest: FeatureManifest, impl: FeatureImpl): void {
   if (registry.has(manifest.id)) {
     throw new Error(`功能组件 id 重复：${manifest.id}`)
+  }
+  // 组件对象 markRaw：进注册表/壳的响应式容器时不做深度代理（Vue reactive 性能警告消除）
+  if (impl.type === 'direct' && impl.component != null) {
+    impl.component = markRaw(impl.component)
   }
   registry.set(manifest.id, { manifest, impl })
 }
