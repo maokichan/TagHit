@@ -170,5 +170,11 @@ export const api = {
     async trash(workspaceId: Id, path: string): Promise<void> {
       unwrap(await bridge().trashFsEntry({ workspaceId, path }))
     }
+  },
+  dialog: {
+    /** 原生目录选择器；取消 → null。 */
+    async pickDirectory(): Promise<string | null> {
+      return unwrap(await bridge().pickDirectory())
+    }
   }
 }

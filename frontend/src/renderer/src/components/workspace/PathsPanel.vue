@@ -20,7 +20,6 @@ const itemStore = useItemStore()
 
 const roots = ref<WorkspaceRoot[]>([])
 const nodes = ref<PathNode[]>([])
-const newPath = ref('')
 const error = ref('')
 /** 展开的目录（dirPath 集合）；来源根容器默认展开一级。 */
 const expanded = ref<Set<string>>(new Set())
@@ -116,7 +115,7 @@ function toggleExpand(dirPath: string): void {
   expanded.value = next
 }
 
-/** 可见性切换；shift = 子树批量（含自身 + 全部后代）。 */
+/** 可见性切换；shift = 子树批量（含自身 + 全部后代）。根节点同样可切换。 */
 async function setState(node: { dirPath: string; state: NodeState }, state: NodeState, cascade: boolean): Promise<void> {
   error.value = ''
   try {
@@ -130,14 +129,23 @@ async function setState(node: { dirPath: string; state: NodeState }, state: Node
   }
 }
 
-async function addPath(): Promise<void> {
-  const path = newPath.value.trim()
-  if (!path) return
-  await workspaceStore.addPath(props.workspaceId, path)
-  newPath.value = ''
-  await refresh()
-  // 目录变更后自动扫描，减少手动操作
-  void itemStore.scan(props.workspaceId)
+/** 根节点的当前可见性（扫描后存在；扫描前缺省 included）。 */
+function rootState(rootPath: string): NodeState {
+  return nodes.value.find((n) => n.dirPath === rootPath)?.state ?? 'included'
+}
+
+/** 挂载来源根：原生目录选择器（不再手输路径）；归一化在用例边界执行。 */
+async function pickRoot(): Promise<void> {
+  error.value = ''
+  try {
+    const path = await api.dialog.pickDirectory()
+    if (path == null) return
+    await workspaceStore.addPath(props.workspaceId, path)
+    await refresh()
+    void itemStore.scan(props.workspaceId)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  }
 }
 
 async function removePath(root: WorkspaceRoot): Promise<void> {
@@ -163,17 +171,28 @@ async function removePath(root: WorkspaceRoot): Promise<void> {
     <div class="px-3 py-3">
       <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">来源根</div>
 
-      <!-- 每个来源根 = 一个树形容器 -->
-      <div v-if="roots.length" class="space-y-2">
-        <div v-for="r in roots" :key="r.path" class="rounded bg-[var(--bg)] text-[12px]">
-          <!-- 容器头：根目录 -->
-          <div class="flex items-center gap-1.5 px-2 py-1.5">
+      <!-- 来源根之间用分割线分离（不用圆角容器包目录树） -->
+      <div v-if="roots.length" class="divide-y divide-[var(--border)]">
+        <div v-for="r in roots" :key="r.path" class="text-[12px] py-1">
+          <!-- 容器头：根目录（可见性同样可切换） -->
+          <div class="flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[var(--bg-hover)]">
             <button
               class="shrink-0 flex items-center justify-center w-4 h-4 cursor-pointer text-[var(--fg-dim)] hover:text-[var(--fg)]"
               :title="expanded.has(r.path) ? '折叠' : '展开'"
               @click="toggleExpand(r.path)"
             >
               <ChevronRight :size="12" class="transition-transform" :class="{ 'rotate-90': expanded.has(r.path) }" />
+            </button>
+            <button
+              class="shrink-0 cursor-pointer transition-colors"
+              :class="rootState(r.path) === 'included' ? 'text-[var(--accent)]' : 'text-[var(--fg-dim)] opacity-50'"
+              :title="rootState(r.path) === 'included'
+                ? '已包含：根目录直接条目可见（点击排除；Shift+点击 = 含全部子目录）'
+                : '已排除：根目录直接条目退出视图（点击包含；Shift+点击 = 含全部子目录）'"
+              @click="setState({ dirPath: r.path, state: rootState(r.path) }, rootState(r.path) === 'included' ? 'excluded' : 'included', $event.shiftKey)"
+            >
+              <Eye v-if="rootState(r.path) === 'included'" :size="12" />
+              <EyeOff v-else :size="12" />
             </button>
             <FolderOpen :size="13" class="shrink-0 text-[var(--accent)]" />
             <span class="truncate flex-1 font-medium cursor-pointer" :title="r.path" @click="toggleExpand(r.path)">
@@ -249,18 +268,14 @@ async function removePath(root: WorkspaceRoot): Promise<void> {
         <button class="ml-1 cursor-pointer opacity-70 hover:opacity-100" @click="error = ''">✕</button>
       </div>
 
-      <div class="flex gap-1.5 mt-2">
-        <input
-          v-model="newPath"
-          class="input text-[12px] flex-1 min-w-0"
-          placeholder="绝对路径，如 D:\media"
-          title="原生目录选择器待宿主能力落地，先手动输入绝对路径"
-          @keyup.enter="addPath"
-        />
-        <button class="btn text-[12px]" title="挂载来源根" @click="addPath">
-          <Plus :size="13" />
-        </button>
-      </div>
+      <button
+        class="btn text-[12px] w-full justify-center mt-2"
+        title="打开系统目录选择器"
+        @click="pickRoot"
+      >
+        <Plus :size="13" />
+        选择目录…
+      </button>
     </div>
   </aside>
 </template>

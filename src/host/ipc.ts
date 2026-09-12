@@ -11,9 +11,10 @@
  *   frontend 仅 type-only 引用本文件，零运行时依赖。
  *
  * v0 范围：已落地的应用层用例全覆盖。明确**不进**契约（旧 UI 对应处置灰）：
- * config、插件调用、原生 dialog、条目 readText/openWithSystem、
+ * config、插件调用、条目 readText 之外的 openWithSystem、
  * 标签关联语义、扫描进度事件（事件面随 D6 落地）。
  * 缩略图（thumbnail.save）为派生小图通道：仅收视频 canvas 抓帧 JPEG（≤2MiB），非原媒体字节。
+ * dialog.pickDirectory = 原生目录选择（2026-09-12 落地，仅此一个 dialog 端点，不开通用口子）。
  */
 
 import type {
@@ -107,6 +108,9 @@ export interface IpcContracts {
   }
   'fs.trash': { args: [{ workspaceId: Id; path: string }]; result: null }
 
+  // ---- 对话框 dialog：原生目录选择（唯一 dialog 端点；取消 → null） ----
+  'dialog.pickDirectory': { args: []; result: string | null }
+
   // ---- 工作区 workspace：建 / 列 / 浏览 / 来源根 ---------------------------
   'workspace.create': { args: [name: string]; result: Workspace }
   'workspace.list': { args: []; result: Workspace[] }
@@ -182,6 +186,8 @@ export interface TaghitRendererApi {
     newName?: string | null
   }): Promise<IpcResult<'fs.move'>>
   trashFsEntry(input: { workspaceId: Id; path: string }): Promise<IpcResult<'fs.trash'>>
+
+  pickDirectory(): Promise<IpcResult<'dialog.pickDirectory'>>
 
   createWorkspace(name: string): Promise<IpcResult<'workspace.create'>>
   listWorkspaces(): Promise<IpcResult<'workspace.list'>>

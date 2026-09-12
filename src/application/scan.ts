@@ -18,7 +18,7 @@
 import type { FileItem, Id } from '../domain/index.ts'
 import type { FileSystem, Store } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
-import { basename } from './paths.ts'
+import { basename, normalizePath } from './paths.ts'
 import { isImageFile, parseImageSize } from './mediaMeta.ts'
 import { deleteItemIn } from './cascade.ts'
 
@@ -46,7 +46,8 @@ export async function mountWorkspaceRoot(
   workspaceId: Id,
   path: string
 ): Promise<void> {
-  await svc.store.addWorkspaceRoot(workspaceId, path)
+  // 归一化在边界执行：用户输入/原生选择器可能带反斜杠或尾分隔符（混合分隔符 = 双身份节点）
+  await svc.store.addWorkspaceRoot(workspaceId, normalizePath(path))
 }
 
 export async function unmountWorkspaceRoot(
@@ -54,7 +55,7 @@ export async function unmountWorkspaceRoot(
   workspaceId: Id,
   path: string
 ): Promise<void> {
-  await svc.store.removeWorkspaceRoot(workspaceId, path)
+  await svc.store.removeWorkspaceRoot(workspaceId, normalizePath(path))
 }
 
 export async function scanWorkspace(

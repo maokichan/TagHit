@@ -26,6 +26,10 @@ declare module 'electron' {
     unmaximize(): void
     isMaximized(): boolean
     close(): void
+    isDestroyed(): boolean
+    readonly webContents: {
+      on(event: 'render-process-gone', listener: (event: unknown, details: { reason: string; exitCode: number }) => void): void
+    }
   }
 
   export interface WebContents {
@@ -38,6 +42,13 @@ declare module 'electron' {
 
   export const shell: {
     trashItem(path: string): Promise<void>
+  }
+
+  export const dialog: {
+    showOpenDialog(
+      window: BrowserWindow,
+      options: { properties: string[] }
+    ): Promise<{ canceled: boolean; filePaths: string[] }>
   }
 
   export const app: {

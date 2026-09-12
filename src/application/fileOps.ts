@@ -11,7 +11,7 @@ import { DomainError } from '../domain/index.ts'
 import type { Id } from '../domain/index.ts'
 import type { FileSystem, Trash } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
-import { basename, isUnderRoot, joinPath } from './paths.ts'
+import { basename, isUnderRoot, joinPath, normalizePath } from './paths.ts'
 
 /** 断言 path 位于工作区某来源根之下；越界 → NOT_FOUND。 */
 async function assertUnderRoot(
@@ -20,8 +20,9 @@ async function assertUnderRoot(
   path: string
 ): Promise<void> {
   const roots = await svc.store.listWorkspaceRoots(workspaceId)
-  if (!isUnderRoot(roots.map((r) => r.path), path)) {
-    throw new DomainError('NOT_FOUND', `路径不在工作区来源根之下（${path}）`)
+  const p = normalizePath(path)
+  if (!isUnderRoot(roots.map((r) => r.path), p)) {
+    throw new DomainError('NOT_FOUND', `路径不在工作区来源根之下（${p}）`)
   }
 }
 
@@ -39,22 +40,23 @@ export async function moveFsEntry(
   newName?: string | null
 ): Promise<{ to: string }> {
   await assertUnderRoot(svc, workspaceId, fromPath)
-  const to = joinPath(toDir, newName != null && newName !== '' ? newName : basename(fromPath))
+  const from = normalizePath(fromPath)
+  const to = normalizePath(joinPath(normalizePath(toDir), newName != null && newName !== '' ? newName : basename(from)))
   await assertUnderRoot(svc, workspaceId, to)
-  if (fromPath === to) {
+  if (from === to) {
     throw new DomainError('INVALID', '源与目标是同一路径')
   }
-  const st = await fs.stat(fromPath)
+  const st = await fs.stat(from)
   if (!st.exists) {
-    throw new DomainError('NOT_FOUND', `源路径不存在（${fromPath}）`)
+    throw new DomainError('NOT_FOUND', `源路径不存在（${from}）`)
   }
   if ((await fs.stat(to)).exists) {
     throw new DomainError('CONFLICT', `目标已存在（${to}）`)
   }
-  if (st.kind === 'dir' && to.startsWith(`${fromPath}/`)) {
+  if (st.kind === 'dir' && to.startsWith(`${from}/`)) {
     throw new DomainError('INVALID', '目录不能移入自身子树')
   }
-  await fs.rename(fromPath, to)
+  await fs.rename(from, to)
   return { to }
 }
 
@@ -67,8 +69,9 @@ export async function trashFsEntry(
   path: string
 ): Promise<void> {
   await assertUnderRoot(svc, workspaceId, path)
-  if (!(await fs.stat(path)).exists) {
-    throw new DomainError('NOT_FOUND', `路径不存在（${path}）`)
+  const p = normalizePath(path)
+  if (!(await fs.stat(p)).exists) {
+    throw new DomainError('NOT_FOUND', `路径不存在（${p}）`)
   }
-  await trash.trash(path)
+  await trash.trash(p)
 }

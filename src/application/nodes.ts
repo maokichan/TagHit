@@ -11,7 +11,7 @@
 import type { Id, NodeState, PathNode } from '../domain/index.ts'
 import { DomainError } from '../domain/index.ts'
 import type { AppServices } from './services.ts'
-import { isUnderRoot } from './paths.ts'
+import { isUnderRoot, normalizePath } from './paths.ts'
 
 /** 列出工作区全部路径节点（含各来源根根节点；按存储返回序）。 */
 export async function listWorkspaceNodes(
@@ -24,8 +24,9 @@ export async function listWorkspaceNodes(
 /** 断言 dirPath 位于工作区某来源根之下（路径段匹配）；越界 → NOT_FOUND。 */
 async function assertUnderRoot(svc: AppServices, workspaceId: Id, dirPath: string): Promise<void> {
   const roots = await svc.store.listWorkspaceRoots(workspaceId)
-  if (!isUnderRoot(roots.map((r) => r.path), dirPath)) {
-    throw new DomainError('NOT_FOUND', `路径不在工作区来源根之下（${dirPath}）`)
+  const p = normalizePath(dirPath)
+  if (!isUnderRoot(roots.map((r) => r.path), p)) {
+    throw new DomainError('NOT_FOUND', `路径不在工作区来源根之下（${p}）`)
   }
 }
 
@@ -37,7 +38,7 @@ export async function setNodeState(
   state: NodeState
 ): Promise<void> {
   await assertUnderRoot(svc, workspaceId, dirPath)
-  await svc.store.setPathNodeState(workspaceId, dirPath, state)
+  await svc.store.setPathNodeState(workspaceId, normalizePath(dirPath), state)
 }
 
 /** 子树可见性：dirPath 自身 + 全部后代节点，单事务批量设置（批量入口，非级联语义）。 */
@@ -48,10 +49,9 @@ export async function setSubtreeState(
   state: NodeState
 ): Promise<void> {
   await assertUnderRoot(svc, workspaceId, dirPath)
+  const base = normalizePath(dirPath)
   const nodes = await svc.store.listPathNodes({ workspaceId })
-  const targets = nodes.filter(
-    (n) => n.dirPath === dirPath || n.dirPath.startsWith(`${dirPath}/`)
-  )
+  const targets = nodes.filter((n) => n.dirPath === base || n.dirPath.startsWith(`${base}/`))
   if (targets.length === 0) {
     throw new DomainError('NOT_FOUND', `路径节点不存在（${dirPath}）`)
   }

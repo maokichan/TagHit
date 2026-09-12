@@ -17,9 +17,12 @@ function toIso(ms: number): string {
 
 export class NodeFileSystem implements FileSystem {
   async *walk(root: string): AsyncIterable<FsEntry> {
-    const st = await stat(root)
-    if (!st.isDirectory()) throw new Error(`NodeFileSystem: 目录不存在或不是目录（${root}）`)
-    yield* this.walkDir(root)
+    // 以归一化基准遍历：Windows API 接受两种分隔符，但产出的子路径若混入
+    // 反斜杠会造成节点/条目双身份（应用层按正斜杠比对）
+    const base = root.replace(/\\/g, '/')
+    const st = await stat(base)
+    if (!st.isDirectory()) throw new Error(`NodeFileSystem: 目录不存在或不是目录（${base}）`)
+    yield* this.walkDir(base)
   }
 
   private async *walkDir(dir: string): AsyncGenerator<FsEntry> {

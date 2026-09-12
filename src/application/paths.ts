@@ -25,3 +25,13 @@ export function joinPath(dir: string, name: string): string {
 export function isUnderRoot(roots: string[], path: string): boolean {
   return roots.some((root) => path === root || path.startsWith(`${root}/`))
 }
+
+/**
+ * 归一化：反斜杠 → 正斜杠，去尾部分隔符（保留 'X:/' 盘根）。
+ * 域约定"路径为归一化绝对路径"的执行点：一切**外部进入**的路径（用户输入、
+ * 原生选择器返回）必须先过这里，避免混合分隔符产生双身份节点/条目。
+ */
+export function normalizePath(path: string): string {
+  const out = path.replace(/\\/g, '/')
+  return out.length > 3 && out.endsWith('/') ? out.slice(0, -1) : out
+}

@@ -13,7 +13,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
 import { createNodeFileSystem } from '../adapters/node/index.ts'
@@ -212,6 +212,15 @@ function registerHandlers(): void {
       envelope(trashFsEntry(services, nodeFs, { trash: (p) => shell.trashItem(p) }, input.workspaceId, input.path).then(() => null))
   )
 
+  // ---- 对话框（原生目录选择；取消 → null） ----
+  ipcMain.handle('dialog.pickDirectory', (_event) => {
+    const win = BrowserWindow.fromWebContents(_event.sender)
+    if (win == null) return envelope(Promise.resolve(null))
+    return envelope(dialog.showOpenDialog(win, { properties: ['openDirectory'] }).then((r) =>
+      r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
+    ))
+  })
+
   // ---- 作品 ----
   ipcMain.handle('collection.create', (_event, name: string) => envelope(createCollection(services, name)))
   ipcMain.handle('collection.rename', (_event, input: { collectionId: Id; name: string }) =>
@@ -274,7 +283,22 @@ function createWindow(): void {
       nodeIntegration: false,
     },
   })
-  void win.loadURL(process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173')
+  const rendererUrl = () => process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173'
+  // 渲染进程崩溃自恢复（黑屏 = 渲染层死亡露出窗口底色）：记日志并重载，连崩则停手
+  let reloads = 0
+  win.webContents.on('render-process-gone', (_e, details) => {
+    console.error(`[host] 渲染进程退出：reason=${details.reason} exitCode=${details.exitCode}`)
+    if (details.reason === 'clean-exit') return
+    if (reloads >= 3) {
+      console.error('[host] 渲染进程连续崩溃，停止自动重载')
+      return
+    }
+    reloads++
+    setTimeout(() => {
+      if (!win.isDestroyed()) void win.loadURL(rendererUrl()).catch((e) => console.error('[host] 重载失败', e))
+    }, 1000)
+  })
+  void win.loadURL(rendererUrl())
 }
 
 // 字节闸门（媒体侧）：taghit-file:// 特权 scheme 必须在 ready 前注册

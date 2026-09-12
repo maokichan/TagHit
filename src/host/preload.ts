@@ -39,6 +39,8 @@ const api: TaghitRendererApi = {
   moveFsEntry: (input) => invoke('fs.move', input),
   trashFsEntry: (input) => invoke('fs.trash', input),
 
+  pickDirectory: () => invoke('dialog.pickDirectory'),
+
   createWorkspace: (name) => invoke('workspace.create', name),
   listWorkspaces: () => invoke('workspace.list'),
   getWorkspace: (workspaceId) => invoke('workspace.get', workspaceId),
