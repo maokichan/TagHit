@@ -115,20 +115,6 @@ async function deleteTag(id: string): Promise<void> {
               {{ uiStore.showWorkspaceCovers ? '显示封面' : '隐藏封面' }}
             </button>
           </div>
-          <div>
-            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">
-              界面缩放（{{ Math.round(uiStore.uiScale * 100) }}%，80%–150%）
-            </div>
-            <input
-              type="range"
-              min="0.8"
-              max="1.5"
-              step="0.05"
-              class="w-44 accent-[var(--accent)] cursor-pointer"
-              :value="uiStore.uiScale"
-              @input="uiStore.setUiScale(Number(($event.target as HTMLInputElement).value))"
-            />
-          </div>
         </div>
         <p class="text-[11px] text-[var(--fg-dim)] mt-3">
           设置持久化（config）不在宿主契约 v0：当前为会话内生效。

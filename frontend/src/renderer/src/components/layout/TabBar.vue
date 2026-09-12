@@ -117,16 +117,16 @@ function showIndicator(i: number): boolean {
 <template>
   <!-- 无边框窗口（D17）：本条兼任标题栏——拖拽区归根部（空白处拖动/双击最大化），
        全部交互元素 no-drag；右上三键 = 自绘窗口控制键 -->
-  <div class="flex items-center h-9 px-1.5 gap-1 border-b border-[var(--border)] bg-[var(--bg-elev)] drag-region">
+  <div class="flex items-center h-11 px-2 gap-1.5 border-b border-[var(--border)] bg-[var(--bg-elev)] drag-region">
     <!-- 标签（浏览器式：可拖拽、自动适应标签栏长度、主页为显式标签） -->
-    <div class="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto">
+    <div class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
       <div
         v-for="(tab, i) in tabStore.tabs"
         :key="tab.key"
         draggable="true"
-        class="group relative flex items-center gap-2 px-3 h-6 rounded text-[12px] cursor-pointer select-none no-drag
+        class="group relative flex items-center gap-2 px-3 h-7 rounded text-[12px] cursor-pointer select-none no-drag
                border transition-colors
-               flex-1 basis-0 min-w-16 max-w-52"
+               flex-1 basis-0 min-w-20 max-w-56"
         :class="[
           tabStore.activeKey === tab.key
             ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium border-[var(--accent)]/40 shadow-sm'
@@ -147,35 +147,35 @@ function showIndicator(i: number): boolean {
           v-if="tabStore.activeKey === tab.key"
           class="absolute top-0 left-2 right-2 h-[2px] rounded-full bg-[var(--accent)]"
         />
-        <span class="truncate flex-1 text-center">{{ tab.title }}</span>
+        <span class="truncate flex-1 text-left">{{ tab.title }}</span>
         <button
           class="opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)] rounded p-0.5 cursor-pointer shrink-0"
           :title="`关闭 ${tab.title}`"
           @click.stop="close(tab.key)"
         >
-          <X :size="12" />
+          <X :size="13" />
         </button>
       </div>
 
       <button
-        class="shrink-0 flex items-center justify-center w-6 h-6 rounded text-[var(--fg-dim)] no-drag
+        class="shrink-0 flex items-center justify-center w-7 h-7 rounded text-[var(--fg-dim)] no-drag
                hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] cursor-pointer"
         title="新建标签页（新主页）"
         @click="newTab"
       >
-        <Plus :size="14" />
+        <Plus :size="15" />
       </button>
     </div>
 
     <!-- 右侧：设置（作为标签页开/关）+ 自绘窗口控制键 -->
     <button
-      class="flex items-center justify-center w-7 h-7 rounded text-[var(--fg-dim)] no-drag
+      class="flex items-center justify-center w-8 h-8 rounded text-[var(--fg-dim)] no-drag
              hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] cursor-pointer shrink-0"
       :class="{ 'bg-[var(--accent-soft)] text-[var(--accent)]': route.name === 'settings' }"
       :title="route.name === 'settings' ? '关闭设置' : '打开设置'"
       @click="onSettings"
     >
-      <Settings :size="15" />
+      <Settings :size="16" />
     </button>
     <WindowControls class="no-drag shrink-0" />
   </div>

@@ -15,8 +15,6 @@ export const useUiStore = defineStore('ui', () => {
   const theme = ref<Theme>('dark')
   /** 开始界面工作区卡片是否显示封面 */
   const showWorkspaceCovers = ref(true)
-  /** 全局 UI 缩放系数（CSS zoom：图标/字号/间距/媒体预览等比缩放，连续可调） */
-  const uiScale = ref(1)
 
   // VSCode 式活动栏：每侧同时只开一个面板（点当前图标关闭，点其他图标切换）
   const leftTool = ref<LeftTool | null>('paths')
@@ -58,7 +56,6 @@ export const useUiStore = defineStore('ui', () => {
 
   /** config 持久化不在契约 v0：init 只应用本地缺省。 */
   function init(): void {
-    applyScale()
     applyTheme()
   }
 
@@ -71,29 +68,15 @@ export const useUiStore = defineStore('ui', () => {
     showWorkspaceCovers.value = !showWorkspaceCovers.value
   }
 
-  // 全局 UI 缩放：CSS zoom 连续缩放整个渲染页（虚拟化靠 ResizeObserver 自动重算）
-  const SCALE_MIN = 0.8
-  const SCALE_MAX = 1.5
-  function applyScale(): void {
-    document.documentElement.style.zoom = String(uiScale.value)
-  }
-  async function setUiScale(s: number): Promise<void> {
-    const clamped = Math.min(SCALE_MAX, Math.max(SCALE_MIN, s))
-    uiScale.value = clamped
-    applyScale()
-  }
-
   return {
     theme,
     showWorkspaceCovers,
-    uiScale,
     leftTool,
     rightTool,
     toggleLeft,
     toggleRight,
     init,
     setTheme,
-    toggleWorkspaceCovers,
-    setUiScale
+    toggleWorkspaceCovers
   }
 })

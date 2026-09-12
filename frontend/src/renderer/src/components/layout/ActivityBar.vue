@@ -64,14 +64,14 @@ function showIndicator(i: number): boolean {
 <template>
   <!-- VSCode 式活动栏：竖向图标条，永久可见，点击开/关面板，可拖拽排序 -->
   <div
-    class="shrink-0 w-11 flex flex-col items-center py-2 gap-1 bg-[var(--bg-elev)]"
+    class="shrink-0 w-12 flex flex-col items-center py-2.5 gap-1.5 bg-[var(--bg-elev)]"
     :class="side === 'left' ? 'border-r border-[var(--border)]' : 'border-l border-[var(--border)]'"
   >
     <button
       v-for="(tool, i) in tools"
       :key="tool.id"
       draggable="true"
-      class="w-8 h-8 flex items-center justify-center rounded-md transition-colors cursor-pointer border-t-2 border-transparent"
+      class="w-9 h-9 flex items-center justify-center rounded-md transition-colors cursor-pointer border-t-2 border-transparent"
       :class="[
         active === tool.id
           ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
@@ -86,7 +86,7 @@ function showIndicator(i: number): boolean {
       @drop="onDrop(i, $event)"
       @dragend="onDragEnd"
     >
-      <component :is="tool.icon" :size="17" />
+      <component :is="tool.icon" :size="20" />
     </button>
   </div>
 </template>
