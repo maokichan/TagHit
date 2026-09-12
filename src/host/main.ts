@@ -56,6 +56,7 @@ import {
   trashFsEntry,
   undeclareTag,
   unmountWorkspaceRoot,
+  visibilitySummary,
   untagItem,
   untagItems,
   queryItems,
@@ -185,6 +186,9 @@ function registerHandlers(): void {
   ipcMain.handle('workspace.get', (_event, workspaceId: Id) => envelope(getWorkspace(services, workspaceId)))
   ipcMain.handle('workspace.browse', (_event, workspaceId: Id, query?: ItemsQuery) =>
     envelope(browseWorkspace(services, workspaceId, query))
+  )
+  ipcMain.handle('workspace.visibility', (_event, workspaceId: Id) =>
+    envelope(visibilitySummary(services, workspaceId))
   )
   ipcMain.handle('workspace.declaredTags', (_event, workspaceId: Id) =>
     envelope(declaredTagIds(services, workspaceId))

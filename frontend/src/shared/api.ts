@@ -9,16 +9,17 @@
  */
 
 import type {
+  BrowseResult,
   Id,
   ItemsQuery,
   ItemHit,
   NodeState,
   PathNode,
-  ProjectedHit,
   Result,
   ScanOptions,
   ScanSummary,
   Tag,
+  VisibilitySummary,
   WindowAction,
   Workspace,
   WorkspaceRoot
@@ -121,11 +122,16 @@ export const api = {
     async remove(workspaceId: Id): Promise<void> {
       unwrap(await bridge().deleteWorkspace(workspaceId))
     },
-    async browse(workspaceId: Id, query?: ItemsQuery): Promise<ProjectedHit[]> {
+    /** 浏览工作区：本页条目 + 成员总数（total 不受 limit/offset 影响；成员条件下沉在宿主侧）。 */
+    async browse(workspaceId: Id, query?: ItemsQuery): Promise<BrowseResult> {
       return unwrap(await bridge().browseWorkspace(workspaceId, query))
     },
     async declaredTags(workspaceId: Id): Promise<Id[]> {
       return unwrap(await bridge().declaredTags(workspaceId))
+    },
+    /** 可见性摘要：可见 / 被排除隐藏 / 无节点归属（解释"为什么看不到全部内容"）。 */
+    async visibility(workspaceId: Id): Promise<VisibilitySummary> {
+      return unwrap(await bridge().workspaceVisibility(workspaceId))
     },
     async mountRoot(workspaceId: Id, path: string): Promise<void> {
       unwrap(await bridge().mountRoot({ workspaceId, path }))

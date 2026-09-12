@@ -185,7 +185,7 @@ export async function runScenario(store: Store): Promise<void> {
     '投影依据：素材库声明了 风景/人物'
   )
 
-  const wsMainView = await browseWorkspace(svc, 'ws-main')
+  const wsMainView = (await browseWorkspace(svc, 'ws-main')).items
   const sunsetView = wsMainView.find((h) => h.item.id === it.sunset)
   assert(!!sunsetView, '浏览：素材库视图中含日落')
   assertEqual(
@@ -199,23 +199,25 @@ export async function runScenario(store: Store): Promise<void> {
 
   // 节点 excluded 只隐藏其直接条目（不级联；photos 下为夜景/日落，people/docs 不受影响）
   await store.setPathNodeState('ws-main', 'C:/素材/photos', 'excluded')
-  const wsMainExcluded = await browseWorkspace(svc, 'ws-main')
+  const wsMainExcluded = (await browseWorkspace(svc, 'ws-main')).items
   assertEqual(
     wsMainExcluded.map((h) => h.item.id).sort(),
     [it.doc, it.portrait],
     '浏览：排除 photos 后其直接条目(夜景/日落)退出视图，其余仍在'
   )
   await store.setPathNodeState('ws-main', 'C:/素材/photos', 'included')
-  const wsMainRestored = await browseWorkspace(svc, 'ws-main')
+  const wsMainRestored = (await browseWorkspace(svc, 'ws-main')).items
   assertEqual(
     wsMainRestored.map((h) => h.item.id).sort(),
     [it.doc, it.night, it.portrait, it.sunset],
     '浏览：恢复 photos 后视图还原'
   )
 
-  const wsCollectRed = await browseWorkspace(svc, 'ws-collect', {
-    withAnyTag: [tagIds.red],
-  })
+  const wsCollectRed = (
+    await browseWorkspace(svc, 'ws-collect', {
+      withAnyTag: [tagIds.red],
+    })
+  ).items
   assertEqual(
     wsCollectRed.map((h) => h.item.id),
     [it.night, it.sunset],

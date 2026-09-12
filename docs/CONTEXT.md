@@ -14,11 +14,13 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 
 ## 三、进度（唯一进度跟踪点；待办唯一清单 = 根目录 TODO.md）
 
-已完成（细节见 DECISIONS 与 git log）：契约 v0 ✅ 旧 UI 吸收 ✅ 贡献点 v0 ✅ 真机接线 ✅ 字节闸门 ✅ 界面美化 ✅ 图片尺寸落库 ✅ 注册表 v0.1 ✅ 命令注册表 + 右键菜单闭环 ✅ 插件生态主线（2026-09-07）✅ 视频缩略图 + 多选批量（D16）✅ 无边框窗口 + 窗口控制键 + 主色琥珀（D17）✅ **来源根树容器 + 文件管理组件 + contentHash 认领 + 停靠面板角标 + dialog.pickDirectory（D18）** ✅ **输入边界校准 s34 + 名称归一闸 + 路径 `..` 词汇解析** ✅ **多实例根治（userData 按库隔离 + 同库单实例锁 + dev 端口回退 + 渲染层控制台转发/崩溃自恢复）** ✅。
+已完成（细节见 DECISIONS 与 git log）：契约 v0 ✅ 旧 UI 吸收 ✅ 贡献点 v0 ✅ 真机接线 ✅ 字节闸门 ✅ 界面美化 ✅ 图片尺寸落库 ✅ 注册表 v0.1 ✅ 命令注册表 + 右键菜单闭环 ✅ 插件生态主线（2026-09-07）✅ 视频缩略图 + 多选批量（D16）✅ 无边框窗口 + 窗口控制键 + 主色琥珀（D17）✅ **来源根树容器 + 文件管理组件 + contentHash 认领 + 停靠面板角标 + dialog.pickDirectory（D18）** ✅ **输入边界校准 s34 + 名称归一闸 + 路径 `..` 词汇解析** ✅ **多实例根治（userData 按库隔离 + 同库单实例锁 + dev 端口回退 + 渲染层控制台转发/崩溃自恢复）** ✅ **浏览派生条件下沉 + 分页/计数可信（D19）** ✅：可见性作为查询条件下沉（`directNodeStateIn`），排序不再改变条目数（真实库实测 100 条成员由 0~3 条 → 六种排序恒 100）；路径规则上移领域层 `domain/paths.ts`（sqlite SQL 译文等价，校准 s35 双跑）；`countItems` + `browse {items,total}` + `workspace.visibility`；来源根面板新增「只看此节点」（视图范围，不改可见性）、可见性摘要（可见/被排除/无归属）与「恢复全部」。**历史数据缺陷待修**：174 条反斜杠 sourceUri 与正斜杠孪生重复（同路径同哈希双身份）、743 条脱根条目（历史卸载残留，其中 742 个文件仍在磁盘）。
 
 下一步主线（详述与依赖见 TODO.md）：
-1. 标准功能组件与详情界面翻新（剩余：浏览网格 / tag 面板 / 条目详情 / 专属全页内容页）
-2. 三方插件发现/分发（待分发形态裁决）
+1. 来源根（路径管理）：退役根记录与卸载条目管理（清理/恢复）+ 历史双身份数据修复
+2. 统一左侧抽屉宽度（壳级宽度 token）
+3. 功能组件全页呈现（壳提供全页容器，内容各组件自写）
+4. 键鼠交互框架标准化 → 节点右键可见性操作
 
 常规：push（含 tag）由真人执行。
 
@@ -35,14 +37,15 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{do
 
 - 层 typecheck：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；全局 tsc 亦可；freeze 路径已失效）；node v24 直跑 TS。
 - frontend：node_modules 已装（electron 33.4.11 含 exe）；`npx vue-tsc --noEmit -p tsconfig.web.json --composite false`；契约类型经 @host/* alias type-only 引用根 src/host/ipc.ts。
-- 校准：`npm run calibrate | calibrate:sqlite | calibrate:scan | calibrate:boundary`（boundary = 对外暴露面的输入合法性专项，s34，memory/sqlite 双跑）。
+- 校准：`npm run calibrate | calibrate:sqlite | calibrate:scan | calibrate:boundary | calibrate:view`（boundary = 对外暴露面的输入合法性专项，s34；view = 浏览窗口/成员派生专项，s35，二者均 memory/sqlite 双跑）。
 - 真机运行：一键 `npm run dev`（scripts/dev.mjs：bundle:host → vite 直启（端口自适应回退）+ start:host，TAGHIT_DB 缺省 build/taghit-dev.db，环境变量透传；开发态 userData 按库隔离，同库双开单实例锁退出）；或手动：终端 A `npm --prefix frontend run dev:renderer`（vite），终端 B `npm run bundle:host` 后 `TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:host`。
 - 根 node_modules 仅 better-sqlite3/bindings/file-uri-to-path（复制自 freeze，Electron ABI；**勿让 node v24 直接加载**）。better-sqlite3 版本须与 electron 匹配（D13/D14）。
 
 ## 六、文件地图（要点）
 
 ```
-src/domain/ · src/ports/ · src/adapters/ · src/application/   ← 后端核心（ARCHITECTURE §一）
+src/domain/    types · rules · errors · paths（纯路径规则：parentDir/isUnderDir/normalizePath）
+src/ports/ · src/adapters/ · src/application/   ← 后端核心（ARCHITECTURE §一）
 src/host/      main（装配+IPC+窗口壳）· preload · ipc（typed 契约）· protocol（taghit-file）· sqliteDriver
 frontend/      渲染层
   shared/      contract（契约 type-only 桥）· api（门面+D9 文案）· types/{feature,command}
@@ -53,7 +56,7 @@ frontend/      渲染层
                          ·files/FilesPanel·keyboardMouse）
                components/（item 网格卡片 · workspace/{Paths,Tags,Display}Panel · search
                           · layout/{TabBar,WindowControls,ActivityBar,Info,Plugins}）· views/（含 FeatureTabView）
-scripts/       dev.mjs（一键+树收场+端口回退）· s32（六用例）· s33（扫描）· s34（边界输入）—— memory/sqlite 各入口
+scripts/       dev.mjs（一键+树收场+端口回退）· s32（六用例）· s33（扫描）· s34（边界输入）· s35（浏览窗口/成员派生）—— memory/sqlite 各入口
 docs/          GLOSSARY · DECISIONS · ARCHITECTURE · 本文件；根目录 TODO.md（待办唯一清单）
 build/         esbuild 产物 + 真机 dev 库（gitignore）
 ```

@@ -211,6 +211,10 @@ CREATE TABLE IF NOT EXISTS groupMembers (
   tagId TEXT NOT NULL REFERENCES tags(id),
   PRIMARY KEY (groupId, tagId)
 );
+
+-- 按路径取条目（扫描快照/目录范围）与按内容哈希取同内容条目（认领/缩略图共享）
+CREATE INDEX IF NOT EXISTS ix_items_sourceUri ON items (sourceUri);
+CREATE INDEX IF NOT EXISTS ix_items_contentHash ON items (contentHash);
 `
 
 export class SqliteStore implements Store {
@@ -400,7 +404,19 @@ export class SqliteStore implements Store {
     return row ? toItem(row) : null
   }
 
-  async queryItems(q: ItemsQuery = {}): Promise<ItemHit[]> {
+  // ---- 条目查询（条件构建唯一一份：queryItems 与 countItems 共用，防两处漂移） ----
+
+  /**
+   * 直接节点（sourceUri 父目录）的 **SQL 译文**：去掉末段（= 不含 '/' 的尾部字符集）再去掉一个尾 '/'。
+   * 与 domain/paths.ts 的 parentDir 逐一致——校准 s35 用全量路径 + 边界样本（盘根/无分隔符/中文/空格/emoji）比对。
+   */
+  private static parentDirExpr(column: string): string {
+    const tail = `rtrim(${column}, replace(${column}, '/', ''))`
+    return `substr(${tail}, 1, length(${tail}) - 1)`
+  }
+
+  /** ItemsQuery → WHERE 子句与参数（不含排序与分页）。 */
+  private itemWhere(q: ItemsQuery): { where: string[]; params: unknown[] } {
     const where: string[] = []
     const params: unknown[] = []
 
@@ -421,8 +437,17 @@ export class SqliteStore implements Store {
       params.push(q.titleContains.trim())
     }
     if (q.sourceUriPrefix) {
-      where.push(`i.kind = 'file' AND instr(i.sourceUri, ?) = 1`)
-      params.push(q.sourceUriPrefix)
+      // 路径段匹配：等于该路径，或紧随分隔符之下（防同前缀兄弟目录误命中）
+      where.push(`i.kind = 'file' AND (i.sourceUri = ? OR instr(i.sourceUri, ?) = 1)`)
+      params.push(q.sourceUriPrefix, `${q.sourceUriPrefix}/`)
+    }
+    if (q.directNodeStateIn) {
+      // 直接节点状态派生（D18）：条件下沉，LIMIT 因此只作用于结果集
+      where.push(
+        `i.kind = 'file' AND EXISTS (SELECT 1 FROM pathNodes n WHERE n.workspaceId = ? AND n.state = ?` +
+          ` AND n.dirPath = ${SqliteStore.parentDirExpr('i.sourceUri')})`
+      )
+      params.push(q.directNodeStateIn.workspaceId, q.directNodeStateIn.state)
     }
     if (q.contentHash) {
       where.push(`i.kind = 'file' AND i.contentHash = ?`)
@@ -443,6 +468,11 @@ export class SqliteStore implements Store {
     if (q.withoutTags) {
       where.push('NOT EXISTS (SELECT 1 FROM attachments a WHERE a.itemId = i.id)')
     }
+    return { where, params }
+  }
+
+  async queryItems(q: ItemsQuery = {}): Promise<ItemHit[]> {
+    const { where, params } = this.itemWhere(q)
 
     const orderField = q.order ?? 'createdAt'
     const orderExpr =
@@ -492,6 +522,13 @@ export class SqliteStore implements Store {
       const tags = (tagsByItem.get(id) ?? []).sort(byNameAsc)
       return { item, tags }
     })
+  }
+
+  async countItems(q: ItemsQuery = {}): Promise<number> {
+    const { where, params } = this.itemWhere(q)
+    const sql = `SELECT COUNT(*) AS n FROM items i${where.length ? ` WHERE ${where.join(' AND ')}` : ''}`
+    const row = this.get(sql, params)
+    return Number(row?.n ?? 0)
   }
 
   // ---- 挂载 ---------------------------------------------------------------

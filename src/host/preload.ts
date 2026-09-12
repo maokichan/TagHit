@@ -45,6 +45,7 @@ const api: TaghitRendererApi = {
   listWorkspaces: () => invoke('workspace.list'),
   getWorkspace: (workspaceId) => invoke('workspace.get', workspaceId),
   browseWorkspace: (workspaceId, query) => invoke('workspace.browse', workspaceId, query),
+  workspaceVisibility: (workspaceId) => invoke('workspace.visibility', workspaceId),
   declaredTags: (workspaceId) => invoke('workspace.declaredTags', workspaceId),
   mountRoot: (input) => invoke('workspace.mountRoot', input),
   unmountRoot: (input) => invoke('workspace.unmountRoot', input),

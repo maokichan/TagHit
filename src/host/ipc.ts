@@ -30,12 +30,14 @@ import type {
   Workspace,
   WorkspaceRoot,
 } from '../domain/index.ts'
+
 import type { ItemHit, ItemsQuery } from '../ports/index.ts'
-import type { ProjectedHit } from '../application/index.ts'
+import type { BrowseResult, ProjectedHit, VisibilitySummary } from '../application/index.ts'
 import type { ScanOptions, ScanSummary } from '../application/index.ts'
 
 /** 渲染层常用形状随契约一并交付（frontend 经 shared/contract.ts type-only 引用）。 */
 export type {
+  BrowseResult,
   Collection,
   Group,
   Id,
@@ -49,6 +51,7 @@ export type {
   ScanOptions,
   ScanSummary,
   Tag,
+  VisibilitySummary,
   Workspace,
   WorkspaceRoot,
 }
@@ -115,7 +118,8 @@ export interface IpcContracts {
   'workspace.create': { args: [name: string]; result: Workspace }
   'workspace.list': { args: []; result: Workspace[] }
   'workspace.get': { args: [workspaceId: Id]; result: Workspace | null }
-  'workspace.browse': { args: [workspaceId: Id, query?: ItemsQuery]; result: ProjectedHit[] }
+  'workspace.browse': { args: [workspaceId: Id, query?: ItemsQuery]; result: BrowseResult }
+  'workspace.visibility': { args: [workspaceId: Id]; result: VisibilitySummary }
   'workspace.declaredTags': { args: [workspaceId: Id]; result: Id[] }
   'workspace.mountRoot': { args: [{ workspaceId: Id; path: string }]; result: null }
   'workspace.unmountRoot': { args: [{ workspaceId: Id; path: string }]; result: null }
@@ -193,6 +197,7 @@ export interface TaghitRendererApi {
   listWorkspaces(): Promise<IpcResult<'workspace.list'>>
   getWorkspace(workspaceId: Id): Promise<IpcResult<'workspace.get'>>
   browseWorkspace(workspaceId: Id, query?: ItemsQuery): Promise<IpcResult<'workspace.browse'>>
+  workspaceVisibility(workspaceId: Id): Promise<IpcResult<'workspace.visibility'>>
   declaredTags(workspaceId: Id): Promise<IpcResult<'workspace.declaredTags'>>
   mountRoot(input: { workspaceId: Id; path: string }): Promise<IpcResult<'workspace.mountRoot'>>
   unmountRoot(input: { workspaceId: Id; path: string }): Promise<IpcResult<'workspace.unmountRoot'>>

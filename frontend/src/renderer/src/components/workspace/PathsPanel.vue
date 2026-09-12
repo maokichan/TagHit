@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { ChevronRight, Eye, EyeOff, FolderOpen, Plus, Trash2 } from 'lucide-vue-next'
+import { ChevronRight, Eye, EyeOff, FolderOpen, Focus, Plus, Trash2, X } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useItemStore } from '../../stores/item'
 import { api } from '@shared/api'
 import { confirmDialog } from '../../features/services/dialog'
-import type { NodeState, PathNode, WorkspaceRoot } from '@shared/contract'
+import type { NodeState, PathNode, VisibilitySummary, WorkspaceRoot } from '@shared/contract'
 
 /**
  * 来源根面板 v2：每个来源根 = 一个可折叠的目录树容器（资源管理器式逐级展开，任意深度）。
  * 节点 = 扫描发现的目录（含根）；树形由目录路径前缀关系派生（不另存父指针）。
- * 可见性（included/excluded）不级联（域模型现状）——只作用于该目录的直接条目；
- * Shift+点击 = 子树批量设置（内核仍是逐节点批量入口，非级联语义）。
- * 变更后浏览投影即变：失效重查当前工作区条目。
+ *
+ * 两种"看少一点"的手段在这里区分得很清楚（2026-09-12 修订，此前只有前者、被当成扫描漏扫）：
+ * - **只看此节点（范围）**：视图状态，不改任何节点状态，一键退出 →「我就想看其中一个节点」用它；
+ * - **可见性（included/excluded）**：成员前提，逐节点、不级联，持久留在库里 → 长期隐藏某类目录用它。
+ * 面板顶部常驻可见性摘要（可见/被排除/无节点归属），避免"排除了却以为扫描漏了"。
  */
 const props = defineProps<{ workspaceId: string; side?: 'left' | 'right' }>()
 const workspaceStore = useWorkspaceStore()
@@ -20,6 +22,7 @@ const itemStore = useItemStore()
 
 const roots = ref<WorkspaceRoot[]>([])
 const nodes = ref<PathNode[]>([])
+const summary = ref<VisibilitySummary | null>(null)
 const error = ref('')
 /** 展开的目录（dirPath 集合）；来源根容器默认展开一级。 */
 const expanded = ref<Set<string>>(new Set())
@@ -28,6 +31,7 @@ async function refresh(): Promise<void> {
   try {
     roots.value = await workspaceStore.listRoots(props.workspaceId)
     nodes.value = await api.nodes.list(props.workspaceId)
+    summary.value = await api.workspaces.visibility(props.workspaceId)
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   }
@@ -129,10 +133,42 @@ async function setState(node: { dirPath: string; state: NodeState }, state: Node
   }
 }
 
+/** 只看此节点（范围）：视图状态，不改节点可见性；再点一次或点提示条退出。 */
+function toggleScope(dirPath: string): void {
+  itemStore.setScope(itemStore.scopeDirPath === dirPath ? null : dirPath)
+  void itemStore.load(props.workspaceId)
+}
+
+function clearScope(): void {
+  itemStore.setScope(null)
+  void itemStore.load(props.workspaceId)
+}
+
+/** 一键恢复全部可见：把本工作区所有 excluded 节点调回 included（逐节点单事务入口，Shift 语义同款）。 */
+async function restoreAllVisible(): Promise<void> {
+  error.value = ''
+  try {
+    const excluded = nodes.value.filter((n) => n.state === 'excluded')
+    for (const n of excluded) await api.nodes.setState(props.workspaceId, n.dirPath, 'included')
+    await refresh()
+    void itemStore.load(props.workspaceId)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
 /** 根节点的当前可见性（扫描后存在；扫描前缺省 included）。 */
 function rootState(rootPath: string): NodeState {
   return nodes.value.find((n) => n.dirPath === rootPath)?.state ?? 'included'
 }
+
+/** 当前范围末段名（提示条显示用）。 */
+const scopedName = computed(() => {
+  const p = itemStore.scopeDirPath
+  if (p == null) return ''
+  const i = p.lastIndexOf('/')
+  return i < 0 ? p : p.slice(i + 1)
+})
 
 /** 挂载来源根：原生目录选择器（不再手输路径）；归一化在用例边界执行。 */
 async function pickRoot(): Promise<void> {
@@ -171,6 +207,49 @@ async function removePath(root: WorkspaceRoot): Promise<void> {
     <div class="px-3 py-3">
       <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">来源根</div>
 
+      <!-- 可见性摘要：解释"为什么看不到全部内容"（可见 / 被排除隐藏 / 无节点归属） -->
+      <div
+        v-if="summary"
+        class="mb-2 px-2 py-1.5 rounded text-[11px] leading-relaxed bg-[var(--bg)] border border-[var(--border)]"
+      >
+        <div class="flex items-center gap-2 flex-wrap">
+          <span>可见 <b class="tabular-nums">{{ summary.visible }}</b></span>
+          <span v-if="summary.hiddenByExcluded" class="text-[var(--danger)]">
+            已排除隐藏 <b class="tabular-nums">{{ summary.hiddenByExcluded }}</b>
+          </span>
+          <span v-if="summary.nodeMissing" class="text-[var(--fg-dim)]">
+            无归属 <b class="tabular-nums">{{ summary.nodeMissing }}</b>
+          </span>
+          <button
+            v-if="summary.hiddenByExcluded"
+            class="ml-auto underline cursor-pointer hover:text-[var(--accent)]"
+            title="把所有被排除的目录恢复为可见（逐节点；不改动未排除目录）"
+            @click="restoreAllVisible"
+          >
+            恢复全部
+          </button>
+        </div>
+        <div
+          v-if="summary.nodeMissing"
+          class="mt-1 text-[var(--fg-dim)] opacity-80"
+          title="条目仍在库中（文件可能还在磁盘上），只是其所在目录已消失或未被扫描到；重新挂载对应来源根并扫描即可恢复"
+        >
+          无归属：所在目录已消失或未被扫描到
+        </div>
+      </div>
+
+      <!-- 当前范围（只看某节点）：视图状态，不写库；一键退出 -->
+      <div
+        v-if="itemStore.scopeDirPath"
+        class="mb-2 flex items-center gap-1.5 px-2 py-1.5 rounded text-[11px] bg-[var(--accent-soft)] text-[var(--accent)]"
+      >
+        <Focus :size="11" class="shrink-0" />
+        <span class="truncate flex-1" :title="itemStore.scopeDirPath">只看：{{ scopedName }}</span>
+        <button class="cursor-pointer hover:brightness-110" title="退出范围（回到全部可见条目）" @click="clearScope">
+          <X :size="11" />
+        </button>
+      </div>
+
       <!-- 来源根之间用分割线分离（不用圆角容器包目录树） -->
       <div v-if="roots.length" class="divide-y divide-[var(--border)]">
         <div v-for="r in roots" :key="r.path" class="text-[12px] py-1">
@@ -198,6 +277,14 @@ async function removePath(root: WorkspaceRoot): Promise<void> {
             <span class="truncate flex-1 font-medium cursor-pointer" :title="r.path" @click="toggleExpand(r.path)">
               {{ r.path }}
             </span>
+            <button
+              class="shrink-0 cursor-pointer transition-colors"
+              :class="itemStore.scopeDirPath === r.path ? 'text-[var(--accent)]' : 'text-[var(--fg-dim)] hover:text-[var(--accent)]'"
+              :title="itemStore.scopeDirPath === r.path ? '退出范围（回到全部可见条目）' : '只看此节点（含其子目录；不改可见性）'"
+              @click.stop="toggleScope(r.path)"
+            >
+              <Focus :size="12" />
+            </button>
             <button
               class="text-[var(--fg-dim)] hover:text-[var(--danger)] cursor-pointer shrink-0"
               title="移除来源根"
@@ -250,6 +337,16 @@ async function removePath(root: WorkspaceRoot): Promise<void> {
               >
                 {{ row.node.name }}
               </span>
+              <button
+                class="shrink-0 cursor-pointer transition-colors"
+                :class="itemStore.scopeDirPath === row.node.dirPath
+                  ? 'text-[var(--accent)]'
+                  : 'text-[var(--fg-dim)] opacity-0 group-hover:opacity-100 hover:text-[var(--accent)]'"
+                :title="itemStore.scopeDirPath === row.node.dirPath ? '退出范围（回到全部可见条目）' : '只看此节点（含其子目录；不改可见性）'"
+                @click.stop="toggleScope(row.node.dirPath)"
+              >
+                <Focus :size="11" />
+              </button>
             </div>
             <div v-if="!rowsFor(r.path).length" class="pl-6 pr-2 py-1 text-[11px] text-[var(--fg-dim)] opacity-70">
               无子目录（重新扫描后出现）

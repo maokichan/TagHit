@@ -22,13 +22,22 @@ function reload(): void {
   void itemStore.load(workspaceId)
 }
 
+// 切换工作区标签：浏览范围属于"当前视图"，换工作区即清空（否则会用上一个工作区的目录范围过滤）
+watch(
+  () => workspaceId,
+  () => {
+    itemStore.setScope(null)
+    reload()
+  }
+)
+
 watch(
   () =>
     [
-      workspaceId,
       itemStore.filter.tagIds.length,
       itemStore.sortBy,
-      itemStore.sortDir
+      itemStore.sortDir,
+      itemStore.scopeDirPath
     ] as const,
   reload
 )

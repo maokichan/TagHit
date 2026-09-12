@@ -28,9 +28,14 @@ export const useItemStore = defineStore('item', () => {
 
   const filter = ref<{ tagIds: Id[]; keyword: string }>({ tagIds: [], keyword: '' })
 
+  /** 目录范围（视图状态）：只看该目录子树；null = 不限。下推为查询的 sourceUriPrefix。 */
+  const scopeDirPath = ref<string | null>(null)
+
   // 分页：主界面一次最多渲染一页，滚动/按钮加载更多
   const page = ref(0)
   const hasMore = ref(false)
+  /** 成员总数（不受分页影响）——条目数的唯一可信来源。 */
+  const total = ref(0)
 
   // 排序（显示面板控制）
   const sortBy = ref<SortOrder>('createdAt')
@@ -40,6 +45,7 @@ export const useItemStore = defineStore('item', () => {
     const query: ItemsQuery = { limit: PAGE_SIZE, offset }
     if (filter.value.tagIds.length) query.withAllTags = [...filter.value.tagIds]
     if (filter.value.keyword) query.titleContains = filter.value.keyword
+    if (scopeDirPath.value != null) query.sourceUriPrefix = scopeDirPath.value
     query.order = sortBy.value
     query.orderDir = sortDir.value
     return query
@@ -49,31 +55,39 @@ export const useItemStore = defineStore('item', () => {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   }
 
-  /** 重新加载（过滤/扫描变化时）：回到第一页并替换条目 */
+  /** 重新加载（过滤/排序/范围/扫描变化时）：回到第一页并替换条目。 */
   async function load(workspaceId: Id): Promise<void> {
     loading.value = true
     try {
-      const hits = await api.workspaces.browse(workspaceId, buildQuery(0))
-      items.value = hits.map(toItemView)
+      const res = await api.workspaces.browse(workspaceId, buildQuery(0))
+      items.value = res.items.map(toItemView)
+      total.value = res.total
       page.value = 0
-      hasMore.value = false // browse 端点单次返回成员集；分页待 ItemsQuery total 语义落地
+      hasMore.value = items.value.length < res.total
     } finally {
       loading.value = false
     }
   }
 
-  /** 加载下一页（追加到网格尾部）。当前 browse 一次返回全部成员，暂为 no-op。 */
+  /** 加载下一页（追加到网格尾部）。成员条件已在宿主侧下推，故分页直接作用在成员集上。 */
   async function loadMore(workspaceId: Id): Promise<void> {
     if (loading.value || !hasMore.value) return
     loading.value = true
     try {
       const next = page.value + 1
-      const hits = await api.workspaces.browse(workspaceId, buildQuery(next * PAGE_SIZE))
-      items.value = [...items.value, ...hits.map(toItemView)]
+      const res = await api.workspaces.browse(workspaceId, buildQuery(next * PAGE_SIZE))
+      items.value = [...items.value, ...res.items.map(toItemView)]
+      total.value = res.total
       page.value = next
+      hasMore.value = items.value.length < res.total
     } finally {
       loading.value = false
     }
+  }
+
+  /** 设置目录范围（「只看此节点」）：null 取消。范围是视图状态，不改节点可见性。 */
+  function setScope(dirPath: string | null): void {
+    scopeDirPath.value = dirPath
   }
 
   async function scan(workspaceId: Id): Promise<void> {
@@ -177,10 +191,12 @@ export const useItemStore = defineStore('item', () => {
     selected,
     selectedIds,
     filter,
+    scopeDirPath,
     sortBy,
     sortDir,
     page,
     hasMore,
+    total,
     load,
     loadMore,
     scan,
@@ -195,6 +211,7 @@ export const useItemStore = defineStore('item', () => {
     toggleTagFilter,
     clearTagFilters,
     setKeyword,
+    setScope,
     toggleSortDir
   }
 })

@@ -89,7 +89,7 @@ export async function runScanScenario(store: Store): Promise<void> {
     },
     '扫描①：初始整树入库'
   )
-  const browse1 = await browseWorkspace(svc, 'ws-scan')
+  const browse1 = (await browseWorkspace(svc, 'ws-scan')).items
   assertEqual(
     browse1.map((h) => asFile(h.item).sourceUri).sort(),
     ['R:/库/photo1.jpg', 'R:/库/photo2.jpg', 'R:/库/sub/video.mp4'],
@@ -223,7 +223,7 @@ export async function runScanScenario(store: Store): Promise<void> {
     '扫描④：photo1 的挂载（留念）随认领保留'
   )
 
-  const browseFinal = await browseWorkspace(svc, 'ws-scan')
+  const browseFinal = (await browseWorkspace(svc, 'ws-scan')).items
   assertEqual(
     browseFinal.map((h) => asFile(h.item).sourceUri).sort(),
     ['R:/库/moved/photo1.jpg', 'R:/库/photo2.jpg', 'R:/库/photo3.jpg'],

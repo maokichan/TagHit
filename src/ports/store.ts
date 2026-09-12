@@ -88,8 +88,21 @@ export interface ItemsQuery {
   /** 仅对 file 条目生效。 */
   status?: ItemStatus
   titleContains?: string
-  /** sourceUri 前缀（大小写敏感，路径语义）；仅命中 file 条目。 */
+  /**
+   * 目录范围：**路径段匹配**——sourceUri 等于该路径，或紧随分隔符之下（大小写敏感）；
+   * 仅命中 file 条目。文本前缀不是路径语义（`D:/a` 不得命中 `D:/ab/x`）。
+   */
   sourceUriPrefix?: string
+  /**
+   * 工作区路径节点派生（D18）：条目**直接节点**（sourceUri 父目录）须在该工作区存在，
+   * 且状态等于 `state`。`state:'included'` = 浏览成员（可见性语义）；
+   * `'excluded'` = 被用户排除的直接条目（统计"隐藏了多少条"用同一份译文）。
+   *
+   * 该条件下沉到存储而非在应用层回捞后筛：ORDER BY 与 LIMIT/OFFSET 必须一律作用于**结果集**，
+   * 否则先取窗口再筛会让条目数随排序键与方向变化（2026-09-12 修复的缺陷）。
+   * 语义与 `domain/paths.ts` 的 parentDir 一致（sqlite 用等价 SQL 表达式，校准 s35 逐一致比对）。
+   */
+  directNodeStateIn?: { workspaceId: Id; state: NodeState }
   /** 内容哈希相等（派生元数据回写：缩略图/尺寸按内容为单位共享）。 */
   contentHash?: string
   /** 命中任一挂载标签。 */
@@ -175,6 +188,12 @@ export interface Store {
 
   /** 条件查条目；空条件 = 全部。默认 createdAt 升序（同值按 id 稳定）。 */
   queryItems(q: ItemsQuery): Promise<ItemHit[]>
+
+  /**
+   * 与 queryItems **同条件**的命中总数（limit/offset 不参与——分页总数语义）。
+   * 与 queryItems 必须同解：两处的条件构建在适配器内共用一份实现。
+   */
+  countItems(q: ItemsQuery): Promise<number>
 
   // ---- 挂载：条目 × 标签（条目级；关系记录 ItemAttach） ------------------
 

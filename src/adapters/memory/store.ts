@@ -15,7 +15,7 @@
  * 规则在 domain/rules.ts，编排在应用层用例。
  */
 
-import { DomainError } from '../../domain/index.ts'
+import { DomainError, isUnderDir, parentDir } from '../../domain/index.ts'
 import type {
   Collection,
   CollectionMember,
@@ -259,7 +259,8 @@ export class MemoryStore implements Store {
     return this.state.items.get(id) ?? null
   }
 
-  async queryItems(q: ItemsQuery = {}): Promise<ItemHit[]> {
+  /** 条件命中（不含排序与分页）：queryItems 与 countItems 共用一份条件实现，防两处漂移。 */
+  private matchingItems(q: ItemsQuery): ItemHit[] {
     const ids = q.ids ? new Set(q.ids) : null
     const kinds = q.kinds ? new Set(q.kinds) : null
     const titleContains = q.titleContains?.trim().toLowerCase()
@@ -274,7 +275,9 @@ export class MemoryStore implements Store {
       if (kinds && !kinds.has(item.kind)) continue
       if (q.status !== undefined && (item.kind !== 'file' || item.status !== q.status)) continue
       if (titleContains && !item.title.toLowerCase().includes(titleContains)) continue
-      if (prefix && (item.kind !== 'file' || !item.sourceUri.startsWith(prefix))) continue
+      // 路径段匹配（与 sqlite 的 `= ? OR instr(?, prefix + '/') = 1` 同解）
+      if (prefix && (item.kind !== 'file' || !isUnderDir(prefix, item.sourceUri))) continue
+      if (q.directNodeStateIn && !this.directNodeHasState(q.directNodeStateIn, item)) continue
       if (hash && (item.kind !== 'file' || item.contentHash !== hash)) continue
 
       const tags = this.tagsOf(item.id)
@@ -284,6 +287,21 @@ export class MemoryStore implements Store {
 
       hits.push({ item, tags })
     }
+    return hits
+  }
+
+  /** 直接节点状态派生（D18）：条目直接节点在该工作区存在且状态相符（与 sqlite 的 EXISTS 同解）。 */
+  private directNodeHasState(
+    cond: { workspaceId: Id; state: NodeState },
+    item: Item
+  ): boolean {
+    if (item.kind !== 'file') return false
+    const node = this.state.pathNodes.get(pairKey(cond.workspaceId, parentDir(item.sourceUri)))
+    return node?.state === cond.state
+  }
+
+  async queryItems(q: ItemsQuery = {}): Promise<ItemHit[]> {
+    const hits = this.matchingItems(q)
 
     const dir = q.orderDir === 'desc' ? -1 : 1
     const order = q.order ?? 'createdAt'
@@ -298,6 +316,10 @@ export class MemoryStore implements Store {
     const start = q.offset ?? 0
     const end = q.limit === undefined ? hits.length : start + q.limit
     return hits.slice(start, end)
+  }
+
+  async countItems(q: ItemsQuery = {}): Promise<number> {
+    return this.matchingItems(q).length
   }
 
   // ---- 挂载 ---------------------------------------------------------------

@@ -53,7 +53,16 @@ function onScan(): void {
       <!-- 间隔区：把扫描按钮推到搜索栏最右侧 -->
       <div class="flex-1" />
 
-      <span class="text-[11px] text-[var(--fg-dim)] shrink-0">{{ itemStore.items.length }} 项</span>
+      <!-- 计数：total 为成员总数（不受排序/分页影响），已显示 = 当前已渲染条数 -->
+      <span
+        class="text-[11px] text-[var(--fg-dim)] shrink-0 tabular-nums"
+        :title="`成员总数 ${itemStore.total}；当前已渲染 ${itemStore.items.length}`"
+      >
+        <template v-if="itemStore.items.length < itemStore.total">
+          已显示 {{ itemStore.items.length }} / 共 {{ itemStore.total }} 项
+        </template>
+        <template v-else>共 {{ itemStore.total }} 项</template>
+      </span>
 
       <button
         class="btn btn-primary shrink-0 ml-2"

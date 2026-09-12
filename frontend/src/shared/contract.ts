@@ -18,6 +18,7 @@ export type {
   Err,
   Result,
   // 实体与查询形状
+  BrowseResult,
   Collection,
   Group,
   Id,
@@ -31,6 +32,7 @@ export type {
   ScanOptions,
   ScanSummary,
   Tag,
+  VisibilitySummary,
   WindowAction,
   Workspace,
   WorkspaceRoot
