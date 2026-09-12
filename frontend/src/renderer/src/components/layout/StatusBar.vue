@@ -11,7 +11,8 @@ const statusText = computed(() => {
   if (itemStore.scanning) return '正在扫描…'
   if (itemStore.lastScanResult) {
     const r = itemStore.lastScanResult
-    return `扫描完成：+${r.itemsCreated} 新增 / ${r.itemsUpdated} 更新 / ${r.itemsMissing} 缺失（${r.scannedRoots} 个来源根）`
+    const unreadable = r.dirsUnreadable > 0 ? ` / ${r.dirsUnreadable} 个目录不可读（已跳过）` : ''
+    return `扫描完成：+${r.itemsCreated} 新增 / ${r.itemsUpdated} 更新 / ${r.itemsRelocated} 认领 / ${r.itemsMissing} 缺失（${r.scannedRoots} 个来源根）${unreadable}`
   }
   return null
 })

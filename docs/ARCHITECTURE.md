@@ -16,6 +16,7 @@
 - 存储契约全局约定：异步；实体写严格（NOT_FOUND/CONFLICT/INVALID）；关系写幂等；读宽松；事务 = 边界原子性、一致性编排在用例。详见 DECISIONS 与 `src/ports/store.ts` 头部。
 - 校准文化：无测试设施（code-first 校准理解）；memory 与 sqlite 跑同一场景，契约一致才绿。
 - 工作区 ↔ 条目模型（来源根 → 路径节点 → 归属派生）与两阶段扫描已落地；扫描 missing 策略 keep/discard 可配；内容签名三采样点；图片固有尺寸扫描时从文件头解析（application/mediaMeta.ts，零依赖，见 D15）。
+- **扫描容错（D24）**：`FileSystem.walk` 对不可读路径产出 `kind='error'` 条目（不 reject），扫描跳过其子树并计入 `ScanSummary.dirsUnreadable`；**不可读子树整体退出消失判定**——读不到 ≠ 已消失，否则会误删节点行（连带条目退出视图）或误标 missing。
 
 ## 二、渲染层与宿主（已落地）
 
@@ -45,7 +46,8 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
   **容器归壳**（D22）：宽度/边框/滚动/角标归壳，功能组件只出内容——停靠面板外壳施加 `--panel-width`（此前各面板自绘宽度不一），全页外壳给页头 + 占满内容区，且**不套窄面板**（功能组件按自己的功能各写全页；未绑定 `fullPage` 时给出明确占位，不回落到窄面板）。「打开全页」角标只在 manifest 声明了 `contentTab` 时出现。
   **两个呈现面共用一份数据与动作**（D22）：`features/paths/` 给出的范式——`usePathManagement`（provide/inject）持状态与动作，共用块（RootTree / VisibilitySummaryBar / RelocationPanel）被窄面板与全页面复用，差异只留布局；跨实例动作经模块级 revision 广播失效重查。
 - **错误隔离双线**：setup try/catch（registry）+ 槽渲染 FeatureBoundary（onErrorCaptured）；官方组件同边界通过。生命周期 per-entry（setup/dispose 配对 + unregisterFeature）。
-- **命令注册表**：`commands.ts`——when 最小谓词壳求值（不加载实现即可过滤）、nav/modify/danger 分组装配归壳；ContextMenuHost 自绘 + App 根部拦截（组件只声明 data-ctx-target）。
+- **命令注册表**：`commands.ts`——when 最小谓词壳求值（不加载实现即可过滤）、nav/modify/danger 分组装配归壳；ContextMenuHost 自绘 + App 根部拦截（组件只声明 data-ctx-target）。**快捷键是同一张表的视图**（D23）：`keyboardMouse/shortcuts.ts` 只声明"绑定 → 命令 id"（组合键 + 可选设置项闸门 + 是否允许输入态触发），执行器把 keydown 变成与右键菜单**同形**的 MenuContext（`target.kind='shell'`）后走同一 `runCommand` 路径——因此"能绑什么"= "能注册什么命令"，权限清单不另立一套。
+- **选择交互模型**（D23）：修饰键 → 选择意图的映射是壳级唯一实现（`features/selection.ts`：Shift=区间 / Ctrl·Cmd=切换 / 裸点击=单选），状态变更收口在 item store 的 `applySelection`（区间按当前视图顺序铺开）；组件只转发原始事件与条目，不自写修饰键分支。**点空白 = 未命中 `[data-ctx-target]`**——与右键菜单共用同一份 DOM 契约，故两处判定永不漂移。
 - **服务面**：`services/dialog.ts` confirmDialog/showToast + ServiceHost 统一渲染；manifest.surfaces 声明位就绪（v0 声明不校验）。
 - **config 仓**：`stores/config.ts` 按 `featureId:key` 持有并持久化（localStorage，迁移宿主端点时键形状不变）；Settings 页 SchemaControl 直接读 manifest default。
 - **HostApi 冻结面**：`hostApi.ts` = 窄桥冻结子集 + HOST_API_VERSION；contributed 只经此面。

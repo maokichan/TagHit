@@ -4,6 +4,7 @@ import { Inbox } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
 import { masonryRatioOf } from '../../lib/media'
 import { useConfigStore } from '../../stores/config'
+import { isBlankClick, type SelectIntent } from '../../features/selection'
 import type { LayoutMode } from '@shared/types/config'
 import ItemCard from './ItemCard.vue'
 
@@ -18,8 +19,8 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   (e: 'open', item: ItemView): void
-  (e: 'select', item: ItemView): void
-  (e: 'select-toggle', item: ItemView): void
+  (e: 'pick', item: ItemView, intent: SelectIntent): void
+  (e: 'blank'): void
   (e: 'tag-click', tagId: string): void
   (e: 'load-more'): void
 }>()
@@ -27,6 +28,14 @@ const config = useConfigStore()
 
 function isSelected(id: string): boolean {
   return props.selectedId === id || (props.selectedIds?.includes(id) ?? false)
+}
+
+/**
+ * 空白点击 → 清空选择（键鼠框架边界点之一）。
+ * 判定与右键菜单共用同一份 DOM 契约：命中 `[data-ctx-target]`（条目卡片）= 非空白。
+ */
+function onContainerClick(e: MouseEvent): void {
+  if (isBlankClick(e)) emit('blank')
 }
 
 /* ── 布局常量（与 ItemCard 保持一致） ── */
@@ -245,7 +254,13 @@ watch(
     </div>
 
     <!-- 滚动容器（虚拟化宿主） -->
-    <div v-else ref="scrollEl" class="flex-1 min-h-0 overflow-y-auto" @scroll.passive="onScroll">
+    <div
+      v-else
+      ref="scrollEl"
+      class="flex-1 min-h-0 overflow-y-auto"
+      @scroll.passive="onScroll"
+      @click="onContainerClick"
+    >
       <!-- 瀑布流：JS 列布局 + 绝对定位容器（ItemCard 自带 relative，须外包一层定位） -->
       <template v-if="isMasonry">
         <div class="relative" :style="{ height: layout.totalH + 'px', padding: PAD + 'px' }">
@@ -259,8 +274,7 @@ watch(
               :item="p.item"
               :selected="isSelected(p.item.id)"
               @open="emit('open', $event)"
-              @select="emit('select', $event)"
-              @select-toggle="emit('select-toggle', $event)"
+              @pick="(item, intent) => emit('pick', item, intent)"
               @tag-click="emit('tag-click', $event)"
             />
           </div>
@@ -288,8 +302,7 @@ watch(
             :item="item"
             :selected="isSelected(item.id)"
             @open="emit('open', $event)"
-            @select="emit('select', $event)"
-            @select-toggle="emit('select-toggle', $event)"
+              @pick="(item, intent) => emit('pick', item, intent)"
             @tag-click="emit('tag-click', $event)"
           />
         </div>
@@ -304,8 +317,7 @@ watch(
             :item="item"
             :selected="isSelected(item.id)"
             @open="emit('open', $event)"
-            @select="emit('select', $event)"
-            @select-toggle="emit('select-toggle', $event)"
+              @pick="(item, intent) => emit('pick', item, intent)"
             @tag-click="emit('tag-click', $event)"
           />
         </div>

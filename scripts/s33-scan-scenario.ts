@@ -86,6 +86,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsUpdated: 0,
       itemsMissing: 0,
       itemsDiscarded: 0,
+      dirsUnreadable: 0,
     },
     '扫描①：初始整树入库'
   )
@@ -120,6 +121,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsUpdated: 1, // photo2 内容变更
       itemsMissing: 1, // sub/video.mp4 消失 → missing（keep）
       itemsDiscarded: 0,
+      dirsUnreadable: 0,
     },
     '扫描②：增量 diff（变更/新增/消失目录/消失文件）'
   )
@@ -152,6 +154,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsUpdated: s3.itemsUpdated,
       itemsMissing: s3.itemsMissing,
       itemsDiscarded: s3.itemsDiscarded,
+      dirsUnreadable: s3.dirsUnreadable,
     },
     {
       scannedRoots: 1,
@@ -162,6 +165,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsUpdated: 0,
       itemsMissing: 1,
       itemsDiscarded: 0,
+      dirsUnreadable: 0,
     },
     '扫描③：photo1 消失 → keep 标 missing'
   )
@@ -185,6 +189,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsUpdated: 0,
       itemsMissing: 0,
       itemsDiscarded: 0,
+      dirsUnreadable: 0,
     },
     '扫描③b：同内容新路径认领 missing 条目（移动语义）'
   )
@@ -212,6 +217,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsUpdated: 0,
       itemsMissing: 0,
       itemsDiscarded: 1, // 仅 video（先前已 missing、磁盘已无）
+      dirsUnreadable: 0,
     },
     '扫描④：discard 策略删除消失条目（已认领的 photo1 不受影响）'
   )
@@ -228,6 +234,49 @@ export async function runScanScenario(store: Store): Promise<void> {
     browseFinal.map((h) => asFile(h.item).sourceUri).sort(),
     ['R:/库/moved/photo1.jpg', 'R:/库/photo2.jpg', 'R:/库/photo3.jpg'],
     '收尾：ws-scan 浏览仅含现存目录内条目（missing/节点消失者不出现在视图）'
+  )
+
+  // ---- ⑤ 不可读目录：跳过其子树、不影响其余部分，且**不参与消失判定** ----------
+  // 场景：R:/库/locked 下原有文件，本次遍历读不到该目录（权限/IO）。
+  // 期望：扫描不抛错；摘要报 dirsUnreadable=1；该子树的节点行与条目保持原状
+  //     （既不被当"消失目录"删节点，也不被当"消失文件"标 missing）。
+  const fsLocked: FileSystem = createMemoryFileSystem(
+    {
+      'R:/库/photo2.jpg': 'JPGDATA-222-BBBBBBBBBBBBBBBB-CHANGED',
+      'R:/库/photo3.jpg': 'JPGDATA-333-CCCCCCCCCCCCCCCC',
+      'R:/库/moved/photo1.jpg': 'JPGDATA-111-AAAAAAAAAAAAAAAA',
+      'R:/库/locked/deep.jpg': 'JPGDATA-999-LOCKEDLOCKEDLOCKED',
+    },
+    { unreadable: ['R:/库/locked'] }
+  )
+  // 先让 locked 正常入库一次（建立节点与条目），再模拟不可读
+  const fsLockedFirst = createMemoryFileSystem({
+    'R:/库/photo2.jpg': 'JPGDATA-222-BBBBBBBBBBBBBBBB-CHANGED',
+    'R:/库/photo3.jpg': 'JPGDATA-333-CCCCCCCCCCCCCCCC',
+    'R:/库/moved/photo1.jpg': 'JPGDATA-111-AAAAAAAAAAAAAAAA',
+    'R:/库/locked/deep.jpg': 'JPGDATA-999-LOCKEDLOCKEDLOCKED',
+  })
+  await scanWorkspace(svc, fsLockedFirst, 'ws-scan')
+  const lockedItem = asFile(await findItemByUri(store, 'R:/库/locked/deep.jpg'))
+  const s5 = await scanWorkspace(svc, fsLocked, 'ws-scan')
+  assertEqual(s5.dirsUnreadable, 1, '⑤ 不可读目录计入摘要（dirsUnreadable=1）')
+  assertEqual(s5.nodesRemoved, 0, '⑤ 不可读子树内的节点行不被当"消失目录"删除')
+  assertEqual(s5.itemsMissing, 0, '⑤ 不可读子树内的条目不被当"消失文件"标 missing')
+  assert(
+    (await store.listPathNodes({ workspaceId: 'ws-scan' })).some((n) => n.dirPath === 'R:/库/locked'),
+    '⑤ 不可读目录的节点行仍在（下次扫描可继续）'
+  )
+  assertEqual(
+    (await store.getItem(lockedItem.id))?.kind === 'file'
+      ? ((await store.getItem(lockedItem.id)) as FileItem).status
+      : null,
+    'active',
+    '⑤ 不可读子树内的条目仍为 active'
+  )
+  assertEqual(
+    (await browseWorkspace(svc, 'ws-scan')).total,
+    4,
+    '⑤ 不可读子树内的条目仍在视图内（4 条：photo1/2/3 + locked/deep）'
   )
 
   console.log(`\nSCAN CHECKS PASSED（断言执行 ${executedAsserts} 个）`)

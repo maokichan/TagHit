@@ -11,6 +11,11 @@ import { sampleHash } from '../sample-hash.ts'
 
 export type MemoryFsSpec = Readonly<Record<string, string | 'dir'>>
 
+/** 可选的故障注入（校准用）：声明"不可读"的目录，walk 对其产出 kind='error' 条目。 */
+export interface MemoryFsOptions {
+  unreadable?: readonly string[]
+}
+
 const T0 = '2026-09-05T00:00:00.000Z'
 
 function normalize(p: string): string {
@@ -21,9 +26,12 @@ function normalize(p: string): string {
 export class MemoryFileSystem implements FileSystem {
   /** path → 文件字节 | null（目录）。父目录链已补全。 */
   private readonly entries: Map<string, Uint8Array | null>
+  /** 注入的不可读路径（归一化）：walk 跳过其子树并产出 error 条目。 */
+  private readonly unreadable: Set<string>
 
-  constructor(spec: MemoryFsSpec) {
+  constructor(spec: MemoryFsSpec, options: MemoryFsOptions = {}) {
     this.entries = new Map()
+    this.unreadable = new Set((options.unreadable ?? []).map(normalize))
     for (const [raw, value] of Object.entries(spec)) {
       const path = normalize(raw)
       this.ensureParents(path)
@@ -34,15 +42,30 @@ export class MemoryFileSystem implements FileSystem {
   async *walk(root: string): AsyncIterable<FsEntry> {
     const prefix = normalize(root)
     if (!this.entries.has(prefix) || this.entries.get(prefix) !== null) {
-      throw new Error(`MemoryFileSystem: 目录不存在或不是目录（${root}）`)
+      yield { path: prefix, kind: 'error', message: '目录不存在或不是目录' }
+      return
     }
-    const childPrefix = `${prefix}/`
+    yield* this.walkDir(prefix)
+  }
+
+  private async *walkDir(dir: string): AsyncGenerator<FsEntry> {
+    if (this.unreadable.has(dir)) {
+      yield { path: dir, kind: 'error', message: 'EACCES（注入）' }
+      return
+    }
+    const childPrefix = `${dir}/`
+    // 只取**直接**子项（含 '/' 的更深层由递归负责）——否则每条子孙会被父层与递归各产出一次
     const paths = [...this.entries.keys()]
-      .filter((p) => p.startsWith(childPrefix))
+      .filter((p) => p.startsWith(childPrefix) && !p.slice(childPrefix.length).includes('/'))
       .sort()
     for (const path of paths) {
       const value = this.entries.get(path)!
-      yield { path, kind: value === null ? 'dir' : 'file' }
+      if (value !== null) {
+        yield { path, kind: 'file' }
+        continue
+      }
+      yield { path, kind: 'dir' }
+      yield* this.walkDir(path)
     }
   }
 
@@ -111,7 +134,7 @@ export class MemoryFileSystem implements FileSystem {
   }
 }
 
-/** 便捷工厂：给定 路径 → 内容/'dir' 规格创建内存文件系统。 */
-export function createMemoryFileSystem(spec: MemoryFsSpec): FileSystem {
-  return new MemoryFileSystem(spec)
+/** 便捷工厂：给定 路径 → 内容/'dir' 规格创建内存文件系统（可注入不可读目录）。 */
+export function createMemoryFileSystem(spec: MemoryFsSpec, options: MemoryFsOptions = {}): FileSystem {
+  return new MemoryFileSystem(spec, options)
 }

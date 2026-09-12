@@ -7,6 +7,7 @@ import { taghitFileUrl, masonryRatioOf } from '../../lib/media'
 import { requestVideoThumbnail } from '../../lib/thumbnailer'
 import { useItemStore } from '../../stores/item'
 import { useConfigStore } from '../../stores/config'
+import { allowsOpen, selectIntentOf, type SelectIntent } from '../../features/selection'
 import type { LayoutMode } from '@shared/types/config'
 import { formatDate, formatSize } from '../../lib/format'
 import TagChip from '../common/TagChip.vue'
@@ -17,10 +18,21 @@ const props = withDefaults(
 )
 const emit = defineEmits<{
   (e: 'open', item: ItemView): void
-  (e: 'select', item: ItemView): void
-  (e: 'select-toggle', item: ItemView): void
+  /** 选择意图由壳的选择模型解释（replace/toggle/range）；卡片不自写修饰键分支。 */
+  (e: 'pick', item: ItemView, intent: SelectIntent): void
   (e: 'tag-click', tagId: string): void
 }>()
+
+/** 点击 → 选择意图（壳级唯一实现）。 */
+function onPick(e: MouseEvent): void {
+  emit('pick', props.item, selectIntentOf(e))
+}
+
+/** 双击 → 打开详情；带修饰键的双击是选择手势，不打开（防 Ctrl 双击误开）。 */
+function onDblClick(e: MouseEvent): void {
+  if (!allowsOpen(e)) return
+  emit('open', props.item)
+}
 
 const config = useConfigStore()
 const itemStore = useItemStore()
@@ -70,13 +82,11 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       'opacity-50': item.status === 'missing',
       'border-[var(--accent)]': selected
     }"
-    :title="`${item.title}（双击打开详情）`"
+    :title="`${item.title}（双击打开详情；Ctrl/Cmd+单击多选，Shift+单击区间选择）`"
     data-ctx-target="item"
     :data-ctx-id="item.id"
-    @click.exact="emit('select', item)"
-    @click.ctrl.exact="emit('select-toggle', item)"
-    @click.meta.exact="emit('select-toggle', item)"
-    @dblclick="emit('open', item)"
+    @click="onPick"
+    @dblclick="onDblClick"
   >
     <div class="flex items-center gap-3 px-3 py-2">
       <div class="w-16 h-12 shrink-0 rounded-md bg-[var(--bg)] overflow-hidden flex items-center justify-center relative">
@@ -86,6 +96,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           :alt="item.title"
           class="w-full h-full object-cover"
           loading="lazy"
+          draggable="false"
           @error="thumbFailed = true"
         />
         <div v-else class="flex flex-col items-center gap-0.5 text-[var(--fg-dim)]">
@@ -153,13 +164,11 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       'opacity-50': item.status === 'missing',
       'border-[var(--accent)] shadow-lg': selected
     }"
-    :title="`${item.title}（双击打开详情）`"
+    :title="`${item.title}（双击打开详情；Ctrl/Cmd+单击多选，Shift+单击区间选择）`"
     data-ctx-target="item"
     :data-ctx-id="item.id"
-    @click.exact="emit('select', item)"
-    @click.ctrl.exact="emit('select-toggle', item)"
-    @click.meta.exact="emit('select-toggle', item)"
-    @dblclick="emit('open', item)"
+    @click="onPick"
+    @dblclick="onDblClick"
   >
     <div
       class="bg-[var(--bg)] flex items-center justify-center overflow-hidden"
@@ -172,6 +181,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
         :alt="item.title"
         class="w-full h-full object-cover"
         loading="lazy"
+        draggable="false"
         @error="thumbFailed = true"
       />
       <div v-else class="flex flex-col items-center gap-1 text-[var(--fg-dim)] py-6">

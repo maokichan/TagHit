@@ -8,7 +8,14 @@
 /** 遍历产出的条目。 */
 export interface FsEntry {
   path: string
-  kind: 'file' | 'dir'
+  /**
+   * `file`/`dir` = 正常条目；`error` = **该路径本身不可读**（权限/IO/不存在）——
+   * 遍历跳过其子树并继续，由调用方计入摘要：**单点故障不得使整次扫描失败**
+   * （否则一个拒绝访问的子目录会让整次扫描回滚，用户看到"什么都没扫到"）。
+   */
+  kind: 'file' | 'dir' | 'error'
+  /** kind='error' 时的原因（日志与摘要用）。 */
+  message?: string
 }
 
 /** 元数据查询结果；不存在时 exists=false，其余字段缺省。 */
@@ -24,7 +31,8 @@ export interface FsStat {
 export interface FileSystem {
   /**
    * 递归遍历 root 之下全部条目（不含 root 自身）。顺序不承诺稳定。
-   * root 不存在或不可读 → reject。
+   * root 不存在或不可读、或某个子目录不可读 → **产出 kind='error' 条目**（跳过该子树），
+   * 不 reject：调用方据此统计并把不可读子树排除在"消失判定"之外（防误删/误标 missing）。
    */
   walk(root: string): AsyncIterable<FsEntry>
 

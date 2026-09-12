@@ -59,6 +59,9 @@ void onMounted(() => {
         {{ itemStore.lastScanResult.itemsUpdated }} 更新 /
         {{ itemStore.lastScanResult.itemsRelocated }} 认领 /
         {{ itemStore.lastScanResult.itemsMissing }} 缺失（{{ itemStore.lastScanResult.scannedRoots }} 个来源根）
+        <span v-if="itemStore.lastScanResult.dirsUnreadable > 0" class="text-[var(--danger)]">
+          · {{ itemStore.lastScanResult.dirsUnreadable }} 个目录不可读（已跳过其子树，未当消失处理）
+        </span>
       </div>
 
       <RootTree />

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '@shared/api'
 import { toItemView, type ItemView } from '../lib/viewModel'
+import type { SelectIntent } from '../features/selection'
 import type { Id, ItemsQuery, ScanSummary } from '@shared/contract'
 
 const PAGE_SIZE = 120
@@ -25,6 +26,8 @@ export const useItemStore = defineStore('item', () => {
   const selected = ref<ItemView | null>(null)
   /** 多选集（Ctrl/Cmd+单击与右键聚合；批量打标/MenuContext.selection 的依据） */
   const selectedIds = ref<Id[]>([])
+  /** 区间选择锚点（上次 replace/toggle 落在视图中的下标）；清空选择即复位。 */
+  const anchorIndex = ref<number | null>(null)
 
   const filter = ref<{ tagIds: Id[]; keyword: string }>({ tagIds: [], keyword: '' })
 
@@ -109,6 +112,30 @@ export const useItemStore = defineStore('item', () => {
     selectedIds.value = [item.id]
   }
 
+  /**
+   * 选择交互的**唯一实现**（键鼠框架，2026-09-12）：意图由门面解释（features/selection.ts），
+   * 状态变更在此收口——组件不再自写修饰键分支（历史缺陷：Ctrl+双击既切换选择又打开详情）。
+   * - replace：单选；toggle：出入多选集；range：锚点→本项（按**当前视图顺序**）成区间。
+   */
+  function applySelection(item: ItemView, intent: SelectIntent): void {
+    const list = items.value
+    const index = list.findIndex((it) => it.id === item.id)
+    if (intent === 'range' && anchorIndex.value != null && index >= 0) {
+      const from = Math.min(anchorIndex.value, index)
+      const to = Math.max(anchorIndex.value, index)
+      selectedIds.value = list.slice(from, to + 1).map((it) => it.id)
+      selected.value = item
+      return
+    }
+    if (intent === 'toggle') {
+      toggleSelect(item)
+      anchorIndex.value = index
+      return
+    }
+    select(item)
+    anchorIndex.value = index
+  }
+
   /** Ctrl/Cmd+单击：切换条目进入/退出多选集；selected 跟随最后一次点击。 */
   function toggleSelect(item: ItemView): void {
     const has = selectedIds.value.includes(item.id)
@@ -132,6 +159,7 @@ export const useItemStore = defineStore('item', () => {
   function clearSelection(): void {
     selected.value = null
     selectedIds.value = []
+    anchorIndex.value = null
   }
 
   /** 缩略图回写后就地更新视图（列表项 + 信息面板），避免整页重查。 */
@@ -201,6 +229,7 @@ export const useItemStore = defineStore('item', () => {
     loadMore,
     scan,
     select,
+    applySelection,
     toggleSelect,
     isSelected,
     selectionCount,

@@ -39,6 +39,11 @@ export interface ScanSummary {
   itemsUpdated: number
   itemsMissing: number
   itemsDiscarded: number
+  /**
+   * 本次不可读的目录数（权限/IO/根不存在）：其子树被跳过。
+   * 这些子树**不参与消失判定**（节点行保留、条目不改状态），故摘要里的 missing/removed 不含它们。
+   */
+  dirsUnreadable: number
 }
 
 export async function scanWorkspace(
@@ -57,6 +62,7 @@ export async function scanWorkspace(
     itemsUpdated: 0,
     itemsMissing: 0,
     itemsDiscarded: 0,
+    dirsUnreadable: 0,
   }
 
   const roots = (await svc.store.listWorkspaceRoots(workspaceId)).map((r) => r.path)
@@ -83,6 +89,10 @@ export async function scanWorkspace(
   const claimedIds = new Set<string>()
 
   const visitedDirs = new Set<string>()
+  /** 本次不可读的目录：其子树不参与消失判定（无法区分"消失"与"读不到"）。 */
+  const unreadableDirs: string[] = []
+  const underUnreadable = (path: string): boolean =>
+    unreadableDirs.some((dir) => path === dir || path.startsWith(`${dir}/`))
   const now = svc.clock.now()
 
   const ensureDir = async (db: Store, dir: string): Promise<void> => {
@@ -99,7 +109,12 @@ export async function scanWorkspace(
       const files: string[] = []
       for await (const entry of fs.walk(root)) {
         if (entry.kind === 'dir') dirs.push(entry.path)
-        else files.push(entry.path)
+        else if (entry.kind === 'error') {
+          // 不可读子树：跳过并在摘要里报数（不影响其余部分，也不参与消失判定）
+          unreadableDirs.push(entry.path)
+          summary.dirsUnreadable++
+          console.warn(`[scan] 目录不可读，已跳过其子树：${entry.path}（${entry.message ?? '未知原因'}）`)
+        } else files.push(entry.path)
       }
 
       // 阶段一：路径遍历 → 确保目录节点（不覆盖既有状态）
@@ -174,18 +189,20 @@ export async function scanWorkspace(
       }
     }
 
-    // 消失目录 → 删节点行（仅限本次各来源根下、未再访问的节点）
+    // 消失目录 → 删节点行（仅限本次各来源根下、未再访问、且**不在不可读子树内**的节点）
     for (const dir of nodesBefore) {
       const underRoot = roots.some((root) => dir === root || dir.startsWith(`${root}/`))
-      if (underRoot && !visitedDirs.has(dir)) {
+      if (underRoot && !visitedDirs.has(dir) && !underUnreadable(dir)) {
         await db.deletePathNode(workspaceId, dir)
         summary.nodesRemoved++
       }
     }
 
-    // 消失文件 → 按策略处理（本次已被认领的条目跳过：其路径已改写为新位置）
+    // 消失文件 → 按策略处理（本次已被认领的条目跳过：其路径已改写为新位置；
+    // 不可读子树内的条目不判定——读不到 ≠ 已消失，宁可留着让下次扫描再说）
     for (const [uri, item] of itemByUri) {
       if (claimedIds.has(item.id)) continue
+      if (underUnreadable(uri)) continue
       if ((await fs.stat(uri)).exists) continue
       if (policy === 'keep') {
         if (item.status !== 'missing') {

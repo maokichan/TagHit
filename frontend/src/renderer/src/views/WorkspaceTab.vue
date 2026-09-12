@@ -7,6 +7,7 @@ import { useItemStore } from '../stores/item'
 import { useTabStore } from '../stores/tab'
 import { useWorkspaceStore } from '../stores/workspace'
 import { openBatchTagDialog } from '../features/services/batchTag'
+import { type SelectIntent } from '../features/selection'
 import type { ItemView } from '../lib/viewModel'
 
 const props = defineProps<{ id: string }>()
@@ -60,12 +61,9 @@ function openItem(item: ItemView): void {
   router.push(`/item/${item.id}?workspace=${workspaceId}`)
 }
 
-function selectItem(item: ItemView): void {
-  itemStore.select(item)
-}
-
-function toggleSelectItem(item: ItemView): void {
-  itemStore.toggleSelect(item)
+function selectItem(item: ItemView, intent: SelectIntent): void {
+  // 选择意图由壳的选择模型解释（replace/toggle/range），状态变更收口在 item store
+  itemStore.applySelection(item, intent)
 }
 
 function openBatchTag(mode: 'add' | 'remove'): void {
@@ -116,8 +114,8 @@ function openBatchTag(mode: 'add' | 'remove'): void {
         :selected-ids="itemStore.selectedIds"
         :has-more="itemStore.hasMore"
         @open="openItem"
-        @select="selectItem"
-        @select-toggle="toggleSelectItem"
+        @pick="selectItem"
+        @blank="itemStore.clearSelection()"
         @tag-click="itemStore.toggleTagFilter"
         @load-more="itemStore.loadMore(workspaceId)"
       />
