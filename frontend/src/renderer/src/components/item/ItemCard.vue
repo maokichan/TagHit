@@ -175,11 +175,13 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       :class="isMasonry ? '' : 'aspect-[4/3]'"
       :style="isMasonry ? { aspectRatio } : undefined"
     >
+      <!-- object-contain：媒体整体入框，**不裁切**。框比 = 媒体实测比，故通常严丝合缝；
+           比例被钳制（极端横幅/竖幅）或实测值缺失时，宁可留边也不裁画面（2026-09-12）。 -->
       <img
         v-if="thumbUrl && !thumbFailed"
         :src="thumbUrl"
         :alt="item.title"
-        class="w-full h-full object-cover"
+        class="w-full h-full object-contain"
         loading="lazy"
         draggable="false"
         @error="thumbFailed = true"

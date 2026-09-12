@@ -38,22 +38,18 @@ export function previewKindOf(mediaType: MediaType, ext: string | null): Preview
 const MAX_RATIO = 2.2
 
 /**
- * 瀑布流媒体宽高比。老版逻辑：比例来自媒体固有尺寸，钳制在 [1/2.2, 2.2]。
- * - 图片：优先扫描时解析的真实 width/height；缺失（旧数据/解析失败）回退
- *   contentHash 估计值，直到重扫补齐。
- * - 视频：优先运行时抓帧时回写的实测 width/height；缺失（未抓帧/抓帧失败）回退
- *   contentHash 估计值。
- * - 其余类型（文档/音频等）没有天然纵横比，一律标准 4:3（用户裁定）。
- * anchor 无 hash → 4:3。估计用几何分布（对数均匀），中比值密、两端稀。
+ * 瀑布流媒体宽高比。**比例只取实测值**：图片用扫描时解析的固有尺寸，视频用抓帧时回写的
+ * 视频宽高（`video.videoWidth/Height`）；极端比例钳制在 [1/2.2, 2.2]（布局守护）。
+ *
+ * 实测值缺失（旧数据/未抓帧/解析失败）→ **中性 4:3 占位**，与文档/音频一致。
+ * 历史行为（2026-09-12 改）：缺失时用 contentHash 派生一个**假比例**——视频在抓帧完成前
+ * 就会按假比例出框，卡片用 object-cover 填满 → 画面被裁，用户看到"比例和原始的不一样"。
+ * 假数据在这里没有任何收益：真实比例到达后卡片会重排，宁可让它从占位跳到真值。
  */
 export function masonryRatioOf(view: { contentHash: string | null; mediaType: MediaType; width?: number | null; height?: number | null }): number {
   if (view.mediaType !== 'image' && view.mediaType !== 'video') return 4 / 3
   if (view.width != null && view.height != null && view.width > 0 && view.height > 0) {
     return Math.min(Math.max(view.width / view.height, 1 / MAX_RATIO), MAX_RATIO)
   }
-  const hash = view.contentHash
-  if (!hash) return 4 / 3
-  const u = parseInt(hash.slice(0, 8), 16) / 0xffffffff
-  const ratio = 0.5 * Math.pow(4, u)
-  return Math.min(Math.max(ratio, 1 / MAX_RATIO), MAX_RATIO)
+  return 4 / 3
 }

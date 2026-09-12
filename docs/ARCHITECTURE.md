@@ -58,6 +58,7 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 - **无边框窗口（D17，术语标准）**：窗口形态称「**无边框窗口**」（frame:false + backgroundColor 同主题）。TabBar 兼任「**标题栏**」：drag-region 归根部（空白处拖动 / 双击最大化），交互元素 no-drag。右上三键正式名「**窗口控制键**」（组件 WindowControls：最小化 / 最大化-还原 / 关闭，经 `window.control`/`window.isMaximized` 窄桥，宿主按 sender 解析发起方窗口）。一词一义：「壳」专指插件语境的容器与展示层（§3），窗口语境不用「壳」。
 - **打包与真机运行**：esbuild 打 src/host → build/main.cjs + preload.cjs（external: electron/better-sqlite3）；`npm run bundle:host` / `dev:renderer` / `start:host`（命令细节见 CONTEXT §五）。
 - 数据流约定：渲染层持**视图状态**（工作区/勾选 tag/排序/页码）；任何改动 = 改意图 → 窄桥调用一次用例 → 失效并重查；**不本地排序/过滤**（分页语义依赖适配器一次完成）。
+- **标签与导航语义（D26）**：**路由是标签的投影**——标签是唯一事实源，路由跟随；`features/tabs.ts` 是路由映射与导航策略的单点（`routeOfTab` / `activateTab` / `openFeatureTab`）。**激活已有标签用 replace、打开一个视图用 push**：标签切换若也 push，会把所有切换串进同一条全局历史，侧键返回就变成在"标签访问日志"上乱退（实际踩过两次）。守卫只在**路由没有对应标签**时回落活动标签，**绝不跳进另一个标签**。已知边界：标签尚无独立历史栈与多实例（真正的并行访问未支撑），需要时做每标签独立历史。
 
 ### 渲染层插件机制（已全部落地，2026-09-07）
 
@@ -65,7 +66,7 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 
 - **注册表 = 声明表**：可序列化 `FeatureManifest`（三方磁盘 JSON 的形状）+ 实现绑定 `FeatureImpl`（direct 静态直连 | async loader，**与 source 正交**；实现可**按呈现面**绑定：`component` 停靠面 / `fullPage` 全页面）。壳经 `listFeatures(mount)` 查表渲染，不 import 具体组件。重复 id：official 抛错（开发期暴露）、contributed 拒绝并报告。
 - **SurfaceHost 标准容器**：所有功能组件的唯一渲染通道——槽查询 → 按呈现面选实现（`contentTab` 优先 `fullPage`，否则 `component`）→ 惰性解析（async 用 defineAsyncComponent）→ **壳级外壳**（停靠面板外壳 / 全页外壳 / 无外壳）→ FeatureBoundary 错误隔离 → FeatureContext 注入。活动栏面板、显示面板块、内容区标签页共用。
-  **容器归壳**（D22）：宽度/边框/滚动/角标归壳，功能组件只出内容——停靠面板外壳施加 `--panel-width`（此前各面板自绘宽度不一），全页外壳给页头 + 占满内容区，且**不套窄面板**（功能组件按自己的功能各写全页；未绑定 `fullPage` 时给出明确占位，不回落到窄面板）。「打开全页」角标只在 manifest 声明了 `contentTab` 时出现。
+  **容器归壳**（D22）：宽度/边框/滚动/角标归壳，功能组件只出内容——停靠面板外壳施加 `--panel-width`（此前各面板自绘宽度不一），全页外壳给页头 + **居中的版心容器**（`--page-max-width`，功能组件不自建侧栏——否则就是各自造窄边栏），且全页**不套窄面板**（功能组件按自己的功能各写全页；未绑定 `fullPage` 时给出明确占位，不回落到窄面板）。**全页入口唯一 = 右下角角标**（面板内不再放别的入口）。
   **两个呈现面共用一份数据与动作**（D22）：`features/paths/` 给出的范式——`usePathManagement`（provide/inject）持状态与动作，共用块（RootTree / VisibilitySummaryBar / RelocationPanel）被窄面板与全页面复用，差异只留布局；跨实例动作经模块级 revision 广播失效重查。
 - **错误隔离双线**：setup try/catch（registry）+ 槽渲染 FeatureBoundary（onErrorCaptured）；官方组件同边界通过。生命周期 per-entry（setup/dispose 配对 + unregisterFeature）。
 - **命令注册表**：`commands.ts`——when 最小谓词壳求值（不加载实现即可过滤）、nav/modify/danger 分组装配归壳；ContextMenuHost 自绘 + App 根部拦截（组件只声明 data-ctx-target）。**快捷键是同一张表的视图**（D23）：`keyboardMouse/shortcuts.ts` 只声明"绑定 → 命令 id"（组合键 + 可选设置项闸门 + 是否允许输入态触发），执行器把 keydown 变成与右键菜单**同形**的 MenuContext（`target.kind='shell'`）后走同一 `runCommand` 路径——因此"能绑什么"= "能注册什么命令"，权限清单不另立一套。

@@ -11,6 +11,7 @@ import SurfaceHost from './features/SurfaceHost.vue'
 import ServiceHost from './features/services/ServiceHost.vue'
 import { openContextMenu } from './features/contextMenu'
 import { listFeatures, resolvedIcon, type FeatureEntry } from './features/registry'
+import { activeTabRoute, routeOfTab } from './features/tabs'
 import { useItemStore } from './stores/item'
 
 const route = useRoute()
@@ -23,72 +24,31 @@ onMounted(() => {
   tabStore.ensureHome()
 })
 
-// 守卫：路由必须与标签页状态一致（标签驱动路由，路由是标签的投影）。
-// 覆盖 workspace / item / start 三类路由；仅 workspace/item 用 :id，需区分 route.name。
+/**
+ * 路由守卫：**路由是标签的投影**（标签驱动路由）。
+ *
+ * 判定规则（2026-09-12 重写：修"侧键返回到不该去的地方"）：
+ * 1. 路由命中某个标签 → 激活该标签（正规路径：打开条目/全页等动作先建标签再 push）；
+ * 2. 路由没有对应标签（侧键退回到已被关闭的标签、手改 URL、历史里的过期条目）→
+ *    **修正回活动标签**（replace，不写历史）——绝不"跳进"另一个还开着的标签；
+ * 3. 主页（'/'）可多开，路由无法区分是哪一个主页标签 → 只在活动标签就是主页时认可。
+ *
+ * 历史语义见 features/tabs.ts：**切换标签不写历史**（replace），只有"打开一个视图"才 push。
+ * 若此处改成"按 URL 激活任意匹配标签"，侧键返回就会不断把人甩进旧标签——那正是此前的缺陷。
+ */
 watch(
-  () => [route.name, route.params.id] as const,
-  ([name, id]) => {
-    if (name === 'workspace' && id != null) {
-      const key = `ws:${id}`
-      if (tabStore.activeKey !== key) {
-        const target =
-          tabStore.activeWorkspaceId != null
-            ? `/workspace/${tabStore.activeWorkspaceId}`
-            : '/'
-        router.replace(target)
-      }
-    } else if (name === 'item' && id != null) {
-      const key = `item:${id}`
-      const tab = tabStore.tabs.find((t) => t.key === key)
-      if (tab?.kind === 'item') {
-        if (tabStore.activeKey !== key) tabStore.setActive(key)
-      } else {
-        // 无对应条目标签（例如手动改 URL / 侧键后退到无标签路由）→ 回到活动标签
-        const active = tabStore.activeTab
-        if (active?.kind === 'workspace') router.replace(`/workspace/${active.workspaceId}`)
-        else if (active?.kind === 'settings') router.replace('/settings')
-        else if (active?.kind === 'item')
-          router.replace(
-            `/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`
-          )
-        else router.replace('/')
-      }
-    } else if (name === 'feature' && typeof id === 'string') {
-      // 功能组件标签页：路由必须与标签状态一致（手改 URL 无对应标签 → 回活动标签）
-      const key = `feature:${id}`
-      if (tabStore.activeKey !== key) {
-        const tab = tabStore.tabs.find((t) => t.key === key)
-        if (tab) {
-          tabStore.setActive(key)
-        } else {
-          const active = tabStore.activeTab
-          if (active?.kind === 'workspace') router.replace(`/workspace/${active.workspaceId}`)
-          else if (active?.kind === 'settings') router.replace('/settings')
-          else if (active?.kind === 'item')
-            router.replace(
-              `/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`
-            )
-          else if (active?.kind === 'feature') router.replace(`/feature/${active.featureId}`)
-          else router.replace('/')
-        }
-      }
-    } else if (name === 'start') {
-      // 主页只在"激活标签是 home"时显示；鼠标侧键后退等 URL 跳转不得进入主页
-      const active = tabStore.activeTab
-      if (active?.kind === 'home') {
-        tabStore.setActive(active.key)
-      } else if (active) {
-        // 当前激活标签不是主页 → 纠正回该标签对应路由（停留在原页面，而非回主页）
-        if (active.kind === 'workspace') router.replace(`/workspace/${active.workspaceId}`)
-        else if (active.kind === 'settings') router.replace('/settings')
-        else if (active.kind === 'item')
-          router.replace(
-            `/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`
-          )
-        else if (active.kind === 'feature') router.replace(`/feature/${active.featureId}`)
-        else router.replace('/')
-      }
+  () => route.fullPath,
+  (path) => {
+    if (path === '/') {
+      if (tabStore.activeTab?.kind !== 'home') void router.replace(activeTabRoute())
+      return
     }
+    const match = tabStore.tabs.find((t) => routeOfTab(t) === path)
+    if (match != null) {
+      if (tabStore.activeKey !== match.key) tabStore.setActive(match.key)
+      return
+    }
+    void router.replace(activeTabRoute())
   }
 )
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { Plus, Settings, X } from 'lucide-vue-next'
-import { useTabStore } from '../../stores/tab'
+import { useTabStore, type Tab } from '../../stores/tab'
+import { activateTab } from '../../features/tabs'
 import WindowControls from './WindowControls.vue'
 
-const router = useRouter()
 const route = useRoute()
 const tabStore = useTabStore()
 
@@ -13,47 +13,24 @@ const tabStore = useTabStore()
 const dragIndex = ref<number | null>(null)
 const overIndex = ref<number | null>(null)
 
+/** 点击标签 = 激活（**不写历史**：换视角不等于去了新地方，见 features/tabs.ts）。 */
 function go(key: string): void {
   const tab = tabStore.tabs.find((t) => t.key === key)
-  if (!tab) return
-  if (tab.kind === 'home') {
-    tabStore.setActive(key)
-    router.push('/')
-  } else if (tab.kind === 'settings') {
-    tabStore.openSettings()
-    router.push('/settings')
-  } else if (tab.kind === 'feature') {
-    tabStore.setActive(key)
-    router.push(`/feature/${tab.featureId}`)
-  } else if (tab.kind === 'item') {
-    tabStore.setActive(key)
-    router.push(`/item/${tab.itemId}${tab.workspaceId != null ? `?workspace=${tab.workspaceId}` : ''}`)
-  } else {
-    tabStore.setActive(key)
-    router.push(`/workspace/${tab.workspaceId}`)
-  }
+  if (tab) activateTab(tab)
 }
 
+/** 关闭标签：回落标签的路由同样不写历史。 */
 function close(key: string): void {
   tabStore.close(key)
   const active = tabStore.activeTab
-  if (active?.kind === 'workspace') {
-    router.push(`/workspace/${active.workspaceId}`)
-  } else if (active?.kind === 'settings') {
-    router.push('/settings')
-  } else if (active?.kind === 'feature') {
-    router.push(`/feature/${active.featureId}`)
-  } else if (active?.kind === 'item') {
-    router.push(`/item/${active.itemId}${active.workspaceId != null ? `?workspace=${active.workspaceId}` : ''}`)
-  } else {
-    router.push('/')
-  }
+  if (active) activateTab(active)
 }
 
 /** "+"：新建标签页 = 进入一个全新的首页 */
 function newTab(): void {
   tabStore.openNewHome()
-  router.push('/')
+  const active = tabStore.activeTab
+  if (active) activateTab(active)
 }
 
 /** 设置：在设置页时点击 = 关闭设置标签回主页；否则打开设置标签 */
@@ -61,12 +38,12 @@ function onSettings(): void {
   if (route.name === 'settings') {
     tabStore.close('settings')
     const active = tabStore.activeTab
-    if (active?.kind === 'workspace') router.push(`/workspace/${active.workspaceId}`)
-    else router.push('/')
-  } else {
-    tabStore.openSettings()
-    router.push('/settings')
+    if (active) activateTab(active)
+    return
   }
+  tabStore.openSettings()
+  const settings = tabStore.tabs.find((t: Tab) => t.kind === 'settings')
+  if (settings) activateTab(settings)
 }
 
 // ── 拖拽：HTML5 DnD + 插入指示线（左缘高亮 = 插入到该标签之前） ──

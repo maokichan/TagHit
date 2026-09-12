@@ -95,7 +95,7 @@ function openFullPage(): void {
     </button>
   </div>
 
-  <!-- 全页外壳：占满内容区 + 页头；不含窄面板 -->
+  <!-- 全页外壳：占满内容区 + 页头 + **居中的版心容器**（功能组件只出内容，不自定版心/侧栏） -->
   <div v-else-if="feature != null && surface === 'contentTab'" class="h-full min-h-0 flex flex-col">
     <header
       class="shrink-0 flex items-center gap-2 h-9 px-4 border-b border-[var(--border)] bg-[var(--bg-elev)]"
@@ -103,20 +103,22 @@ function openFullPage(): void {
       <span class="text-[12px] font-medium truncate">{{ feature.manifest.title }}</span>
       <span v-if="feature.manifest.source === 'contributed'" class="text-[10px] text-[var(--fg-dim)]">插件</span>
     </header>
-    <div class="flex-1 min-h-0">
-      <FeatureBoundary :label="feature.manifest.title">
-        <component
-          :is="directComp ?? asyncComp"
-          v-if="implAvailable"
-          v-bind="componentProps"
-        />
-        <div v-else class="h-full flex items-center justify-center px-6 text-center">
-          <p class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
-            功能组件「{{ feature.manifest.title }}」声明了全页呈现，但未绑定全页实现。<br />
-            全页呈现**不复用窄面板**——需为该功能组件提供专门的全页内容。
-          </p>
-        </div>
-      </FeatureBoundary>
+    <div class="flex-1 min-h-0 overflow-y-auto">
+      <div class="mx-auto w-full px-8 py-6 max-w-[var(--page-max-width)]">
+        <FeatureBoundary :label="feature.manifest.title">
+          <component
+            :is="directComp ?? asyncComp"
+            v-if="implAvailable"
+            v-bind="componentProps"
+          />
+          <div v-else class="flex items-center justify-center px-6 py-16 text-center">
+            <p class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
+              功能组件「{{ feature.manifest.title }}」声明了全页呈现，但未绑定全页实现。<br />
+              全页呈现**不复用窄面板**——需为该功能组件提供专门的全页内容。
+            </p>
+          </div>
+        </FeatureBoundary>
+      </div>
     </div>
   </div>
 
