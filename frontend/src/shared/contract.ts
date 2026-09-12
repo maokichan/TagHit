@@ -29,6 +29,8 @@ export type {
   NodeState,
   PathNode,
   ProjectedHit,
+  RetiredRootView,
+  RootManagementView,
   ScanOptions,
   ScanSummary,
   Tag,

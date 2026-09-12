@@ -28,6 +28,7 @@ import type {
   ItemStatus,
   NodeState,
   PathNode,
+  RetiredRoot,
   Tag,
   TagLink,
   Workspace,
@@ -61,6 +62,7 @@ interface State {
   groupMembers: Map<string, GroupMember>
   workspaceRoots: Map<string, WorkspaceRoot>
   pathNodes: Map<string, PathNode>
+  retiredRoots: Map<string, RetiredRoot>
 }
 
 function createEmptyState(): State {
@@ -77,6 +79,7 @@ function createEmptyState(): State {
     groupMembers: new Map(),
     workspaceRoots: new Map(),
     pathNodes: new Map(),
+    retiredRoots: new Map(),
   }
 }
 
@@ -95,6 +98,7 @@ function cloneState(s: State): State {
     groupMembers: new Map(s.groupMembers),
     workspaceRoots: new Map(s.workspaceRoots),
     pathNodes: new Map(s.pathNodes),
+    retiredRoots: new Map(s.retiredRoots),
   }
 }
 
@@ -264,7 +268,7 @@ export class MemoryStore implements Store {
     const ids = q.ids ? new Set(q.ids) : null
     const kinds = q.kinds ? new Set(q.kinds) : null
     const titleContains = q.titleContains?.trim().toLowerCase()
-    const prefix = q.sourceUriPrefix
+    const prefix = q.underDirPath
     const hash = q.contentHash
     const anyTags = q.withAnyTag ? new Set(q.withAnyTag) : null
     const allTags = q.withAllTags ? new Set(q.withAllTags) : null
@@ -277,6 +281,10 @@ export class MemoryStore implements Store {
       if (titleContains && !item.title.toLowerCase().includes(titleContains)) continue
       // 路径段匹配（与 sqlite 的 `= ? OR instr(?, prefix + '/') = 1` 同解）
       if (prefix && (item.kind !== 'file' || !isUnderDir(prefix, item.sourceUri))) continue
+      if (q.notUnderAnyDir) {
+        if (item.kind !== 'file') continue
+        if (q.notUnderAnyDir.some((dir) => isUnderDir(dir, item.sourceUri))) continue
+      }
       if (q.directNodeStateIn && !this.directNodeHasState(q.directNodeStateIn, item)) continue
       if (hash && (item.kind !== 'file' || item.contentHash !== hash)) continue
 
@@ -480,6 +488,37 @@ export class MemoryStore implements Store {
     }
     out.sort((a, b) => (a.dirPath < b.dirPath ? -1 : a.dirPath > b.dirPath ? 1 : 0))
     return out
+  }
+
+  // ---- 退役根（来源根的卸载记录） -------------------------------------------
+
+  async addRetiredRoot(row: RetiredRoot): Promise<void> {
+    this.requireWorkspace(row.workspaceId)
+    this.state.retiredRoots.set(pairKey(row.workspaceId, row.path), row)
+  }
+
+  async listRetiredRoots(opts?: { workspaceId?: Id }): Promise<RetiredRoot[]> {
+    const out: RetiredRoot[] = []
+    for (const row of this.state.retiredRoots.values()) {
+      if (opts?.workspaceId !== undefined && row.workspaceId !== opts.workspaceId) continue
+      out.push(row)
+    }
+    out.sort((a, b) =>
+      a.retiredAt < b.retiredAt
+        ? -1
+        : a.retiredAt > b.retiredAt
+          ? 1
+          : a.path < b.path
+            ? -1
+            : a.path > b.path
+              ? 1
+              : 0
+    )
+    return out
+  }
+
+  async removeRetiredRoot(workspaceId: Id, path: string): Promise<void> {
+    this.state.retiredRoots.delete(pairKey(workspaceId, path))
   }
 
   // ---- 作品 ---------------------------------------------------------------

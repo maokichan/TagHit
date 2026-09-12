@@ -18,10 +18,9 @@
 import type { FileItem, Id } from '../domain/index.ts'
 import type { FileSystem, Store } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
-import { basename, normalizePath } from './paths.ts'
+import { basename } from './paths.ts'
 import { isImageFile, parseImageSize } from './mediaMeta.ts'
 import { deleteItemIn } from './cascade.ts'
-import { DomainError } from '../domain/index.ts'
 
 export type MissingPolicy = 'keep' | 'discard'
 
@@ -40,26 +39,6 @@ export interface ScanSummary {
   itemsUpdated: number
   itemsMissing: number
   itemsDiscarded: number
-}
-
-export async function mountWorkspaceRoot(
-  svc: AppServices,
-  workspaceId: Id,
-  path: string
-): Promise<void> {
-  // 归一化在边界执行：用户输入/原生选择器可能带反斜杠或尾分隔符（混合分隔符 = 双身份节点）
-  if (path.trim() === '') throw new DomainError('INVALID', '来源根路径不能为空白')
-  const normalized = normalizePath(path)
-  if (normalized === '' || normalized === '/') throw new DomainError('INVALID', '来源根路径不能为空')
-  await svc.store.addWorkspaceRoot(workspaceId, normalized)
-}
-
-export async function unmountWorkspaceRoot(
-  svc: AppServices,
-  workspaceId: Id,
-  path: string
-): Promise<void> {
-  await svc.store.removeWorkspaceRoot(workspaceId, normalizePath(path))
 }
 
 export async function scanWorkspace(
@@ -90,7 +69,7 @@ export async function scanWorkspace(
   )
   const itemByUri = new Map<string, FileItem>()
   for (const root of roots) {
-    for (const hit of await svc.store.queryItems({ sourceUriPrefix: root })) {
+    for (const hit of await svc.store.queryItems({ underDirPath: root })) {
       if (hit.item.kind === 'file') itemByUri.set(hit.item.sourceUri, hit.item)
     }
   }

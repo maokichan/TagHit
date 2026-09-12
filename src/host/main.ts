@@ -60,6 +60,8 @@ import {
   untagItem,
   untagItems,
   queryItems,
+  rootManagement,
+  cleanupDetachedItems,
 } from '../application/index.ts'
 import type { AppServices, ScanOptions } from '../application/index.ts'
 import type { Id } from '../domain/index.ts'
@@ -201,6 +203,12 @@ function registerHandlers(): void {
   )
   ipcMain.handle('workspace.listRoots', (_event, workspaceId: Id) =>
     envelope(listWorkspaceRoots(services, workspaceId))
+  )
+  ipcMain.handle('workspace.rootManagement', (_event, workspaceId: Id) =>
+    envelope(rootManagement(services, workspaceId))
+  )
+  ipcMain.handle('workspace.cleanupDetached', (_event, input: { workspaceId: Id; dirPath?: string | null }) =>
+    envelope(cleanupDetachedItems(services, input.workspaceId, input.dirPath))
   )
   ipcMain.handle('workspace.delete', (_event, workspaceId: Id) =>
     envelope(deleteWorkspaceCascade(services, workspaceId).then(() => null))

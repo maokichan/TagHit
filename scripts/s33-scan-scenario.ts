@@ -51,7 +51,7 @@ function sha(text: string): string {
 }
 
 async function findItemByUri(store: Store, uri: string): Promise<Item> {
-  const hits = await store.queryItems({ sourceUriPrefix: uri })
+  const hits = await store.queryItems({ underDirPath: uri })
   const hit = hits.find((h) => h.item.kind === 'file' && h.item.sourceUri === uri)
   if (!hit) throw new Error(`条目不存在：${uri}`)
   return hit.item

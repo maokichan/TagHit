@@ -87,7 +87,7 @@ export async function visibilitySummary(
   })
   let underRoots = 0
   for (const root of roots) {
-    underRoots += await svc.store.countItems({ sourceUriPrefix: root })
+    underRoots += await svc.store.countItems({ underDirPath: root })
   }
   return {
     visible: included,

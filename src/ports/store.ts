@@ -33,6 +33,7 @@ import type {
   ItemStatus,
   NodeState,
   PathNode,
+  RetiredRoot,
   Tag,
   TagLink,
   Workspace,
@@ -89,10 +90,17 @@ export interface ItemsQuery {
   status?: ItemStatus
   titleContains?: string
   /**
-   * 目录范围：**路径段匹配**——sourceUri 等于该路径，或紧随分隔符之下（大小写敏感）；
-   * 仅命中 file 条目。文本前缀不是路径语义（`D:/a` 不得命中 `D:/ab/x`）。
+   * 目录范围：**路径段匹配**——sourceUri 落在一个目录之内（等于该目录，或紧随分隔符之下）；
+   * 大小写敏感（路径语义）；仅命中 file 条目。名字即语义：**不是**文本前缀
+   * （`D:/a` 不得命中 `D:/ab/x`，那属路径段越权）。
+   * 两处用途语义同一：扫描取某来源根下的既有条目、浏览「只看某节点」的范围。
    */
-  sourceUriPrefix?: string
+  underDirPath?: string
+  /**
+   * 不在任何给定目录之下（**脱根条目**：有来源，但没有任何来源根覆盖它）。
+   * 路径段匹配同 `underDirPath`；空数组 = 全都在根下（即恒不命中）。
+   */
+  notUnderAnyDir?: string[]
   /**
    * 工作区路径节点派生（D18）：条目**直接节点**（sourceUri 父目录）须在该工作区存在，
    * 且状态等于 `state`。`state:'included'` = 浏览成员（可见性语义）；
@@ -269,6 +277,17 @@ export interface Store {
 
   /** 节点列表，按 dirPath 升序。可按 workspaceId / dirPrefix 过滤（读宽松）。 */
   listPathNodes(opts?: { workspaceId?: Id; dirPrefix?: string }): Promise<PathNode[]>
+
+  // ---- 退役根（来源根的卸载记录；条目去留的可寻址凭据） --------------------
+
+  /** 记录退役根（workspace × path 幂等：已存在则刷新 retiredAt）。workspace 须存在。 */
+  addRetiredRoot(row: RetiredRoot): Promise<void>
+
+  /** 退役根列表，按 retiredAt 升序（同刻按 path 升序稳定）。读宽松。 */
+  listRetiredRoots(opts?: { workspaceId?: Id }): Promise<RetiredRoot[]>
+
+  /** 删退役根记录（重新挂载/清理后收尾）。行不存在 → no-op。 */
+  removeRetiredRoot(workspaceId: Id, path: string): Promise<void>
 
   // ---- 作品 collection（有序成员 + 锚条目承载标签） -----------------------
 

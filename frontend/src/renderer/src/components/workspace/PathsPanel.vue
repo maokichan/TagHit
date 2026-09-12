@@ -1,11 +1,30 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { ChevronRight, Eye, EyeOff, FolderOpen, Focus, Plus, Trash2, X } from 'lucide-vue-next'
+import {
+  Archive,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  FolderOpen,
+  Focus,
+  HelpCircle,
+  Plus,
+  Trash2,
+  X
+} from 'lucide-vue-next'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useItemStore } from '../../stores/item'
 import { api } from '@shared/api'
 import { confirmDialog } from '../../features/services/dialog'
-import type { NodeState, PathNode, VisibilitySummary, WorkspaceRoot } from '@shared/contract'
+import { formatDate } from '../../lib/format'
+import type {
+  NodeState,
+  PathNode,
+  RetiredRootView,
+  RootManagementView,
+  VisibilitySummary,
+  WorkspaceRoot
+} from '@shared/contract'
 
 /**
  * 来源根面板 v2：每个来源根 = 一个可折叠的目录树容器（资源管理器式逐级展开，任意深度）。
@@ -23,6 +42,9 @@ const itemStore = useItemStore()
 const roots = ref<WorkspaceRoot[]>([])
 const nodes = ref<PathNode[]>([])
 const summary = ref<VisibilitySummary | null>(null)
+/** 路径管理视图：退役根（卸载记录）+ 无记录脱根条目。 */
+const mgmt = ref<RootManagementView | null>(null)
+const showUntracked = ref(false)
 const error = ref('')
 /** 展开的目录（dirPath 集合）；来源根容器默认展开一级。 */
 const expanded = ref<Set<string>>(new Set())
@@ -32,6 +54,7 @@ async function refresh(): Promise<void> {
     roots.value = await workspaceStore.listRoots(props.workspaceId)
     nodes.value = await api.nodes.list(props.workspaceId)
     summary.value = await api.workspaces.visibility(props.workspaceId)
+    mgmt.value = await api.workspaces.rootManagement(props.workspaceId)
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   }
@@ -196,6 +219,50 @@ async function removePath(root: WorkspaceRoot): Promise<void> {
   await workspaceStore.removePath(props.workspaceId, root.path)
   await refresh()
   void itemStore.scan(props.workspaceId)
+}
+
+/** 重新挂载退役根：条目归属即刻恢复为可见（节点树由随后的扫描重建）。 */
+async function restoreRetired(row: RetiredRootView): Promise<void> {
+  error.value = ''
+  try {
+    await workspaceStore.addPath(props.workspaceId, row.path)
+    await refresh()
+    void itemStore.scan(props.workspaceId)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
+/** 挂载无记录脱根条目所在的目录（去留里的"留"）：扫描后这些条目重新可见。 */
+async function mountGroup(dirPath: string): Promise<void> {
+  error.value = ''
+  try {
+    await workspaceStore.addPath(props.workspaceId, dirPath)
+    await refresh()
+    void itemStore.scan(props.workspaceId)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
+/** 清理脱根条目（不可恢复）：删条目 + 其标签挂载；在来源根下的条目受保护（宿主侧构造保证）。 */
+async function purgeDetached(dirPath: string | null, label: string, count: number): Promise<void> {
+  error.value = ''
+  const ok = await confirmDialog({
+    title: '清理脱根条目',
+    message: `将删除「${label}」下 ${count} 条脱根条目及其标签挂载，**不可恢复**。\n这些文件在磁盘上不会被删除；仍在来源根下的条目不受影响。`,
+    confirmText: '删除条目',
+    danger: true
+  })
+  if (!ok) return
+  try {
+    const res = await api.workspaces.cleanupDetached({ workspaceId: props.workspaceId, dirPath })
+    await refresh()
+    void itemStore.load(props.workspaceId)
+    if (res.deleted === 0) error.value = '没有可清理的脱根条目（可能已被清理或已挂回来源根）'
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  }
 }
 </script>
 
@@ -373,6 +440,86 @@ async function removePath(root: WorkspaceRoot): Promise<void> {
         <Plus :size="13" />
         选择目录…
       </button>
+
+      <!-- 已卸载的来源根（退役根）：条目仍在库中，去留在此决定 -->
+      <div
+        v-if="mgmt && (mgmt.retired.length || mgmt.untrackedTotal)"
+        class="mt-3 pt-2.5 border-t border-[var(--border)]"
+      >
+        <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-1.5">
+          已卸载的来源根
+        </div>
+
+        <div
+          v-for="row in mgmt.retired"
+          :key="row.path"
+          class="px-2 py-1.5 rounded text-[12px] hover:bg-[var(--bg-hover)]"
+        >
+          <div class="flex items-center gap-1.5">
+            <Archive :size="12" class="shrink-0 text-[var(--fg-dim)]" />
+            <span class="truncate flex-1" :title="row.path">{{ row.path }}</span>
+            <span class="text-[11px] text-[var(--fg-dim)] tabular-nums shrink-0">{{ row.itemCount }} 条</span>
+          </div>
+          <div class="mt-1 flex items-center gap-2.5 pl-5 text-[11px]">
+            <button
+              class="underline cursor-pointer hover:text-[var(--accent)]"
+              title="把该目录重新挂回本工作区；随后扫描即恢复条目可见"
+              @click="restoreRetired(row)"
+            >
+              重新挂载
+            </button>
+            <button
+              class="underline cursor-pointer hover:text-[var(--danger)]"
+              title="删除该根下的全部条目及其标签挂载（不可恢复；磁盘文件不动）"
+              @click="purgeDetached(row.path, row.path, row.itemCount)"
+            >
+              清理条目…
+            </button>
+            <span class="ml-auto text-[var(--fg-dim)] opacity-70">卸载于 {{ formatDate(row.retiredAt) }}</span>
+          </div>
+        </div>
+
+        <!-- 无记录的历史残留（卸载记录机制落地前卸载的根） -->
+        <div v-if="mgmt.untrackedTotal" class="px-2 py-1.5 rounded text-[12px]">
+          <div class="flex items-center gap-1.5">
+            <HelpCircle :size="12" class="shrink-0 text-[var(--fg-dim)]" />
+            <span class="flex-1" title="有来源但没有任何来源根覆盖的条目：无卸载记录可归因（旧版遗留）">无记录的脱根条目</span>
+            <span class="text-[11px] text-[var(--fg-dim)] tabular-nums shrink-0">{{ mgmt.untrackedTotal }} 条</span>
+            <button
+              class="text-[11px] underline cursor-pointer hover:text-[var(--accent)] shrink-0"
+              @click="showUntracked = !showUntracked"
+            >
+              {{ showUntracked ? '收起' : '目录…' }}
+            </button>
+          </div>
+          <div v-if="showUntracked" class="mt-1 pl-5 max-h-44 overflow-y-auto">
+            <div
+              v-for="g in mgmt.untrackedGroups"
+              :key="g.dirPath"
+              class="flex items-center gap-1.5 py-0.5"
+            >
+              <span class="truncate flex-1 text-[11px] text-[var(--fg-dim)]" :title="g.dirPath">
+                {{ g.dirPath }}
+              </span>
+              <span class="text-[11px] tabular-nums text-[var(--fg-dim)] shrink-0">{{ g.count }}</span>
+              <button
+                class="text-[11px] underline cursor-pointer hover:text-[var(--accent)] shrink-0"
+                title="把此目录挂为本工作区来源根（随后扫描即让这些条目重新可见）"
+                @click="mountGroup(g.dirPath)"
+              >
+                挂载
+              </button>
+              <button
+                class="text-[11px] underline cursor-pointer hover:text-[var(--danger)] shrink-0"
+                title="清理此目录及其子目录下的脱根条目（不可恢复）"
+                @click="purgeDetached(g.dirPath, g.dirPath, g.count)"
+              >
+                清理
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </aside>
 </template>

@@ -28,7 +28,7 @@ export const useItemStore = defineStore('item', () => {
 
   const filter = ref<{ tagIds: Id[]; keyword: string }>({ tagIds: [], keyword: '' })
 
-  /** 目录范围（视图状态）：只看该目录子树；null = 不限。下推为查询的 sourceUriPrefix。 */
+  /** 目录范围（视图状态）：只看该目录子树；null = 不限。下推为查询的 underDirPath。 */
   const scopeDirPath = ref<string | null>(null)
 
   // 分页：主界面一次最多渲染一页，滚动/按钮加载更多
@@ -45,7 +45,7 @@ export const useItemStore = defineStore('item', () => {
     const query: ItemsQuery = { limit: PAGE_SIZE, offset }
     if (filter.value.tagIds.length) query.withAllTags = [...filter.value.tagIds]
     if (filter.value.keyword) query.titleContains = filter.value.keyword
-    if (scopeDirPath.value != null) query.sourceUriPrefix = scopeDirPath.value
+    if (scopeDirPath.value != null) query.underDirPath = scopeDirPath.value
     query.order = sortBy.value
     query.orderDir = sortDir.value
     return query

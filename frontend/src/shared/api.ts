@@ -16,6 +16,7 @@ import type {
   NodeState,
   PathNode,
   Result,
+  RootManagementView,
   ScanOptions,
   ScanSummary,
   Tag,
@@ -141,6 +142,14 @@ export const api = {
     },
     async listRoots(workspaceId: Id): Promise<WorkspaceRoot[]> {
       return unwrap(await bridge().listRoots(workspaceId))
+    },
+    /** 路径管理视图：退役根（卸载记录 + 条目数）+ 无记录脱根条目（按父目录聚合）。 */
+    async rootManagement(workspaceId: Id): Promise<RootManagementView> {
+      return unwrap(await bridge().workspaceRootManagement(workspaceId))
+    },
+    /** 清理脱根条目（不可恢复）：只删"当前不属于任何来源根"的条目，在根下的条目受保护。 */
+    async cleanupDetached(input: { workspaceId: Id; dirPath?: string | null }): Promise<{ deleted: number }> {
+      return unwrap(await bridge().cleanupDetachedItems(input))
     },
     async scan(workspaceId: Id, options?: ScanOptions): Promise<ScanSummary> {
       return unwrap(await bridge().runScan(workspaceId, options))

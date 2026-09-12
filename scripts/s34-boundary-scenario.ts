@@ -153,7 +153,7 @@ export async function runBoundaryScenario(store: Store): Promise<void> {
   // ── ⑤ 读宽松与查询边界 ──────────────────────────────────────────────
   assert((await browseWorkspace(svc, 'ws-不存在')).items.length === 0, '⑤ 未知工作区浏览 = 空')
   assert((await store.queryItems({ titleContains: '%' })).length === 0, '⑤ 通配符字符按字面匹配（无 LIKE 注入面）')
-  assert((await store.queryItems({ sourceUriPrefix: '' })).length >= 0, '⑤ 空条件查询不抛错')
+  assert((await store.queryItems({ underDirPath: '' })).length >= 0, '⑤ 空条件查询不抛错')
   assert(
     (await store.countItems({
       directNodeStateIn: { workspaceId: 'ws-不存在', state: 'included' },

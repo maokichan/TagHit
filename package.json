@@ -19,6 +19,7 @@
     "start:host": "node frontend/node_modules/electron/cli.js .",
     "typecheck:host": "tsc -p tsconfig.host.json",
     "calibrate:boundary": "node scripts/s34-boundary.ts",
-    "calibrate:view": "node scripts/s35-view-calibrate.ts"
+    "calibrate:view": "node scripts/s35-view-calibrate.ts",
+    "calibrate:roots": "node scripts/s36-roots-calibrate.ts"
   }
 }

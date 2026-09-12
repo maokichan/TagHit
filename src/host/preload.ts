@@ -50,6 +50,8 @@ const api: TaghitRendererApi = {
   mountRoot: (input) => invoke('workspace.mountRoot', input),
   unmountRoot: (input) => invoke('workspace.unmountRoot', input),
   listRoots: (workspaceId) => invoke('workspace.listRoots', workspaceId),
+  workspaceRootManagement: (workspaceId) => invoke('workspace.rootManagement', workspaceId),
+  cleanupDetachedItems: (input) => invoke('workspace.cleanupDetached', input),
   deleteWorkspace: (workspaceId) => invoke('workspace.delete', workspaceId),
 
   runScan: (workspaceId, options) => invoke('scan.run', workspaceId, options),

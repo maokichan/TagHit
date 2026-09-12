@@ -24,6 +24,7 @@ import type {
   ItemStatus,
   NodeState,
   PathNode,
+  RetiredRoot,
   Tag,
   TagLink,
   Workspace,
@@ -123,6 +124,13 @@ function byNameAsc(a: { name: string }, b: { name: string }): number {
   return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
 }
 
+/** 单条 SQL 的绑定参数块大小：远离 SQLite 的参数上限（32766），亦不至于退化成逐行查询。 */
+const SQL_PARAM_CHUNK = 500
+
+function* chunked<T>(items: readonly T[], size: number): Generator<T[]> {
+  for (let i = 0; i < items.length; i += size) yield items.slice(i, i + size)
+}
+
 const SCHEMA = `
 PRAGMA foreign_keys = ON;
 
@@ -179,6 +187,14 @@ CREATE TABLE IF NOT EXISTS pathNodes (
   dirPath TEXT NOT NULL,
   state TEXT NOT NULL CHECK (state IN ('included','excluded')),
   PRIMARY KEY (workspaceId, dirPath)
+);
+
+-- 退役根（来源根的卸载记录）：条目去留的可寻址凭据
+CREATE TABLE IF NOT EXISTS retiredRoots (
+  workspaceId TEXT NOT NULL REFERENCES workspaces(id),
+  path TEXT NOT NULL,
+  retiredAt TEXT NOT NULL,
+  PRIMARY KEY (workspaceId, path)
 );
 
 CREATE TABLE IF NOT EXISTS attachments (
@@ -436,10 +452,19 @@ export class SqliteStore implements Store {
       where.push('instr(LOWER(i.title), LOWER(?)) > 0')
       params.push(q.titleContains.trim())
     }
-    if (q.sourceUriPrefix) {
-      // 路径段匹配：等于该路径，或紧随分隔符之下（防同前缀兄弟目录误命中）
+    if (q.underDirPath) {
+      // 路径段匹配：等于该目录，或紧随分隔符之下（防同前缀兄弟目录误命中）
       where.push(`i.kind = 'file' AND (i.sourceUri = ? OR instr(i.sourceUri, ?) = 1)`)
-      params.push(q.sourceUriPrefix, `${q.sourceUriPrefix}/`)
+      params.push(q.underDirPath, `${q.underDirPath}/`)
+    }
+    if (q.notUnderAnyDir) {
+      // 脱根条目：任何根都不覆盖（路径段匹配的否定式）
+      const clauses: string[] = []
+      for (const dir of q.notUnderAnyDir) {
+        clauses.push('(i.sourceUri = ? OR instr(i.sourceUri, ?) = 1)')
+        params.push(dir, `${dir}/`)
+      }
+      where.push(`i.kind = 'file' AND NOT (${clauses.length ? clauses.join(' OR ') : '0'})`)
     }
     if (q.directNodeStateIn) {
       // 直接节点状态派生（D18）：条件下沉，LIMIT 因此只作用于结果集
@@ -499,22 +524,27 @@ export class SqliteStore implements Store {
     if (idRows.length === 0) return []
 
     const ids = idRows.map((r) => r.id as string)
-    const marks = ids.map(() => '?').join(',')
-    const itemRows = this.all(`SELECT * FROM items WHERE id IN (${marks})`, ids)
-    const byId = new Map<string, Row>(itemRows.map((r) => [r.id as string, r]))
-
-    const tagRows = this.all(
-      `SELECT a.itemId AS itemId, t.id AS id, t.name AS name, t.description AS description, t.createdAt AS createdAt
-       FROM attachments a JOIN tags t ON t.id = a.tagId
-       WHERE a.itemId IN (${marks})`,
-      ids
-    )
+    const byId = new Map<string, Row>()
     const tagsByItem = new Map<string, Tag[]>()
-    for (const r of tagRows) {
-      const itemId = r.itemId as string
-      const list = tagsByItem.get(itemId) ?? []
-      list.push(toTag(r))
-      tagsByItem.set(itemId, list)
+    // 分批取行与标签：单条 `IN (?,?,…)` 的绑定参数有个数上限（SQLite 32766），
+    // 无 limit 的全量读（扫描快照、工作区统计）在大库上会直接抛错，故按块收敛。
+    for (const chunk of chunked(ids, SQL_PARAM_CHUNK)) {
+      const marks = chunk.map(() => '?').join(',')
+      for (const r of this.all(`SELECT * FROM items WHERE id IN (${marks})`, chunk)) {
+        byId.set(r.id as string, r)
+      }
+      const tagRows = this.all(
+        `SELECT a.itemId AS itemId, t.id AS id, t.name AS name, t.description AS description, t.createdAt AS createdAt
+         FROM attachments a JOIN tags t ON t.id = a.tagId
+         WHERE a.itemId IN (${marks})`,
+        chunk
+      )
+      for (const r of tagRows) {
+        const itemId = r.itemId as string
+        const list = tagsByItem.get(itemId) ?? []
+        list.push(toTag(r))
+        tagsByItem.set(itemId, list)
+      }
     }
 
     return ids.map((id) => {
@@ -707,6 +737,38 @@ export class SqliteStore implements Store {
       dirPath: r.dirPath as string,
       state: r.state as NodeState,
     }))
+  }
+
+  // ---- 退役根（来源根的卸载记录） -----------------------------------------
+
+  async addRetiredRoot(row: RetiredRoot): Promise<void> {
+    this.requireWorkspace(row.workspaceId)
+    this.run(
+      `INSERT INTO retiredRoots (workspaceId, path, retiredAt) VALUES (?,?,?)
+       ON CONFLICT(workspaceId, path) DO UPDATE SET retiredAt = excluded.retiredAt`,
+      [row.workspaceId, row.path, row.retiredAt]
+    )
+  }
+
+  async listRetiredRoots(opts?: { workspaceId?: Id }): Promise<RetiredRoot[]> {
+    const where: string[] = []
+    const params: unknown[] = []
+    if (opts?.workspaceId !== undefined) {
+      where.push('workspaceId = ?')
+      params.push(opts.workspaceId)
+    }
+    const sql = `SELECT workspaceId, path, retiredAt FROM retiredRoots${
+      where.length ? ` WHERE ${where.join(' AND ')}` : ''
+    } ORDER BY retiredAt ASC, path ASC`
+    return this.all(sql, params).map((r) => ({
+      workspaceId: r.workspaceId as string,
+      path: r.path as string,
+      retiredAt: r.retiredAt as string,
+    }))
+  }
+
+  async removeRetiredRoot(workspaceId: Id, path: string): Promise<void> {
+    this.run('DELETE FROM retiredRoots WHERE workspaceId = ? AND path = ?', [workspaceId, path])
   }
 
   // ---- 作品 ---------------------------------------------------------------

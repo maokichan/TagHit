@@ -120,6 +120,20 @@ export interface PathNode {
   state: NodeState
 }
 
+/**
+ * 退役根：来源根的**卸载记录**（工作区 × 路径 + 卸载时间）。
+ *
+ * 卸载来源根只删「来源根行 + 其节点树」，条目按裁决不受影响（条目全局，不由工作区拥有）——
+ * 于是那些条目不再属于任何来源根、也不进任何工作区视图。该记录是它们的**可寻址凭据**：
+ * 路径管理据此列出「已卸载的来源根」并给出条目数与去留操作（清理条目 / 重新挂载）。
+ * 条目数不在此冗余存储（按路径前缀实时统计）；重新挂载同一路径即清除本记录。
+ */
+export interface RetiredRoot {
+  workspaceId: Id
+  path: string
+  retiredAt: string
+}
+
 export function isFileItem(item: Item): item is FileItem {
   return item.kind === 'file'
 }

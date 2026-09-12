@@ -191,27 +191,27 @@ export async function runViewScenario(store: Store): Promise<void> {
     '⑤ 恢复节点后成员还原'
   )
 
-  // ---- ⑥ 目录范围（sourceUriPrefix）= 路径段匹配，非文本前缀 --------------
-  const underBoundary = await store.queryItems({ sourceUriPrefix: 'R:/库/边界' })
+  // ---- ⑥ 目录范围（underDirPath）= 路径段匹配，非文本前缀 --------------
+  const underBoundary = await store.queryItems({ underDirPath: 'R:/库/边界' })
   assertEqual(
     underBoundary.map((h) => h.item.id).sort(),
     ['m-cjk', 'm-dotted'],
     '⑥ 目录范围命中该目录之下（不含同前缀兄弟目录 边界2）'
   )
   assertEqual(
-    (await store.queryItems({ sourceUriPrefix: 'R:/库/边界2' })).length,
+    (await store.queryItems({ underDirPath: 'R:/库/边界2' })).length,
     0,
     '⑥ 同前缀兄弟目录独立（边界2 下无条目）'
   )
   assertEqual(
-    (await store.queryItems({ sourceUriPrefix: 'R:/库/f01.jpg' })).map((h) => h.item.id),
+    (await store.queryItems({ underDirPath: 'R:/库/f01.jpg' })).map((h) => h.item.id),
     ['m-01'],
     '⑥ 精确路径亦命中（文件路径作范围 = 自身）'
   )
   // 目录范围 + 可见性组合：只看某节点子树，且仍受成员派生约束
   assertEqual(
     (
-      await store.queryItems({ directNodeStateIn: VIS, sourceUriPrefix: 'R:/库/ex' })
+      await store.queryItems({ directNodeStateIn: VIS, underDirPath: 'R:/库/ex' })
     ).length,
     0,
     '⑥ 目录范围 ∩ 成员派生：被排除目录下即使有范围命中也不可见'
@@ -228,7 +228,7 @@ export async function runViewScenario(store: Store): Promise<void> {
     'R:/库/无节点/orphan.jpg',
   ]
   for (const uri of samples) {
-    const hits = await store.queryItems({ directNodeStateIn: VIS, sourceUriPrefix: uri })
+    const hits = await store.queryItems({ directNodeStateIn: VIS, underDirPath: uri })
     const visible = hits.some((h) => h.item.kind === 'file' && h.item.sourceUri === uri)
     const expected = (await store.listPathNodes({ workspaceId: WS })).some(
       (n) => n.dirPath === parentDir(uri) && n.state === 'included'

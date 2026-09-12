@@ -32,7 +32,13 @@ import type {
 } from '../domain/index.ts'
 
 import type { ItemHit, ItemsQuery } from '../ports/index.ts'
-import type { BrowseResult, ProjectedHit, VisibilitySummary } from '../application/index.ts'
+import type {
+  BrowseResult,
+  ProjectedHit,
+  RetiredRootView,
+  RootManagementView,
+  VisibilitySummary,
+} from '../application/index.ts'
 import type { ScanOptions, ScanSummary } from '../application/index.ts'
 
 /** 渲染层常用形状随契约一并交付（frontend 经 shared/contract.ts type-only 引用）。 */
@@ -48,6 +54,8 @@ export type {
   NodeState,
   PathNode,
   ProjectedHit,
+  RetiredRootView,
+  RootManagementView,
   ScanOptions,
   ScanSummary,
   Tag,
@@ -126,6 +134,13 @@ export interface IpcContracts {
   'workspace.listRoots': { args: [workspaceId: Id]; result: WorkspaceRoot[] }
   'workspace.delete': { args: [workspaceId: Id]; result: null }
 
+  // ---- 来源根生命周期：退役根（卸载记录）与脱根条目 ------------------------
+  'workspace.rootManagement': { args: [workspaceId: Id]; result: RootManagementView }
+  'workspace.cleanupDetached': {
+    args: [{ workspaceId: Id; dirPath?: string | null }]
+    result: { deleted: number }
+  }
+
   // ---- 扫描 scan：宿主注入真实文件系统 -------------------------------------
   'scan.run': { args: [workspaceId: Id, options?: ScanOptions]; result: ScanSummary }
 
@@ -203,6 +218,11 @@ export interface TaghitRendererApi {
   unmountRoot(input: { workspaceId: Id; path: string }): Promise<IpcResult<'workspace.unmountRoot'>>
   listRoots(workspaceId: Id): Promise<IpcResult<'workspace.listRoots'>>
   deleteWorkspace(workspaceId: Id): Promise<IpcResult<'workspace.delete'>>
+  workspaceRootManagement(workspaceId: Id): Promise<IpcResult<'workspace.rootManagement'>>
+  cleanupDetachedItems(input: {
+    workspaceId: Id
+    dirPath?: string | null
+  }): Promise<IpcResult<'workspace.cleanupDetached'>>
 
   runScan(workspaceId: Id, options?: ScanOptions): Promise<IpcResult<'scan.run'>>
 
