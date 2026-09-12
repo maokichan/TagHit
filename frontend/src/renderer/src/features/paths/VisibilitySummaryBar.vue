@@ -1,10 +1,15 @@
 <script setup lang="ts">
 /**
  * 可见性摘要条（共用块）：解释"为什么看不到全部内容"——可见 / 被排除隐藏 / 无节点归属，
- * 并给出「恢复全部」与当前浏览范围（只看某节点）的退出入口。
+ * 并给出当前浏览范围（只看某节点）的退出入口。
+ *
+ * `allowBulk` 控制**一键批量**（恢复全部可见）是否出现：窄面板只做就地轻量操作，
+ * 批量改可见性属重管理 → 只在全页呈现（2026-09-12 裁决：批量与去留处置归详细页）。
  */
 import { Focus, X } from 'lucide-vue-next'
 import { usePathManagement } from './usePathManagement'
+
+withDefaults(defineProps<{ allowBulk?: boolean }>(), { allowBulk: false })
 
 const pm = usePathManagement()
 const { summary, scopeDirPath } = pm
@@ -26,7 +31,7 @@ const { summary, scopeDirPath } = pm
           无归属 <b class="tabular-nums">{{ summary.nodeMissing }}</b>
         </span>
         <button
-          v-if="summary.hiddenByExcluded"
+          v-if="allowBulk && summary.hiddenByExcluded"
           class="ml-auto underline cursor-pointer hover:text-[var(--accent)]"
           title="把所有被排除的目录恢复为可见（逐节点；不改动未排除目录）"
           @click="pm.restoreAllVisible"

@@ -177,10 +177,11 @@ function official(
 /** 应用启动时注册全部官方功能组件（声明表先于 app.mount 装载——App.vue 挂载时读表）。 */
 export function registerBuiltinFeatures(): void {
   // ── 左活动栏工具（壳的默认顺序，用户可拖拽重排——App.vue 持久化） ──
+  // 组件名 = 它管的领域对象（GLOSSARY 词），不另造别名（名录与命名规则见 ARCHITECTURE §二）。
   // mounts 同时声明 contentTab = 该功能组件提供**全页呈现面**：壳据此显示"打开全页"角标，
   // 全页外壳按 fullPage 绑定渲染（不套窄面板）。未声明的功能组件没有全页可开。
   official(
-    { id: 'paths', title: '路径管理', mounts: ['activityBar:left', 'contentTab'] },
+    { id: 'paths', title: '来源根', mounts: ['activityBar:left', 'contentTab'] },
     { icon: FolderOpen, component: PathsPanel, fullPage: PathsFullPage }
   )
   official(

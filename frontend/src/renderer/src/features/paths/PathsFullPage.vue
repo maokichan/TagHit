@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * 路径管理（来源根）——**全页呈现面**（contentTab）。
+ * 来源根 —— **全页呈现面**（contentTab）。
  *
- * 全页不复用窄面板（用户裁决 2026-09-12）：窄面板的纵向堆叠在宽屏下浪费空间，
- * 这里按"左树右栏"重排——左栏目录树（可深可宽），右栏摘要/扫描/脱根处置。
- * 数据与动作仍与停靠面板同一份（usePathManagement），差异只在布局。
- * 外壳（页头 + 内容区）由壳的全页外壳提供。
+ * 全页不复用窄面板（用户裁决 2026-09-12）：窄面板做就地轻量操作，**批量与去留处置在这里**——
+ * 一键恢复全部可见、已卸载来源根与脱根条目的重新挂载/清理、扫描与上次结果概览。
+ * 布局：左栏目录树（可深可宽），右栏摘要 + 处置区。
+ * 数据与动作与停靠面板同一份（usePathManagement），差异只在布局。外壳由壳的全页外壳提供。
  */
 import { onMounted } from 'vue'
 import { RefreshCw } from 'lucide-vue-next'
@@ -21,7 +21,7 @@ const workspaceId = props.workspaceId ?? ''
 const pm = providePathManagement(workspaceId)
 const { error, mgmt, summary, roots } = pm
 void onMounted(() => {
-  // 无活动工作区（例如从主页直接开这个标签页）→ 不取数，只给提示
+  // 无工作区上下文（例如从主页新建的全页标签页）→ 不取数，只给提示
   if (workspaceId !== '') void pm.refresh()
 })
 </script>
@@ -29,7 +29,7 @@ void onMounted(() => {
 <template>
   <div v-if="workspaceId === ''" class="h-full flex items-center justify-center px-6 text-center">
     <p class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
-      路径管理按工作区生效。<br />先打开一个工作区标签页，再从那里打开本页。
+      来源根按工作区生效。<br />先打开一个工作区标签页，再从那里打开本页。
     </p>
   </div>
   <div v-else class="h-full min-h-0 flex">
@@ -37,7 +37,7 @@ void onMounted(() => {
     <section class="flex-1 min-w-0 min-h-0 overflow-y-auto px-5 py-4">
       <div class="flex items-center gap-2 mb-3">
         <h2 class="text-[13px] font-medium flex-1">
-          来源根
+          已挂载的来源根
           <span class="ml-1 text-[11px] text-[var(--fg-dim)] tabular-nums">{{ roots.length }} 个</span>
         </h2>
         <button
@@ -67,15 +67,15 @@ void onMounted(() => {
       <RootTree />
     </section>
 
-    <!-- 右栏：摘要 + 脱根处置 -->
+    <!-- 右栏：摘要 + 批量与去留处置（重管理只在全页） -->
     <aside class="w-80 shrink-0 min-h-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--bg-elev)] px-4 py-4 space-y-3">
       <h2 class="text-[13px] font-medium">可见性与脱根条目</h2>
 
-      <VisibilitySummaryBar />
+      <VisibilitySummaryBar allow-bulk />
 
       <div class="pt-1 text-[11px] text-[var(--fg-dim)] leading-relaxed">
         可见性 = 当前工作区浏览/排序的成员前提（excluded 只隐藏该目录的**直接**条目，不级联）；
-        「只看此节点」是视图范围，不改可见性。
+        「只看此节点」是视图范围，不改可见性。批量改可见性与脱根条目的去留都在本页。
       </div>
 
       <div

@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { ExternalLink, Puzzle } from 'lucide-vue-next'
 import { listFeatures } from '../../features/registry'
 import { useTabStore } from '../../stores/tab'
+import { openFeatureTab } from '../../features/tabs'
 
 defineProps<{ side?: 'left' | 'right' }>()
 
-const router = useRouter()
 const tabStore = useTabStore()
 
 /** contentTab 贡献者清单：点击 = 打开/激活其内容标签页（单实例） */
 const contentTabs = listFeatures('contentTab')
 
 function open(featureId: string, title: string): void {
-  tabStore.openFeature(featureId, title)
-  router.push(`/feature/${featureId}`)
+  // 打开瞬间的活动工作区作为上下文固化到标签项（本面板在条目详情页也可用，此时上下文为 null）
+  openFeatureTab(featureId, title, tabStore.activeWorkspaceId)
 }
 </script>
 

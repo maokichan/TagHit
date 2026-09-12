@@ -11,11 +11,10 @@
  * - `displayPanel` / `settings` → 无外壳（宿主面板/设置页自带分区容器）
  */
 import { computed, defineAsyncComponent, type Component } from 'vue'
-import { useRouter } from 'vue-router'
 import { SquareArrowOutUpRight } from 'lucide-vue-next'
 import { declaresFullPage, type FeatureEntry } from './registry'
 import { provideFeatureContext, type FeatureContext } from './context'
-import { useTabStore } from '../stores/tab'
+import { openFeatureTab } from './tabs'
 import FeatureBoundary from './FeatureBoundary.vue'
 
 const props = defineProps<{
@@ -61,14 +60,11 @@ const canOpenFullPage = computed(
   () => props.surface === 'activityBar' && implAvailable.value && declaresFullPage(props.feature)
 )
 
-/** 停靠面板右下角角标 → 打开该功能组件的全页呈现标签页。 */
-const router = useRouter()
-const tabStore = useTabStore()
-function openFeatureTab(): void {
+/** 停靠面板右下角角标 → 打开该功能组件的全页呈现标签页（上下文在打开瞬间固化）。 */
+function openFullPage(): void {
   const f = props.feature
   if (f == null) return
-  tabStore.openFeature(f.manifest.id, f.manifest.title)
-  router.push(`/feature/${f.manifest.id}`)
+  openFeatureTab(f.manifest.id, f.manifest.title, props.workspaceId ?? null)
 }
 </script>
 
@@ -93,7 +89,7 @@ function openFeatureTab(): void {
              bg-[var(--bg)] border border-[var(--border)] text-[var(--fg-dim)]
              hover:text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
       :title="`打开「${feature.manifest.title}」全页`"
-      @click="openFeatureTab"
+      @click="openFullPage"
     >
       <SquareArrowOutUpRight :size="11" />
     </button>

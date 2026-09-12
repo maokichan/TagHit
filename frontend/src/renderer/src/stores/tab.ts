@@ -32,12 +32,16 @@ export interface ItemTab {
  * 功能组件内容标签页（contentTab 贡献点，DECISIONS 2026-09-07）：
  * 壳持有标签项（featureId/title/激活），组件自持内容状态；关闭即销毁；
  * 同一 feature 单实例（重复打开 = 激活既有标签）。
+ *
+ * `workspaceId` = 打开瞬间固化的**工作区上下文**：功能标签页成为活动标签后，
+ * `activeWorkspaceId` 即为 null（活动标签不是工作区），全页组件不能靠运行时推断拿上下文。
  */
 export interface FeatureTab {
   key: string
   kind: 'feature'
   featureId: string
   title: string
+  workspaceId: string | null
 }
 
 export type Tab = HomeTab | WorkspaceTabItem | SettingsTab | ItemTab | FeatureTab
@@ -139,15 +143,22 @@ export const useTabStore = defineStore('tab', () => {
     activeKey.value = tab.key
   }
 
-  /** 打开功能组件内容标签页（contentTab）：单实例，重复打开 = 激活既有标签 */
-  function openFeature(featureId: string, title: string): void {
+  /**
+   * 打开功能组件内容标签页（contentTab）：单实例；重复打开 = 激活既有标签。
+   * workspaceId 传入非空时更新该标签的工作区上下文（从无上下文的入口打开时不清掉已有的）。
+   */
+  function openFeature(featureId: string, title: string, workspaceId: string | null = null): void {
     const key = `feature:${featureId}`
-    const existing = tabs.value.find((t) => t.key === key)
+    const existing = tabs.value.find(
+      (t): t is FeatureTab => t.kind === 'feature' && t.featureId === featureId
+    )
     if (existing) {
+      if (workspaceId != null) existing.workspaceId = workspaceId
+      existing.title = title
       activeKey.value = key
       return
     }
-    const tab: FeatureTab = { key, kind: 'feature', featureId, title }
+    const tab: FeatureTab = { key, kind: 'feature', featureId, title, workspaceId }
     tabs.value.push(tab)
     activeKey.value = key
   }

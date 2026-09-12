@@ -1,5 +1,5 @@
 /**
- * 路径管理（来源根）——数据与动作的**复用单元**，供两种呈现面共用：
+ * 来源根（来源根）——数据与动作的**复用单元**，供两种呈现面共用：
  * 停靠面板（features/paths/PathsPanel.vue）与全页呈现（features/paths/PathsFullPage.vue）。
  *
  * 为什么抽出来：同一功能组件的两种呈现面各自布局不同（窄面板 vs 两栏全页），
@@ -25,7 +25,7 @@ import type {
   WorkspaceRoot
 } from '@shared/contract'
 
-/** 模块级修订号：任一路径管理动作完成后自增，所有在挂实例据此重查（跨呈现面一致性）。 */
+/** 模块级修订号：任一来源根动作完成后自增，所有在挂实例据此重查（跨呈现面一致性）。 */
 const revision = ref(0)
 
 function bump(): void {

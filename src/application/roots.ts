@@ -40,7 +40,7 @@ export async function mountWorkspaceRoot(
 
 /**
  * 卸载来源根：删来源根行 + 其整棵节点树，并落一条退役根记录（同一事务）。
- * 条目不受影响——去留由路径管理里的清理操作决定（本函数绝不删条目）。
+ * 条目不受影响——去留由来源根里的清理操作决定（本函数绝不删条目）。
  */
 export async function unmountWorkspaceRoot(
   svc: AppServices,
@@ -70,7 +70,7 @@ export interface DetachedGroup {
   count: number
 }
 
-/** 路径管理视图：退役根（有记录）+ 无记录脱根条目（历史残留）。 */
+/** 来源根视图：退役根（有记录）+ 无记录脱根条目（历史残留）。 */
 export interface RootManagementView {
   retired: RetiredRootView[]
   untrackedTotal: number
@@ -105,7 +105,7 @@ export async function listRetiredRoots(
 }
 
 /**
- * 路径管理视图：一次读齐面板需要的两段信息。
+ * 来源根视图：一次读齐面板需要的两段信息。
  * 脱根条目的判定在存储侧完成（`notUnderAnyDir`）——不把全库条目捞进内存再筛。
  */
 export async function rootManagement(

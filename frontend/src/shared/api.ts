@@ -143,7 +143,7 @@ export const api = {
     async listRoots(workspaceId: Id): Promise<WorkspaceRoot[]> {
       return unwrap(await bridge().listRoots(workspaceId))
     },
-    /** 路径管理视图：退役根（卸载记录 + 条目数）+ 无记录脱根条目（按父目录聚合）。 */
+    /** 来源根视图：退役根（卸载记录 + 条目数）+ 无记录脱根条目（按父目录聚合）。 */
     async rootManagement(workspaceId: Id): Promise<RootManagementView> {
       return unwrap(await bridge().workspaceRootManagement(workspaceId))
     },
