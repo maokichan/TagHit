@@ -68,7 +68,7 @@
 | D14 | SQLite 驱动 | 适配层只认最小接口 `SyncSqlite`（store.ts），驱动注入：node:sqlite 在 nodeDriver.ts（Node≥22 校准用），宿主注入 better-sqlite3（Electron ABI，根 node_modules）；node:sqlite 不进 Electron 打包产物 |
 | D15 | 字节闸门 | 媒体字节不走 IPC：taghit-file:// 协议（白名单=各工作区来源根+userData，**按路径段匹配**（目录根相等或紧随分隔符，防同前缀兄弟目录越权），Range 206、MIME、ACAO）；文本走窄桥 item.readText（TEXT_EXTS 白名单 + 2MiB 上限；超限返回前段并 truncated:true，比旧版整篇拒读更好用）。白名单从 Store 端口查，不裸 SQL。图片固有尺寸扫描时从文件头解析（application/mediaMeta.ts，PNG/JPEG/GIF/WebP/BMP 零依赖，替代旧版 image-size），落 items.width/height（旧库 ALTER 迁移）；瀑布流比例优先实测值并钳制 [1/2.2, 2.2]（老版逻辑），缺失回退 contentHash 估计，非媒体类型恒 4:3 |
 | D16 | 视频缩略图/尺寸 | 渲染层 canvas 抓帧（<video> 经 taghit-file Range seek）+ 宿主落盘 + 按 contentHash 回写（previewUri/width/height，items 加列 ALTER 迁移）；不引入 ffprobe/ffmpeg 运行时依赖；JPEG ≤480px、base64 ≤2MiB 上限 |
-| D17 | 窗口壳（2026-09-12） | 无边框窗口（frame:false + backgroundColor 同主题底色）：TabBar 兼任标题栏——drag-region 归根部（空白处拖动/双击最大化），交互元素 no-drag；右上三键自绘（WindowControls → `window.control`/`window.isMaximized` 窄桥，宿主按 sender 解析发起方窗口；最大化态随 resize 重查）。默认应用菜单置空（Menu.setApplicationMenu(null)，Ctrl+Shift+I 等随菜单失效，后续按需自注册）。主色去蓝：暗/亮主题 --accent 统一琥珀系，CSS 变量单点换，组件零改动 |
+| D17 | 无边框窗口（2026-09-12） | 无边框窗口（frame:false + backgroundColor 同主题底色）：TabBar 兼任标题栏——drag-region 归根部（空白处拖动/双击最大化），交互元素 no-drag；右上三键=「窗口控制键」自绘（WindowControls → `window.control`/`window.isMaximized` 窄桥，宿主按 sender 解析发起方窗口；最大化态随 resize 重查）。默认应用菜单置空（Menu.setApplicationMenu(null)，Ctrl+Shift+I 等随菜单失效，后续按需自注册）。主色去蓝：暗/亮主题 --accent 统一琥珀系，CSS 变量单点换，组件零改动。术语定义见 ARCHITECTURE §二 |
 
 ## parked
 

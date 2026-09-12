@@ -5,30 +5,54 @@ import { spawn } from 'node:child_process'
 // Windows 下直接 spawn npm.cmd 会 EINVAL（.cmd 需经 cmd.exe 包装），故统一走 shell。
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 const children = new Set()
+let shuttingDown = false
 
 function run(args, opts = {}) {
-  const child = spawn([npmCmd, ...args].join(' '), { stdio: 'inherit', shell: true, ...opts })
+  const child = spawn([npmCmd, ...args].join(' '), {
+    stdio: 'inherit',
+    shell: true,
+    windowsHide: true,
+    ...opts,
+  })
   children.add(child)
   child.on('exit', (code, signal) => {
     children.delete(child)
     console.log(`[dev] ${args.join(' ')} 退出（${signal ?? code}）`)
-    if (children.size > 0) shutdown()
-    else process.exit(0)
+    if (shuttingDown) {
+      if (children.size === 0) process.exit(0)
+      return
+    }
+    // 任一子进程退出即收场：electron 关窗退出 → 停 vite；vite 挂掉 → 停 electron
+    shuttingDown = true
+    shutdown()
+    // 兜底：进程树 5s 内未全部退出则强制收场
+    setTimeout(() => process.exit(0), 5000).unref()
   })
   return child
 }
 
-function shutdown() {
-  for (const c of children) {
-    if (c.exitCode === null && !c.killed) c.kill()
+/** 树杀：Windows 下 kill() 只终止 cmd.exe 包装层，vite/electron 孙进程会变孤儿（占端口/挂住终端）。 */
+function killTree(child) {
+  if (child.pid == null || child.exitCode !== null || child.signalCode !== null) return
+  if (process.platform === 'win32') {
+    spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true })
+  } else {
+    child.kill('SIGTERM')
   }
-  process.exit(0)
+}
+
+function shutdown() {
+  for (const c of children) killTree(c)
 }
 
 process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
 
-const bundle = spawn([npmCmd, 'run', 'bundle:host'].join(' '), { stdio: 'inherit', shell: true })
+const bundle = spawn([npmCmd, 'run', 'bundle:host'].join(' '), {
+  stdio: 'inherit',
+  shell: true,
+  windowsHide: true,
+})
 bundle.on('exit', (code) => {
   if (code !== 0) {
     console.error('[dev] bundle:host 失败，终止。')

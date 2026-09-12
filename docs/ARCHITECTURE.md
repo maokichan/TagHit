@@ -32,6 +32,7 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 - **边界纪律**：渲染层只认 uri；渲染层拿不到 Store/裸 Node——一切走窄桥用例；D9 错误按信封 code 转文案（frontend/shared/api.ts）。
 - **SQLite 驱动注入（D14）**：适配层只认最小接口 `SyncSqlite`；node:sqlite 在 nodeDriver.ts（Node ≥22 校准用），Electron 主进程注入 better-sqlite3（ABI 匹配 Electron，根 node_modules）。node:sqlite 不进 Electron 打包产物。
 - **字节闸门（D15）**：媒体经 `host/protocol.ts` 的 taghit-file:// 特权协议（白名单 = 各工作区来源根 + userData，从 Store 端口查；Range/MIME/ACAO）；文本经 `item.readText` 窄桥（application/content.ts：TEXT_EXTS 白名单 + 2MiB 上限）。视频缩略图（D16）：**派生小图**经专用窄桥 `thumbnail.save`（渲染层 canvas 抓帧 JPEG base64，≤2MiB）→ 宿主落盘 `{userData}/thumbnails/{contentHash}.jpg` → 应用层按 contentHash 回写 previewUri/width/height（同内容多条目共享；`ItemsQuery.contentHash` 查询下沉）。
+- **无边框窗口（D17，术语标准）**：窗口形态称「**无边框窗口**」（frame:false + backgroundColor 同主题）。TabBar 兼任「**标题栏**」：drag-region 归根部（空白处拖动 / 双击最大化），交互元素 no-drag。右上三键正式名「**窗口控制键**」（组件 WindowControls：最小化 / 最大化-还原 / 关闭，经 `window.control`/`window.isMaximized` 窄桥，宿主按 sender 解析发起方窗口）。一词一义：「壳」专指插件语境的容器与展示层（§3），窗口语境不用「壳」。
 - **打包与真机运行**：esbuild 打 src/host → build/main.cjs + preload.cjs（external: electron/better-sqlite3）；`npm run bundle:host` / `dev:renderer` / `start:host`（命令细节见 CONTEXT §五）。
 - 数据流约定：渲染层持**视图状态**（工作区/勾选 tag/排序/页码）；任何改动 = 改意图 → 窄桥调用一次用例 → 失效并重查；**不本地排序/过滤**（分页语义依赖适配器一次完成）。
 
