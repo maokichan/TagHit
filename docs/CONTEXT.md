@@ -1,66 +1,55 @@
 # TagHit 开发交接（CONTEXT）
 
-> 面向 AI 会话的**快速交接**：一句话状态、读序、进度（唯一进度跟踪点）、待办（TODO.md）、纪律、环境。
-> 架构细节见 ARCHITECTURE；词汇 GLOSSARY；裁决 DECISIONS；**待办唯一清单 = 根目录 TODO.md**。
-> 版本：0.2.12。
+> 面向 AI 会话的快速交接。**架构见 ARCHITECTURE · 词汇 GLOSSARY · 裁决 DECISIONS · 待办 TODO.md（唯一清单）**。
+> 版本：0.2.13。
 
 ## 一、一句话
 
-0.2 领域先行重写：后端核心全部完成并通过校准；宿主契约 v0（42 端点 + 信封，单一事实源 src/host/ipc.ts）与旧 UI 吸收完成；**真机运行已打通**（Electron 33 + better-sqlite3 + esbuild 打包，D14）；**字节闸门已落地**（taghit-file:// 媒体协议 + item.readText 文本窄桥 + 图片固有尺寸扫描落库，D15）；界面已按老版观感补齐（瀑布流用真实宽高比）。**插件生态机制全部就位**（贡献点/命令/右键菜单/三类呈现面/HostApi 冻结面，ARCHITECTURE §三）。**视频缩略图与多选批量（0.2.9，D16）**：canvas 抓帧 → 宿主落盘 + 按哈希回写（同内容共享）；Ctrl/Cmd 多选 + 批量打标。**无边框窗口（0.2.10，D17）**：默认菜单移除，TabBar 兼任标题栏（拖拽区 + 窗口控制键）；暗/亮主色琥珀（--accent 单点）；术语见 ARCHITECTURE §二。**来源根树 + 文件管理（D18）**：来源根面板 = 每根一个目录树容器（分割线分离；节点可见性含根、不级联、Shift=子树批量）；「文件管理」组件对多选集做真实文件改名/移动/删除进回收站（路径闸门=来源根）；扫描 contentHash 认领——移动后条目 id 与标签原样保留；挂载走原生目录选择器（dialog.pickDirectory）。停靠面板角标 → 功能组件内容标签页（暂全页复用窄面板）。**输入边界专项（s34）**：名称归一闸（trim/空判/限长）、normalizePath 词汇解析 `..`（堵文本前缀穿透）。**多实例根治**：开发态 userData 按库隔离 + 同库单实例锁（缓存锁冲突黑屏）+ dev 端口自适应回退；渲染层控制台转发主进程 + render-process-gone 自恢复。
+0.2 领域先行重写已完成（后端核心 + 宿主契约 + 渲染层 + 插件机制 + 桌面壳全部落地），当前在 0.2.x 收口：这一批做了**浏览正确性**、**来源根生命周期**、**历史数据修复**、**容器归壳与全页呈现面**、**键鼠框架**、**导航语义**（裁决 D19–D26 与 git log 是唯一细节来源）。
 
 ## 二、读序
 
-README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → src/{domain,ports,application}；`frontend/` 是渲染层。
+README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{domain,ports,application}`；`frontend/` 是渲染层。
 
-## 三、进度（唯一进度跟踪点；待办唯一清单 = 根目录 TODO.md）
+## 三、进度与下一步
 
-已完成（细节见 DECISIONS 与 git log）：契约 v0 ✅ 旧 UI 吸收 ✅ 贡献点 v0 ✅ 真机接线 ✅ 字节闸门 ✅ 界面美化 ✅ 图片尺寸落库 ✅ 注册表 v0.1 ✅ 命令注册表 + 右键菜单闭环 ✅ 插件生态主线（2026-09-07）✅ 视频缩略图 + 多选批量（D16）✅ 无边框窗口 + 窗口控制键 + 主色琥珀（D17）✅ **来源根树容器 + 文件管理组件 + contentHash 认领 + 停靠面板角标 + dialog.pickDirectory（D18）** ✅ **输入边界校准 s34 + 名称归一闸 + 路径 `..` 词汇解析** ✅ **多实例根治（userData 按库隔离 + 同库单实例锁 + dev 端口回退 + 渲染层控制台转发/崩溃自恢复）** ✅ **浏览派生条件下沉 + 分页/计数可信（D19）** ✅：可见性作为查询条件下沉（`directNodeStateIn`），排序不再改变条目数（真实库实测 100 条成员由 0~3 条 → 六种排序恒 100）；路径规则上移领域层 `domain/paths.ts`（sqlite SQL 译文等价，校准 s35 双跑）；`countItems` + `browse {items,total}` + `workspace.visibility`；来源根面板新增「只看此节点」（视图范围，不改可见性）、可见性摘要（可见/被排除/无归属）与「恢复全部」。**历史数据缺陷待修**：174 条反斜杠 sourceUri 与正斜杠孪生重复（同路径同哈希双身份）。**来源根生命周期（D20）** ✅：卸载落退役根记录（workspace × path + 时间），来源根新增「已卸载的来源根」区（条目数实时前缀统计 + 清理条目 / 重新挂载）与「无记录的脱根条目」区（按父目录聚合，可挂载恢复或逐组清理）；清理候选集恒为当前脱根条目（传来源根路径也删不到在根下的条目）；`notUnderAnyDir` 脱根判定下沉存储；SQL 批量读按 500 分块（大库无 limit 全量读不再撞参数上限）。**历史路径双身份修复（D21）** ✅：`repairLegacyPaths` 无损幂等（孪生行合并——标签/作品成员迁到重扫产物，补齐缺失派生元数据后删旧行；无孪生行原地归一化），宿主启动时执行一次；真实库实测 175 → 1 归一化 + 174 合并，条目 4539 → 4365，挂载行不丢。**停靠面板宽度统一 + 容器归壳（D22）** ✅：壳级变量 `--panel-width` 由壳的停靠面板外壳施加（功能组件不自绘宽度/边框）；呈现面显式声明（`mounts` 含 `contentTab` + `fullPage` 实现绑定），**全页不复用窄面板**；首个全页切片 = 来源根（左树右栏，与窄面板共用 `usePathManagement` + 共用块）。**键鼠交互框架（D23）** ✅：快捷键注册表（绑定 → 命令 id，执行器构造与右键菜单同形的上下文）；选择交互模型唯一实现（Shift=区间 / Ctrl·Cmd=切换 / 裸点击=单选；点空白=未命中 `[data-ctx-target]` → 清空；Esc 清空）；缩略图 `draggable=false`；首批行为 Ctrl+F / Esc / 点空白 / Shift 区间。**扫描容错（D24）** ✅：不可读目录产出 error 条目并跳过子树（不再让整次扫描失败），`ScanSummary.dirsUnreadable` 报数，且**不可读子树整体退出消失判定**（防误删节点行/误标 missing）。**术语统一为「来源根」（D25）** ✅：删除自造词「路径管理」（词表只放领域词，组件名录与命名规则单点在 ARCHITECTURE §二）；**呈现面分工**（窄面板=就地轻量、全页=批量与去留处置；全页入口唯一=右下角角标）。**导航历史语义 + 全页版心 + 瀑布流比例（D26）** ✅：`features/tabs.ts` 单点导航策略（**激活标签=replace、打开视图=push**，修"侧键返回到不该去的地方"）；守卫"无对应标签则回落活动标签、绝不跳进别的标签"；全页外壳给**居中版心**（`--page-max-width`）；全页内容改单列（去掉那条"没必要"的固定窄边栏）；瀑布流比例**只取实测值**，缺失用中性 4:3（删掉 contentHash 假比例——它正是"视频比例不对"的来源），媒体改 `object-contain` 不裁画面。
+**已完成**（只列名下能力，细节不在此重复）：契约 v0 · 旧 UI 吸收 · 插件生态机制（贡献点/命令/服务面/呈现面三分类）· 真机运行 · 字节闸门 · 桌面壳（无边框窗口 + 主色）· 来源根树与文件管理 · 浏览正确性 · 来源根生命周期与历史数据修复 · 容器归壳与全页呈现面 · 键鼠框架 · 扫描容错 · 术语统一 · 导航语义与版心。
 
-下一步主线（详述与依赖见 TODO.md）：
-1. 键鼠框架的下一批行为挂载：节点右键可见性操作（隐藏子树 / 只看此节点）+ 命令面板
-2. **待讨论：哪些功能需要全页**（建议判据：有跨条目批量操作、或需要树/表宽布局者才给）
-3. **待裁决：是否要真并行访问**——每标签独立历史（popstate 转译）+ 条目多实例标签（D26 已记边界）
+**下一步**（详述见 TODO.md）：
+1. 键鼠框架的下一批行为：节点右键可见性、命令面板
+2. 浏览页大升级：左右切换条目、滚动打标工作流、详情页移左/右侧留给插件
+3. 待裁决：哪些功能需要全页；是否做**真并行访问**（每标签独立历史 + 条目多实例；用户定性为 2.0 级）
 
-常规：push（含 tag）由真人执行。
+**常规**：push（含 tag）由真人执行。
 
 ## 四、纪律
 
-1. 层纪律：领域纯类型+规则；流程在应用层；存储/IO 在适配器；宿主只装配与边界；端口不做业务判定。
-2. 术语纪律：只用 GLOSSARY / ARCHITECTURE 已定义词；禁自造语义词（历史：is-a/修饰曾致幻觉）；**一词一义**——领域词定义于 GLOSSARY、架构/渲染层词定义于 ARCHITECTURE，跨层含义冲突优先改词消除（先例：插件语境"宿主"→「壳」；「宿主/宿主进程」只指 src/host 主进程）。
-3. 文档纪律：维护 GLOSSARY / DECISIONS / CONTEXT / **ARCHITECTURE** + README + **TODO.md**；不留轮次记录；**进度只记本文件 §三，待办只记 TODO.md**。
-4. 不预建模：parked 项不进代码（parked 清单见 DECISIONS 末尾，待办细化见 TODO.md）。
-5. 提交前所改层 `tsc -p tsconfig.<domain|ports|adapters|application|host>.json` 通过；语义变更即同步文档；动契约/适配器后跑全部校准（memory / sqlite / scan / **boundary 输入边界**）。
-6. git：本地提交积极做；**版本号只在开发者明示时升（AI 不得自升）**，**升版本必打 tag**（随升随打，不必再确认）；非版本类 tag 打前向用户确认一次；push（含 tag）由真人执行；版本迭代只对应代码/功能变更，纯文档变更不打版本。（2026-09-12 修订）
+1. **层纪律**：领域纯类型+规则；流程在应用层；存储/IO 在适配器；宿主只装配与边界；端口不做业务判定。
+2. **术语纪律**：只用 GLOSSARY（领域词）/ ARCHITECTURE（架构与渲染层词）已定义的词；**禁自造语义词**，**一词一义**；跨层含义冲突优先改词消除。组件名取领域对象名（ARCHITECTURE 名录是单点）。
+3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / 本文件 + README + TODO.md；不留轮次记录；**进度只记本文件 §三（只列名下能力，不复述细节）**，待办只记 TODO.md；文档不写可推断的内部标识符与文件清单。
+4. **不预建模**：parked 项不进代码（清单见 DECISIONS 末尾），待办细化进 TODO.md。
+5. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**六份校准**（memory / sqlite / scan / boundary / view / roots）；动过模板结构跑前端**模板解析检查**（vue-tsc 会漏报标签不闭合）；语义变更即同步文档。
+6. **git**：本地提交积极做；**版本号只在开发者明示时升（AI 不得自升）**，**升版本必打 tag**（随升随打，不必再确认）；非版本类 tag 打前确认；push（含 tag）由真人执行；纯文档变更不打版本。
 
 ## 五、环境与运行
 
-- 层 typecheck：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；全局 tsc 亦可；freeze 路径已失效）；node v24 直跑 TS。
-- frontend：node_modules 已装（electron 33.4.11 含 exe）；`npx vue-tsc --noEmit -p tsconfig.web.json --composite false`；契约类型经 @host/* alias type-only 引用根 src/host/ipc.ts。
-- **模板解析检查（必跑）**：`npm --prefix frontend run check:templates`——用 Vue 官方编译器逐个解析 .vue。
-  **vue-tsc 走语言服务的宽容解析，会漏报模板标签不闭合**（2026-09-12 实际踩到：批量改外壳后 4 个面板多出 `</div>`，vue-tsc 通过、vite 开发服务器直接报 Invalid end tag 而白屏）。改过模板结构后必须跑这一项。
-- 校准：`npm run calibrate | calibrate:sqlite | calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots`（boundary = 对外暴露面的输入合法性专项，s34；view = 浏览窗口/成员派生专项，s35；roots = 来源根生命周期/退役根/脱根条目专项，s36。三者均 memory/sqlite 双跑）。
-- 真机运行：一键 `npm run dev`（scripts/dev.mjs：bundle:host → vite 直启（端口自适应回退）+ start:host，TAGHIT_DB 缺省 build/taghit-dev.db，环境变量透传；开发态 userData 按库隔离，同库双开单实例锁退出）；或手动：终端 A `npm --prefix frontend run dev:renderer`（vite），终端 B `npm run bundle:host` 后 `TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:host`。
-- 根 node_modules 仅 better-sqlite3/bindings/file-uri-to-path（复制自 freeze，Electron ABI；**勿让 node v24 直接加载**）。better-sqlite3 版本须与 electron 匹配（D13/D14）。
+- **层 typecheck**：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；freeze 路径已失效）；node v24 可直跑 TS。
+- **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）。
+- **校准**：`npm run calibrate | calibrate:sqlite | calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots`——前六项除 scan 外均 memory/sqlite 双跑；scene 定义在 `scripts/s3x-*-scenario.ts`，入口是 `*-calibrate.ts`。
+- **真机运行**：`npm run dev`（一键：打包宿主 → vite dev（端口自适应回退）→ Electron；开发库 `build/taghit-dev.db`）；手动分步见 README。开发态 userData 按库隔离，同库双开由单实例锁拒绝。
+- **宿主产物**：esbuild 打包 `src/host` → `build/main.cjs` + `preload.cjs`（宿主代码改动必须重新打包并重启应用；渲染层改动只需刷新窗口）。
+- 根 node_modules 仅 better-sqlite3/bindings/file-uri-to-path（Electron ABI，**勿让 node v24 直接加载**）。
 
-## 六、文件地图（要点）
+## 六、目录（要点）
 
 ```
-src/domain/    types · rules · errors · paths（纯路径规则：parentDir/isUnderDir/normalizePath）
-src/ports/ · src/adapters/ · src/application/（含 roots.ts 来源根生命周期）  ← 后端核心（ARCHITECTURE §一）
-src/host/      main（装配+IPC+窗口壳）· preload · ipc（typed 契约）· protocol（taghit-file）· sqliteDriver
-frontend/      渲染层
-  shared/      contract（契约 type-only 桥）· api（门面+D9 文案）· types/{feature,command}
-  renderer/    lib/{viewModel,media,format,thumbnailer} · stores/{item,tab,ui,workspace,tag,config}
-               features/（registry·commands·officialCommands·hostApi·SurfaceHost·FeatureBoundary
-                         ·tabs（打开全页的单点：标签项固化工作区上下文）·selection（选择交互模型）
-                         ·ContextMenuHost·contextMenu·context·services/{dialog,toast,batchTag}
-                         ·display/{layout,sort,mediaType,workspaceInfo}·content/globalSearch
-                         ·files/FilesPanel·paths/（PathsPanel 停靠面·PathsFullPage 全页面
-                         ·usePathManagement 数据动作复用单元·RootTree/VisibilitySummaryBar/RelocationPanel 共用块）
-                         ·keyboardMouse/{setup 执行器,shortcuts 绑定注册表}）
-               components/（item 网格卡片 · workspace/{Tags,Display}Panel · search
-                          · layout/{TabBar,WindowControls,ActivityBar,Info,Plugins}）· views/（含 FeatureTabView）
-scripts/       dev.mjs（一键+树收场+端口回退）· s32（六用例）· s33（扫描）· s34（边界输入）· s35（浏览窗口/成员派生）· s36（来源根生命周期）—— memory/sqlite 各入口
-docs/          GLOSSARY · DECISIONS · ARCHITECTURE · 本文件；根目录 TODO.md（待办唯一清单）
-build/         esbuild 产物 + 真机 dev 库（gitignore）
+src/domain      实体与关系类型 · 纯规则 · 路径规则 · 错误码（零依赖）
+src/ports       端口契约（流动类型第一公民：条件对象/写输入/结果）
+src/adapters    memory（校准替身：Store + 假 FS）· sqlite（驱动注入）· node（真文件系统）
+src/application 用例编排（打标/浏览与投影/检索/扫描/来源根生命周期/内容读取/级联删除/数据修复）
+src/host        主进程装配 · typed IPC 契约（单一事实源）· taghit-file 字节闸门 · 窗口壳
+frontend/       渲染层：shared（契约 type-only 桥 + api 门面）· renderer（features / components / stores / views）
+scripts/        校准场景与入口（s32 用例 · s33 扫描 · s34 边界 · s35 浏览窗口 · s36 来源根）· dev 一键脚本
+docs/           GLOSSARY · DECISIONS · ARCHITECTURE · 本文件；根目录 README.md 与 TODO.md
+build/          esbuild 产物 + 真机开发库（gitignore）
 ```

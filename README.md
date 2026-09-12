@@ -28,7 +28,7 @@ TagHit 正在朝**插件生态**演进（VS Code / Obsidian 式）：核心保�
 
 ## 当前状态
 
-开发中（v0.2.x）：后端核心（领域/端口/应用层/双存储适配器）完成并通过全量校准（memory/sqlite/扫描/边界输入四份）；桌面端（Electron）已可真实运行：标签/检索/扫描/预览/多布局浏览/右键菜单/多选批量打标/视频缩略图全链路可用；**无边框窗口**（自绘标题栏与窗口控制键、无默认菜单）；**来源根目录树**（逐级展开、节点可见性即浏览成员前提）；**文件管理**（真实文件改名/移动/删除进回收站，扫描按内容认领、标签随行）；插件生态机制全部就位（贡献点四类槽、标准容器、命令注册表、服务面、HostApi 冻结面），三方插件的发现/分发未接入。
+开发中（v0.2.x）：后端核心（领域/端口/应用层/双存储适配器）完成并通过全量校准（六份：用例/用例·sqlite/扫描/输入边界/浏览窗口/来源根生命周期）；桌面端（Electron）已可真实运行：标签/检索/扫描/预览/多布局浏览/右键菜单/多选批量打标/视频缩略图全链路可用；**无边框窗口**（自绘标题栏与窗口控制键、无默认菜单）；**来源根目录树**（逐级展开、节点可见性即浏览成员前提，含「只看某节点」的视图范围与退役根/脱根条目处置）；**文件管理**（真实文件改名/移动/删除进回收站，扫描按内容认领、标签随行）；**功能组件全页呈现面**（壳提供容器与版心，批量与重管理归全页）与**键鼠交互框架**（快捷键即命令注册表的视图）；插件生态机制全部就位（贡献点四类槽、标准容器、命令注册表、服务面、HostApi 冻结面），三方插件的发现/分发未接入。
 
 愿意现在试用的开发者请继续往下读。
 
@@ -37,10 +37,12 @@ TagHit 正在朝**插件生态**演进（VS Code / Obsidian 式）：核心保�
 架构一句话：**领域先行 + 六边形分层**——业务规则全部在纯 TS 的领域层与应用层，存储/文件系统在适配器后可替换，Electron 宿主只做装配与安全边界（渲染层经 typed IPC 窄桥访问用例，文件字节经白名单协议闸门）。这样设计是因为业务规则要有单一可验证的归属、宿主技术要可替换、未来多入口（UI/CLI/插件）必须共享同一套规则。
 
 ```bash
-# 分层类型检查 + 校准（memory 与 sqlite 跑同一场景，契约一致才绿；boundary = 输入合法性专项）
+# 分层类型检查 + 校准（memory 与 sqlite 跑同一场景，契约一致才绿）
 npm run typecheck:domain && npm run typecheck:ports && npm run typecheck:adapters
 npm run typecheck:application && npm run typecheck:host
-npm run calibrate && npm run calibrate:sqlite && npm run calibrate:scan && npm run calibrate:boundary
+npm run calibrate && npm run calibrate:sqlite && npm run calibrate:scan
+npm run calibrate:boundary && npm run calibrate:view && npm run calibrate:roots
+npm --prefix frontend run check:templates   # 模板解析（vue-tsc 会漏报标签不闭合）
 
 # 真机运行
 npm run dev             # 一键：bundle:host → vite dev server（端口自适应）+ Electron（dev 库 build/taghit-dev.db）
