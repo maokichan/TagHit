@@ -85,11 +85,7 @@ function trashAll(): void {
 </script>
 
 <template>
-  <aside
-    class="w-[var(--panel-width)] shrink-0 h-full bg-[var(--bg-elev)] overflow-y-auto"
-    :class="side === 'right' ? 'border-l border-[var(--border)]' : 'border-r border-[var(--border)]'"
-  >
-    <div class="px-3 py-3 space-y-3 text-[12px]">
+  <div class="px-3 py-3">
       <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)]">文件管理</div>
 
       <div v-if="selected.length === 0" class="text-[var(--fg-dim)]">
@@ -179,5 +175,5 @@ function trashAll(): void {
         <span>操作只改磁盘；重扫按内容签名认领，移动后条目与标签原样保留。</span>
       </div>
     </div>
-  </aside>
+  </div>
 </template>

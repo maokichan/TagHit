@@ -40,8 +40,10 @@ src/host/   主进程装配：openSqlite(better-sqlite3) → SqliteStore + 真�
 
 代码落点：`frontend/src/renderer/src/features/`（registry·commands·contextMenu·SurfaceHost·services·hostApi·context）+ `shared/types/{feature,command}.ts` + `stores/config.ts`。
 
-- **注册表 = 声明表**：可序列化 `FeatureManifest`（三方磁盘 JSON 的形状）+ 实现绑定 `FeatureImpl`（direct 静态直连 | async loader，与 source 正交）。壳经 `listFeatures(mount)` 查表渲染，不 import 具体组件。重复 id：official 抛错（开发期暴露）、contributed 拒绝并报告。
-- **SurfaceHost 标准容器**：所有功能组件的唯一渲染通道——槽查询 → 惰性解析（async 用 defineAsyncComponent）→ FeatureBoundary 错误隔离 → FeatureContext 注入（surface/workspaceId/side）。活动栏面板、显示面板块、内容区标签页共用。
+- **注册表 = 声明表**：可序列化 `FeatureManifest`（三方磁盘 JSON 的形状）+ 实现绑定 `FeatureImpl`（direct 静态直连 | async loader，**与 source 正交**；实现可**按呈现面**绑定：`component` 停靠面 / `fullPage` 全页面）。壳经 `listFeatures(mount)` 查表渲染，不 import 具体组件。重复 id：official 抛错（开发期暴露）、contributed 拒绝并报告。
+- **SurfaceHost 标准容器**：所有功能组件的唯一渲染通道——槽查询 → 按呈现面选实现（`contentTab` 优先 `fullPage`，否则 `component`）→ 惰性解析（async 用 defineAsyncComponent）→ **壳级外壳**（停靠面板外壳 / 全页外壳 / 无外壳）→ FeatureBoundary 错误隔离 → FeatureContext 注入。活动栏面板、显示面板块、内容区标签页共用。
+  **容器归壳**（D22）：宽度/边框/滚动/角标归壳，功能组件只出内容——停靠面板外壳施加 `--panel-width`（此前各面板自绘宽度不一），全页外壳给页头 + 占满内容区，且**不套窄面板**（功能组件按自己的功能各写全页；未绑定 `fullPage` 时给出明确占位，不回落到窄面板）。「打开全页」角标只在 manifest 声明了 `contentTab` 时出现。
+  **两个呈现面共用一份数据与动作**（D22）：`features/paths/` 给出的范式——`usePathManagement`（provide/inject）持状态与动作，共用块（RootTree / VisibilitySummaryBar / RelocationPanel）被窄面板与全页面复用，差异只留布局；跨实例动作经模块级 revision 广播失效重查。
 - **错误隔离双线**：setup try/catch（registry）+ 槽渲染 FeatureBoundary（onErrorCaptured）；官方组件同边界通过。生命周期 per-entry（setup/dispose 配对 + unregisterFeature）。
 - **命令注册表**：`commands.ts`——when 最小谓词壳求值（不加载实现即可过滤）、nav/modify/danger 分组装配归壳；ContextMenuHost 自绘 + App 根部拦截（组件只声明 data-ctx-target）。
 - **服务面**：`services/dialog.ts` confirmDialog/showToast + ServiceHost 统一渲染；manifest.surfaces 声明位就绪（v0 声明不校验）。

@@ -40,11 +40,7 @@ async function createTag(): Promise<void> {
 </script>
 
 <template>
-  <aside
-    class="w-[var(--panel-width)] shrink-0 h-full bg-[var(--bg-elev)] overflow-y-auto"
-    :class="side === 'right' ? 'border-l border-[var(--border)]' : 'border-r border-[var(--border)]'"
-  >
-    <div class="px-3 py-3">
+  <div class="px-3 py-3">
       <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">
         标签（本工作区已声明）
       </div>
@@ -109,5 +105,5 @@ async function createTag(): Promise<void> {
         </div>
       </template>
     </div>
-  </aside>
+  </div>
 </template>

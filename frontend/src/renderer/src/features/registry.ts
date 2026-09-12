@@ -2,11 +2,13 @@ import type { Component } from 'vue'
 import { markRaw } from 'vue'
 import { FolderOpen, Info, Puzzle, SlidersHorizontal, Tags, FileCog } from 'lucide-vue-next'
 import type { FeatureManifest, FeatureSource, MountPoint } from '@shared/types/feature'
+import type { FeatureSurface } from './context'
 import MediaTypeFeature from './display/mediaType/MediaTypeFeature.vue'
 import SortFeature from './display/sort/SortFeature.vue'
 import LayoutFeature from './display/layout/LayoutFeature.vue'
 import GlobalSearchFeature from './content/globalSearch/GlobalSearchFeature.vue'
-import PathsPanel from '../components/workspace/PathsPanel.vue'
+import PathsPanel from './paths/PathsPanel.vue'
+import PathsFullPage from './paths/PathsFullPage.vue'
 import TagsPanel from '../components/workspace/TagsPanel.vue'
 import DisplayPanel from '../components/workspace/DisplayPanel.vue'
 import FilesPanel from './files/FilesPanel.vue'
@@ -21,11 +23,24 @@ export type SetupHook = () => void | (() => void)
  * 实现绑定（渲染层关注点，不进 manifest）——与来源**正交**（source 在 manifest 上）：
  * - direct：构建期直连（静态 import）；
  * - async：运行期 loader（声明先到、实现后到；惰性加载的承载，官方亦可用——同构验收桩）。
+ *
+ * **呈现面可有各自的实现**：`component` = 停靠面（活动栏/显示面板/设置）的实现，
+ * `fullPage` = 全页呈现面（contentTab）的实现。二者是同一功能组件的两种呈现，
+ * 不是两套注册：壳按 surface 选实现，功能组件按自己的功能决定要不要提供全页。
+ * 内容型功能（如全局搜索）的 `component` 本身就是全页内容，故不强制另绑 `fullPage`。
  */
+export interface FeatureImplParts {
+  component?: Component
+  /** 全页呈现面实现（contentTab 专用）；未绑定时回落到 component。 */
+  fullPage?: Component
+  icon?: Component
+  setup?: SetupHook
+}
+
 export type FeatureImpl =
   // component 可选：仅设置页的功能组件（如 showTitles）无面板 UI
-  | { type: 'direct'; component?: Component; icon?: Component; setup?: SetupHook }
-  | { type: 'async'; load: () => Promise<{ component: Component; icon?: Component; setup?: SetupHook }> }
+  | ({ type: 'direct' } & FeatureImplParts)
+  | { type: 'async'; load: () => Promise<FeatureImplParts> }
 
 /** 注册表条目 = 可序列化声明 + 实现绑定。声明表是壳的唯一查询面。 */
 export interface FeatureEntry {
@@ -97,6 +112,26 @@ export function resolvedIcon(entry: FeatureEntry): Component | undefined {
 }
 
 /**
+ * 某呈现面应当渲染的实现：
+ * - `contentTab`（全页呈现面）→ 优先 `fullPage`，未绑定则回落 `component`
+ *   （内容型功能的 component 本身就是全页内容）；
+ * - 其余呈现面 → `component`。
+ * async 的实现由 SurfaceHost 走 defineAsyncComponent 解析，故此函数只判 `direct`。
+ */
+export function resolvedComponent(
+  entry: FeatureEntry | null,
+  surface: FeatureSurface
+): Component | undefined {
+  if (entry == null || entry.impl.type !== 'direct') return undefined
+  return surface === 'contentTab' ? (entry.impl.fullPage ?? entry.impl.component) : entry.impl.component
+}
+
+/** 该功能组件是否提供全页呈现（声明了 contentTab 槽 且 有可用实现）。 */
+export function declaresFullPage(entry: FeatureEntry | null): boolean {
+  return entry != null && entry.manifest.mounts.includes('contentTab')
+}
+
+/**
  * 执行单个组件的行为钩子（错误隔离：一个 setup 抛错只废掉自己，不炸注册流程与其余组件）。
  * 幂等：已 setup 的条目跳过。
  */
@@ -142,9 +177,11 @@ function official(
 /** 应用启动时注册全部官方功能组件（声明表先于 app.mount 装载——App.vue 挂载时读表）。 */
 export function registerBuiltinFeatures(): void {
   // ── 左活动栏工具（壳的默认顺序，用户可拖拽重排——App.vue 持久化） ──
+  // mounts 同时声明 contentTab = 该功能组件提供**全页呈现面**：壳据此显示"打开全页"角标，
+  // 全页外壳按 fullPage 绑定渲染（不套窄面板）。未声明的功能组件没有全页可开。
   official(
-    { id: 'paths', title: '路径', mounts: ['activityBar:left'] },
-    { icon: FolderOpen, component: PathsPanel }
+    { id: 'paths', title: '路径管理', mounts: ['activityBar:left', 'contentTab'] },
+    { icon: FolderOpen, component: PathsPanel, fullPage: PathsFullPage }
   )
   official(
     { id: 'tags', title: '标签', mounts: ['activityBar:left'] },

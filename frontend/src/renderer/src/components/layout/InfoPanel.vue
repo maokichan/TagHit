@@ -36,11 +36,7 @@ function openDetail(): void {
 </script>
 
 <template>
-  <aside
-    class="w-[var(--panel-width)] shrink-0 h-full bg-[var(--bg-elev)] overflow-y-auto"
-    :class="side === 'right' ? 'border-l border-[var(--border)]' : 'border-r border-[var(--border)]'"
-  >
-    <div class="px-3 py-3">
+  <div class="px-3 py-3">
       <div
         class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2 flex items-center gap-1.5"
       >
@@ -82,5 +78,5 @@ function openDetail(): void {
         点击网格中的条目，在此查看媒体信息。<br />双击条目可打开详情页。
       </p>
     </div>
-  </aside>
+  </div>
 </template>
