@@ -14,6 +14,9 @@
   --accent: #f59e0b;
   --accent-soft: rgba(245, 158, 11, 0.15);
   --danger: #ef4444;
+  /* 停靠面板（活动栏功能组件）统一宽度：壳级单点——此前各面板 w-64/w-72 不一，
+     功能组件不得自定宽度；将来做拖拽调宽也只改这一个变量。 */
+  --panel-width: 18rem;
 }
 
 :root[data-theme='light'] {

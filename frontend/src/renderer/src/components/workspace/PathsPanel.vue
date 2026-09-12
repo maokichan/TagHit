@@ -268,7 +268,7 @@ async function purgeDetached(dirPath: string | null, label: string, count: numbe
 
 <template>
   <aside
-    class="w-72 shrink-0 h-full bg-[var(--bg-elev)] overflow-y-auto"
+    class="w-[var(--panel-width)] shrink-0 h-full bg-[var(--bg-elev)] overflow-y-auto"
     :class="side === 'right' ? 'border-l border-[var(--border)]' : 'border-r border-[var(--border)]'"
   >
     <div class="px-3 py-3">

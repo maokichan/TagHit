@@ -16,6 +16,7 @@ import {
   browseWorkspace,
   cleanupDetachedItems,
   mountWorkspaceRoot,
+  repairLegacyPaths,
   rootManagement,
   scanWorkspace,
   unmountWorkspaceRoot,
@@ -159,6 +160,42 @@ export async function runRootsScenario(store: Store): Promise<void> {
     await store.countItems({ underDirPath: 'R:/大' }),
     BULK,
     '⑨ countItems 与 queryItems 同条件同解'
+  )
+
+  // ---- ⑩ 历史双身份路径修复：归一化 + 合并（标签/成员随行，旧行删除） ------
+  await store.createTag({ id: 'tag-legacy', name: '旧行标签', createdAt: T0 })
+  await store.createTag({ id: 'tag-keeper', name: '新行标签', createdAt: T0 })
+  // 双身份：同一路径、同一内容的两条条目（旧行反斜杠 / 新行正斜杠）
+  await store.createItem(fileItem('legacy-back', 'R:\\旧库\\dup.jpg', T0))
+  await store.createItem(fileItem('legacy-fwd', 'R:/旧库/dup.jpg', T0))
+  await store.attachTag('legacy-back', 'tag-legacy')
+  await store.attachTag('legacy-fwd', 'tag-keeper')
+  // 无孪生行的旧行：只归一化，条目身份不变
+  await store.createItem(fileItem('legacy-lone', 'R:\\旧库\\lone.jpg', T0))
+  await store.attachTag('legacy-lone', 'tag-legacy')
+
+  const repair = await repairLegacyPaths(svc)
+  assertEqual(
+    { normalized: repair.normalized, merged: repair.merged },
+    { normalized: 1, merged: 1 },
+    '⑩ 修复计数：1 条原地归一化（无孪生行）+ 1 条合并（有孪生行）'
+  )
+  assertEqual(await store.getItem('legacy-back'), null, '⑩ 合并后旧行已删（不再占查询窗口）')
+  assertEqual(
+    (await store.listAttachments({ itemId: 'legacy-fwd' })).map((a) => a.tagId).sort(),
+    ['tag-keeper', 'tag-legacy'],
+    '⑩ 旧行标签迁移到保留行（无损）'
+  )
+  const lone = await store.getItem('legacy-lone')
+  assertEqual(
+    lone?.kind === 'file' ? lone.sourceUri : null,
+    'R:/旧库/lone.jpg',
+    '⑩ 无孪生行的旧行原地归一化（条目 id 与标签不变）'
+  )
+  assertEqual(
+    (await repairLegacyPaths(svc)).merged,
+    0,
+    '⑩ 修复幂等：重跑无待合并项'
   )
 
   console.log(`\nROOTS CHECKS PASSED（断言执行 ${executedAsserts} 个）`)

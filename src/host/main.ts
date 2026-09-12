@@ -62,6 +62,7 @@ import {
   queryItems,
   rootManagement,
   cleanupDetachedItems,
+  repairLegacyPaths,
 } from '../application/index.ts'
 import type { AppServices, ScanOptions } from '../application/index.ts'
 import type { Id } from '../domain/index.ts'
@@ -342,6 +343,14 @@ app.whenReady().then(() => {
   // 去掉 Electron 默认应用菜单（File/Edit/View…）；快捷键随菜单一并失效
   Menu.setApplicationMenu(null)
   registerTaghitFileProtocol(services)
+  // 一次性数据修复（幂等）：历史反斜杠 sourceUri 的归一化与双身份合并（D21）
+  void repairLegacyPaths(services)
+    .then((r) => {
+      if (r.normalized + r.merged > 0) {
+        console.log(`[host] 历史路径修复：归一化 ${r.normalized} 条 / 合并双身份 ${r.merged} 条（检查 ${r.inspected} 条）`)
+      }
+    })
+    .catch((e) => console.error('[host] 历史路径修复失败（不影响启动）', e))
   createWindow()
   app.on('activate', () => createWindow())
 })
