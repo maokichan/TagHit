@@ -2,8 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Theme } from '@shared/types/config'
 
-/** 左活动栏工具：路径 / 标签 / 显示 */
-export type LeftTool = 'paths' | 'tags' | 'display'
+/** 左活动栏工具：路径 / 标签 / 显示 / 文件管理 */
+export type LeftTool = 'paths' | 'tags' | 'display' | 'files'
 /** 右活动栏工具：媒体信息 / 插件 */
 export type RightTool = 'info' | 'plugins'
 

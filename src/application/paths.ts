@@ -15,3 +15,13 @@ export function basename(path: string): string {
   const idx = path.lastIndexOf('/')
   return idx < 0 ? path : path.slice(idx + 1)
 }
+
+/** 拼接子路径（目录 + 名称）；目录带尾分隔符亦可。 */
+export function joinPath(dir: string, name: string): string {
+  return dir.endsWith('/') ? `${dir}${name}` : `${dir}/${name}`
+}
+
+/** 路径段匹配：path == root 或紧随分隔符（防同前缀兄弟目录越权，与字节闸门 D15 同规则）。 */
+export function isUnderRoot(roots: string[], path: string): boolean {
+  return roots.some((root) => path === root || path.startsWith(`${root}/`))
+}

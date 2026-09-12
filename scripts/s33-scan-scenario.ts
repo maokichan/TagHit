@@ -82,6 +82,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       nodesCreated: 2, // 根 + sub
       nodesRemoved: 0,
       itemsCreated: 3,
+      itemsRelocated: 0,
       itemsUpdated: 0,
       itemsMissing: 0,
       itemsDiscarded: 0,
@@ -115,6 +116,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       nodesCreated: 0,
       nodesRemoved: 1, // sub 目录消失
       itemsCreated: 1, // photo3
+      itemsRelocated: 0, // 新增 photo3 与 missing 的 video 不同内容 → 不认领
       itemsUpdated: 1, // photo2 内容变更
       itemsMissing: 1, // sub/video.mp4 消失 → missing（keep）
       itemsDiscarded: 0,
@@ -146,6 +148,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       nodesCreated: s3.nodesCreated,
       nodesRemoved: s3.nodesRemoved,
       itemsCreated: s3.itemsCreated,
+      itemsRelocated: s3.itemsRelocated,
       itemsUpdated: s3.itemsUpdated,
       itemsMissing: s3.itemsMissing,
       itemsDiscarded: s3.itemsDiscarded,
@@ -155,6 +158,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       nodesCreated: 0,
       nodesRemoved: 0,
       itemsCreated: 0,
+      itemsRelocated: 0,
       itemsUpdated: 0,
       itemsMissing: 1,
       itemsDiscarded: 0,
@@ -163,35 +167,66 @@ export async function runScanScenario(store: Store): Promise<void> {
   )
   assertEqual(asFile(await findItemByUri(store, 'R:/库/photo1.jpg')).status, 'missing', '扫描③：photo1 状态 missing')
 
-  // 另一工作区同根、discard 策略：消失的 photo1 直接删除（含挂载）
+  // 扫描③b：移动认领——photo1 原内容出现在新路径 moved/ 下 → 认领（id 不变，标签随行）
+  const fsD: FileSystem = createMemoryFileSystem({
+    'R:/库/photo2.jpg': 'JPGDATA-222-BBBBBBBBBBBBBBBB-CHANGED',
+    'R:/库/photo3.jpg': 'JPGDATA-333-CCCCCCCCCCCCCCCC',
+    'R:/库/moved/photo1.jpg': 'JPGDATA-111-AAAAAAAAAAAAAAAA',
+  })
+  const s3b: ScanSummary = await scanWorkspace(svc, fsD, 'ws-scan')
+  assertEqual(
+    s3b,
+    {
+      scannedRoots: 1,
+      nodesCreated: 1, // moved 目录
+      nodesRemoved: 0,
+      itemsCreated: 0,
+      itemsRelocated: 1, // photo1 被认领：改写路径并恢复 active
+      itemsUpdated: 0,
+      itemsMissing: 0,
+      itemsDiscarded: 0,
+    },
+    '扫描③b：同内容新路径认领 missing 条目（移动语义）'
+  )
+  const moved1 = asFile(await findItemByUri(store, 'R:/库/moved/photo1.jpg'))
+  assertEqual(moved1.id, photo1.id, '扫描③b：认领保持条目 id 不变')
+  assertEqual(moved1.status, 'active', '扫描③b：认领条目恢复 active')
+  assertEqual(
+    (await store.listAttachments({ tagId: 'tag-x' })).map((a) => a.itemId),
+    [photo1.id],
+    '扫描③b：标签随条目 id 原样保留'
+  )
+
+  // 另一工作区同根、discard 策略：消失的 video 直接删除（photo1 已被认领恢复 active，不受影响）
   await store.createWorkspace({ id: 'ws-discard', name: '丢弃库', createdAt: T0 })
   await mountWorkspaceRoot(svc, 'ws-discard', 'R:/库')
-  const s4: ScanSummary = await scanWorkspace(svc, fsC, 'ws-discard', { missing: 'discard' })
+  const s4: ScanSummary = await scanWorkspace(svc, fsD, 'ws-discard', { missing: 'discard' })
   assertEqual(
     s4,
     {
       scannedRoots: 1,
-      nodesCreated: 1, // 根节点
+      nodesCreated: 2, // 根 + moved
       nodesRemoved: 0,
-      itemsCreated: 0, // photo2/3 已全局存在
+      itemsCreated: 0, // 三个文件已全局存在
+      itemsRelocated: 0,
       itemsUpdated: 0,
       itemsMissing: 0,
-      itemsDiscarded: 2, // photo1 + ws1 已标 missing 的 video（同根、磁盘已无）
+      itemsDiscarded: 1, // 仅 video（先前已 missing、磁盘已无）
     },
-    '扫描④：discard 策略删除消失条目（含先前 missing 的 video）'
+    '扫描④：discard 策略删除消失条目（已认领的 photo1 不受影响）'
   )
-  assert((await store.getItem(photo1.id)) === null, '扫描④：photo1 条目已删除')
-  assert((await store.getItem(video.id)) === null, '扫描④：video 条目一并删除')
+  assert((await store.getItem(video.id)) === null, '扫描④：video 条目已删除')
+  assert((await store.getItem(photo1.id)) !== null, '扫描④：被认领的 photo1 保留')
   assertEqual(
     (await store.listAttachments({ tagId: 'tag-x' })).length,
-    0,
-    '扫描④：其挂载（留念）已清理'
+    1,
+    '扫描④：photo1 的挂载（留念）随认领保留'
   )
 
   const browseFinal = await browseWorkspace(svc, 'ws-scan')
   assertEqual(
     browseFinal.map((h) => asFile(h.item).sourceUri).sort(),
-    ['R:/库/photo2.jpg', 'R:/库/photo3.jpg'],
+    ['R:/库/moved/photo1.jpg', 'R:/库/photo2.jpg', 'R:/库/photo3.jpg'],
     '收尾：ws-scan 浏览仅含现存目录内条目（missing/节点消失者不出现在视图）'
   )
 

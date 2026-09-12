@@ -13,7 +13,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
 import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
 import { createNodeFileSystem } from '../adapters/node/index.ts'
@@ -35,9 +35,11 @@ import {
   deleteWorkspaceCascade,
   addGroupMember,
   getWorkspace,
+  listWorkspaceNodes,
   listWorkspaceRoots,
   listWorkspaces,
   mountWorkspaceRoot,
+  moveFsEntry,
   readItemText,
   recordThumbnail,
   removeCollectionMember,
@@ -47,8 +49,11 @@ import {
   reorderCollectionMembers,
   scanWorkspace,
   searchTags,
+  setNodeState,
+  setSubtreeState,
   tagItem,
   tagItems,
+  trashFsEntry,
   undeclareTag,
   unmountWorkspaceRoot,
   untagItem,
@@ -184,6 +189,27 @@ function registerHandlers(): void {
   // ---- 扫描（真实文件系统在此注入，渲染层拿不到 fs） ----
   ipcMain.handle('scan.run', (_event, workspaceId: Id, options?: ScanOptions) =>
     envelope(scanWorkspace(services, nodeFs, workspaceId, options))
+  )
+
+  // ---- 路径节点（来源根树）----
+  ipcMain.handle('nodes.list', (_event, workspaceId: Id) =>
+    envelope(listWorkspaceNodes(services, workspaceId))
+  )
+  ipcMain.handle('node.setState', (_event, input: { workspaceId: Id; dirPath: string; state: 'included' | 'excluded' }) =>
+    envelope(setNodeState(services, input.workspaceId, input.dirPath, input.state).then(() => null))
+  )
+  ipcMain.handle('node.setSubtreeState', (_event, input: { workspaceId: Id; dirPath: string; state: 'included' | 'excluded' }) =>
+    envelope(setSubtreeState(services, input.workspaceId, input.dirPath, input.state).then(() => null))
+  )
+
+  // ---- 文件操作（真实文件增删改；回收站经 shell，路径闸门在用例内） ----
+  ipcMain.handle('fs.move', (_event, input: { workspaceId: Id; from: string; toDir: string; newName?: string | null }) =>
+    envelope(moveFsEntry(services, nodeFs, input.workspaceId, input.from, input.toDir, input.newName))
+  )
+  ipcMain.handle(
+    'fs.trash',
+    (_event, input: { workspaceId: Id; path: string }) =>
+      envelope(trashFsEntry(services, nodeFs, { trash: (p) => shell.trashItem(p) }, input.workspaceId, input.path).then(() => null))
   )
 
   // ---- 作品 ----

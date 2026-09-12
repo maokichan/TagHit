@@ -32,6 +32,13 @@ const api: TaghitRendererApi = {
 
   saveThumbnail: (input) => invoke('thumbnail.save', input),
 
+  listNodes: (workspaceId) => invoke('nodes.list', workspaceId),
+  setNodeState: (input) => invoke('node.setState', input),
+  setSubtreeState: (input) => invoke('node.setSubtreeState', input),
+
+  moveFsEntry: (input) => invoke('fs.move', input),
+  trashFsEntry: (input) => invoke('fs.trash', input),
+
   createWorkspace: (name) => invoke('workspace.create', name),
   listWorkspaces: () => invoke('workspace.list'),
   getWorkspace: (workspaceId) => invoke('workspace.get', workspaceId),

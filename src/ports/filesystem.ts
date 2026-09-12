@@ -44,4 +44,16 @@ export interface FileSystem {
    * 路径不存在或不可读 → reject。
    */
   hash(path: string): Promise<string>
+
+  /**
+   * 改名/移动（同文件系统内原子操作；目录亦可）。真实实现要求 to 不存在；
+   * from 不存在、to 已存在、目录移入自身子树 → reject。
+   */
+  rename(from: string, to: string): Promise<void>
+}
+
+/** 移除能力（真实实现尽力进系统回收站；不可恢复性由实现决定）。 */
+export interface Trash {
+  /** 路径不存在 → reject。 */
+  trash(path: string): Promise<void>
 }

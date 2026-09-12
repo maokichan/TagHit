@@ -158,6 +158,7 @@ export interface Store {
     patch: {
       title?: string
       status?: ItemStatus
+      sourceUri?: string
       contentHash?: string | null
       size?: number | null
       fileModifiedAt?: string | null

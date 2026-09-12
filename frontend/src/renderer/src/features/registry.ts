@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import { FolderOpen, Info, Puzzle, SlidersHorizontal, Tags } from 'lucide-vue-next'
+import { FolderOpen, Info, Puzzle, SlidersHorizontal, Tags, FileCog } from 'lucide-vue-next'
 import type { FeatureManifest, FeatureSource, MountPoint } from '@shared/types/feature'
 import MediaTypeFeature from './display/mediaType/MediaTypeFeature.vue'
 import SortFeature from './display/sort/SortFeature.vue'
@@ -8,6 +8,7 @@ import GlobalSearchFeature from './content/globalSearch/GlobalSearchFeature.vue'
 import PathsPanel from '../components/workspace/PathsPanel.vue'
 import TagsPanel from '../components/workspace/TagsPanel.vue'
 import DisplayPanel from '../components/workspace/DisplayPanel.vue'
+import FilesPanel from './files/FilesPanel.vue'
 import InfoPanel from '../components/layout/InfoPanel.vue'
 import PluginsPanel from '../components/layout/PluginsPanel.vue'
 import { setupKeyboardMouse } from './keyboardMouse/setup'
@@ -147,6 +148,10 @@ export function registerBuiltinFeatures(): void {
   official(
     { id: 'display', title: '显示', mounts: ['activityBar:left'] },
     { icon: SlidersHorizontal, component: DisplayPanel }
+  )
+  official(
+    { id: 'files', title: '文件管理', mounts: ['activityBar:left'] },
+    { icon: FileCog, component: FilesPanel }
   )
 
   // ── 右活动栏工具 ──

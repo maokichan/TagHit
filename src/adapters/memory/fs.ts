@@ -74,6 +74,33 @@ export class MemoryFileSystem implements FileSystem {
     return sampleHash(value)
   }
 
+  async rename(from: string, to: string): Promise<void> {
+    const src = normalize(from)
+    const dst = normalize(to)
+    const value = this.entries.get(src)
+    if (value === undefined) throw new Error(`MemoryFileSystem: 路径不存在（${from}）`)
+    if (this.entries.has(dst)) throw new Error(`MemoryFileSystem: 目标已存在（${to}）`)
+    if (value === null && dst.startsWith(`${src}/`)) {
+      throw new Error(`MemoryFileSystem: 目录不能移入自身子树（${from} → ${to}）`)
+    }
+    const dstParent = dst.slice(0, dst.lastIndexOf('/'))
+    if (this.entries.get(dstParent) !== null) {
+      throw new Error(`MemoryFileSystem: 目标父目录不存在（${to}）`)
+    }
+    // 目录：连同子树整体搬迁
+    if (value === null) {
+      const srcPrefix = `${src}/`
+      for (const [p, v] of [...this.entries]) {
+        if (p.startsWith(srcPrefix)) {
+          this.entries.delete(p)
+          this.entries.set(`${dst}/${p.slice(srcPrefix.length)}`, v)
+        }
+      }
+    }
+    this.entries.delete(src)
+    this.entries.set(dst, value)
+  }
+
   private ensureParents(path: string): void {
     const parts = path.split('/')
     let acc = ''

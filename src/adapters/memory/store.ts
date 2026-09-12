@@ -219,6 +219,7 @@ export class MemoryStore implements Store {
     patch: {
       title?: string
       status?: ItemStatus
+      sourceUri?: string
       contentHash?: string | null
       size?: number | null
       fileModifiedAt?: string | null
@@ -235,6 +236,7 @@ export class MemoryStore implements Store {
             ...old,
             ...(patch.title !== undefined ? { title: patch.title } : {}),
             ...(patch.status !== undefined ? { status: patch.status } : {}),
+            ...(patch.sourceUri !== undefined ? { sourceUri: patch.sourceUri } : {}),
             ...(patch.contentHash !== undefined ? { contentHash: patch.contentHash } : {}),
             ...(patch.size !== undefined ? { size: patch.size } : {}),
             ...(patch.fileModifiedAt !== undefined ? { fileModifiedAt: patch.fileModifiedAt } : {}),

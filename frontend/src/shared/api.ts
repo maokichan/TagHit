@@ -12,6 +12,8 @@ import type {
   Id,
   ItemsQuery,
   ItemHit,
+  NodeState,
+  PathNode,
   ProjectedHit,
   Result,
   ScanOptions,
@@ -145,6 +147,28 @@ export const api = {
     },
     async isMaximized(): Promise<boolean> {
       return unwrap(await bridge().isWindowMaximized())
+    }
+  },
+  nodes: {
+    /** 工作区全部路径节点（含来源根根节点；树形由路径前缀在渲染层派生）。 */
+    async list(workspaceId: Id): Promise<PathNode[]> {
+      return unwrap(await bridge().listNodes(workspaceId))
+    },
+    async setState(workspaceId: Id, dirPath: string, state: NodeState): Promise<void> {
+      unwrap(await bridge().setNodeState({ workspaceId, dirPath, state }))
+    },
+    async setSubtreeState(workspaceId: Id, dirPath: string, state: NodeState): Promise<void> {
+      unwrap(await bridge().setSubtreeState({ workspaceId, dirPath, state }))
+    }
+  },
+  fs: {
+    /** 真实文件改名/移动（路径闸门 = 来源根）；库随动由调用方重扫（contentHash 认领）收敛。 */
+    async move(workspaceId: Id, from: string, toDir: string, newName?: string): Promise<{ to: string }> {
+      return unwrap(await bridge().moveFsEntry({ workspaceId, from, toDir, newName: newName ?? null }))
+    },
+    /** 真实文件/目录移除（进系统回收站）。 */
+    async trash(workspaceId: Id, path: string): Promise<void> {
+      unwrap(await bridge().trashFsEntry({ workspaceId, path }))
     }
   }
 }

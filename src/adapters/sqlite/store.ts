@@ -365,6 +365,7 @@ export class SqliteStore implements Store {
     patch: {
       title?: string
       status?: ItemStatus
+      sourceUri?: string
       contentHash?: string | null
       size?: number | null
       fileModifiedAt?: string | null
@@ -377,6 +378,7 @@ export class SqliteStore implements Store {
     if (!row) throw notFound('条目', id)
     if (patch.title !== undefined) this.run('UPDATE items SET title = ? WHERE id = ?', [patch.title, id])
     if (row.kind === 'file') {
+      if (patch.sourceUri !== undefined) this.run('UPDATE items SET sourceUri = ? WHERE id = ?', [patch.sourceUri, id])
       if (patch.status !== undefined) this.run('UPDATE items SET status = ? WHERE id = ?', [patch.status, id])
       if (patch.contentHash !== undefined) this.run('UPDATE items SET contentHash = ? WHERE id = ?', [patch.contentHash, id])
       if (patch.size !== undefined) this.run('UPDATE items SET size = ? WHERE id = ?', [patch.size, id])

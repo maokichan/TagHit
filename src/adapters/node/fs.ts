@@ -3,7 +3,7 @@
  * 内容签名与 MemoryFileSystem 完全一致（同一 sampleRanges/采样算法，按磁盘段读取）。
  */
 
-import { open, readdir, stat } from 'node:fs/promises'
+import { open, readdir, rename, stat } from 'node:fs/promises'
 import type { FileSystem, FsEntry, FsStat } from '../../ports/filesystem.ts'
 import { SAMPLE_SIZE, digestRanges } from '../sample-hash.ts'
 
@@ -71,6 +71,11 @@ export class NodeFileSystem implements FileSystem {
     } finally {
       await handle.close()
     }
+  }
+
+  async rename(from: string, to: string): Promise<void> {
+    // node rename：to 已存在（Windows/POSIX 语义一致地失败）或 from 不存在 → reject
+    await rename(from, to)
   }
 }
 

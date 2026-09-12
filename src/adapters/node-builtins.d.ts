@@ -34,4 +34,5 @@ declare module 'node:fs/promises' {
     isDirectory(): boolean
   }>
   export function open(path: string, flags: string): Promise<FileHandle>
+  export function rename(from: string, to: string): Promise<void>
 }

@@ -7,8 +7,11 @@
  * 官方与 contributed 过同一容器——插件容器标准化的本体。
  */
 import { computed, defineAsyncComponent, type Component } from 'vue'
+import { useRouter } from 'vue-router'
+import { SquareArrowOutUpRight } from 'lucide-vue-next'
 import type { FeatureEntry } from './registry'
 import { provideFeatureContext, type FeatureContext } from './context'
+import { useTabStore } from '../stores/tab'
 import FeatureBoundary from './FeatureBoundary.vue'
 
 const props = defineProps<{
@@ -44,14 +47,36 @@ const asyncComp = computed<Component | null>(() => {
     delay: 0
   })
 })
+
+/** 停靠面板右下角角标 → 打开该功能组件的内容标签页（全页复用同一实现绑定）。 */
+const router = useRouter()
+const tabStore = useTabStore()
+function openFeatureTab(): void {
+  const f = props.feature
+  if (f == null) return
+  tabStore.openFeature(f.manifest.id, f.manifest.title)
+  router.push(`/feature/${f.manifest.id}`)
+}
 </script>
 
 <template>
-  <FeatureBoundary v-if="feature != null" :label="feature.manifest.title">
-    <component
-      :is="directComp ?? asyncComp"
-      v-if="directComp != null || asyncComp != null"
-      v-bind="componentProps"
-    />
-  </FeatureBoundary>
+  <div v-if="feature != null" class="relative h-full min-h-0">
+    <FeatureBoundary :label="feature.manifest.title">
+      <component
+        :is="directComp ?? asyncComp"
+        v-if="directComp != null || asyncComp != null"
+        v-bind="componentProps"
+      />
+    </FeatureBoundary>
+    <button
+      v-if="surface === 'activityBar' && (directComp != null || asyncComp != null)"
+      class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5 rounded
+             bg-[var(--bg)] border border-[var(--border)] text-[var(--fg-dim)]
+             hover:text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
+      :title="`打开「${feature.manifest.title}」标签页`"
+      @click="openFeatureTab"
+    >
+      <SquareArrowOutUpRight :size="11" />
+    </button>
+  </div>
 </template>

@@ -36,6 +36,10 @@ declare module 'electron' {
     setApplicationMenu(menu: null): void
   }
 
+  export const shell: {
+    trashItem(path: string): Promise<void>
+  }
+
   export const app: {
     whenReady(): Promise<void>
     quit(): void

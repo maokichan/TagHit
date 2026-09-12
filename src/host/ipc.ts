@@ -95,6 +95,18 @@ export interface IpcContracts {
     result: { previewUri: string }
   }
 
+  // ---- 路径节点 nodes：来源根树的读与可见性（可见性不级联；子树入口是批量便捷） ----
+  'nodes.list': { args: [workspaceId: Id]; result: PathNode[] }
+  'node.setState': { args: [{ workspaceId: Id; dirPath: string; state: NodeState }]; result: null }
+  'node.setSubtreeState': { args: [{ workspaceId: Id; dirPath: string; state: NodeState }]; result: null }
+
+  // ---- 文件操作 fs：真实文件增删改（路径闸门 = 工作区来源根；库随动靠重扫认领） ----
+  'fs.move': {
+    args: [{ workspaceId: Id; from: string; toDir: string; newName?: string | null }]
+    result: { to: string }
+  }
+  'fs.trash': { args: [{ workspaceId: Id; path: string }]; result: null }
+
   // ---- 工作区 workspace：建 / 列 / 浏览 / 来源根 ---------------------------
   'workspace.create': { args: [name: string]; result: Workspace }
   'workspace.list': { args: []; result: Workspace[] }
@@ -158,6 +170,18 @@ export interface TaghitRendererApi {
     width?: number | null
     height?: number | null
   }): Promise<IpcResult<'thumbnail.save'>>
+
+  listNodes(workspaceId: Id): Promise<IpcResult<'nodes.list'>>
+  setNodeState(input: { workspaceId: Id; dirPath: string; state: NodeState }): Promise<IpcResult<'node.setState'>>
+  setSubtreeState(input: { workspaceId: Id; dirPath: string; state: NodeState }): Promise<IpcResult<'node.setSubtreeState'>>
+
+  moveFsEntry(input: {
+    workspaceId: Id
+    from: string
+    toDir: string
+    newName?: string | null
+  }): Promise<IpcResult<'fs.move'>>
+  trashFsEntry(input: { workspaceId: Id; path: string }): Promise<IpcResult<'fs.trash'>>
 
   createWorkspace(name: string): Promise<IpcResult<'workspace.create'>>
   listWorkspaces(): Promise<IpcResult<'workspace.list'>>
