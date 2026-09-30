@@ -35,6 +35,8 @@ const context = computed<ItemContext>(() => {
 })
 
 const win = ref<ItemWindowResult | null>(null)
+/** 窗口请求失败的原因（**不许**把失败伪装成"没有序列"：那会把一次报错显示成功能缺失）。 */
+const winError = ref<string | null>(null)
 let winSeq = 0
 const windowViews = computed<ItemView[]>(() => (win.value?.items ?? []).map(toItemView))
 const index = computed(() => win.value?.index ?? -1)
@@ -52,9 +54,14 @@ async function loadWindow(): Promise<void> {
   const seq = ++winSeq
   try {
     const res = await api.items.window(props.id, context.value)
-    if (seq === winSeq) win.value = res
-  } catch {
-    if (seq === winSeq) win.value = null
+    if (seq !== winSeq) return
+    win.value = res
+    winError.value = null
+  } catch (e) {
+    if (seq !== winSeq) return
+    win.value = null
+    winError.value = e instanceof Error ? e.message : String(e)
+    console.error('[detail] 顺序窗口加载失败：', e)
   }
 }
 
@@ -64,16 +71,21 @@ async function loadWindow(): Promise<void> {
  * 连全部素材里都没有（锚条目=非内容）才是真的没有序列。
  */
 const progressText = computed(() => {
+  if (winError.value != null) return '序列不可用'
   if (index.value < 0) return '非内容条目 · 无浏览序列'
   const base = `第 ${index.value + 1} / ${total.value}`
   return win.value?.loose === true ? `${base}（已按全部素材）` : base
 })
 
-const progressTitle = computed(() =>
-  win.value?.loose === true
+const progressTitle = computed(() => {
+  if (winError.value != null) return `顺序窗口加载失败：${winError.value}`
+  if (index.value < 0) {
+    return '锚条目（承接作品标签的空条目）不是内容，任何浏览序列都不含它'
+  }
+  return win.value?.loose === true
     ? '该条目不在打开时的视图序列里（关键词已变 / 跨工作区 / 无节点归属），已退到「全部素材」顺序'
     : `当前视图顺序：第 ${index.value + 1} 张，共 ${total.value} 张`
-)
+})
 
 /**
  * 翻页：在当前条目标签内换内容（**不新开标签**——翻十张就是十个标签），
@@ -361,7 +373,7 @@ const rows = computed(() => {
                 <TagChip
                   v-for="tag in tagMatches"
                   :key="`add-${tag.id}`"
-                  :name="`+${tag.name}`"
+                  :name="tag.name"
                   @click="toggleTag(tag.id)"
                 />
               </template>
@@ -372,7 +384,7 @@ const rows = computed(() => {
                 :key="tag.id"
                 class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
               >
-                #{{ tag.name }}
+                {{ tag.name }}
               </span>
             </template>
           </div>

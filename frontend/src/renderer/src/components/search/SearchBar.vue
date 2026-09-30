@@ -82,10 +82,10 @@ function onScan(): void {
         v-for="tag in activeTagFilters"
         :key="tag.id"
         class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-[var(--accent)] text-white cursor-pointer hover:brightness-110 transition-colors"
-        :title="`取消筛选 #${tag.name}`"
+        :title="`取消筛选 ${tag.name}`"
         @click="itemStore.toggleTagFilter(tag.id)"
       >
-        #{{ tag.name }} <X :size="10" />
+        {{ tag.name }} <X :size="10" />
       </button>
       <button
         class="text-[11px] text-[var(--fg-dim)] hover:text-[var(--danger)] cursor-pointer underline"

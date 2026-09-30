@@ -138,7 +138,7 @@ const batchTitle = (): string => {
             @change="toggleBatchTag(tag.id)"
             class="accent-[var(--accent)]"
           />
-          <span class="truncate">#{{ tag.name }}</span>
+          <span class="truncate">{{ tag.name }}</span>
         </label>
       </div>
 

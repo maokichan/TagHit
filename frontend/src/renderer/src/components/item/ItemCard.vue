@@ -136,7 +136,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
                 :key="tag.id"
                 class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
               >
-                #{{ tag.name }}
+                {{ tag.name }}
               </span>
             </template>
             <span v-if="item.tags.length > 3" class="text-[10px] text-[var(--fg-dim)] shrink-0">
@@ -225,7 +225,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
             :key="tag.id"
             class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
           >
-            #{{ tag.name }}
+            {{ tag.name }}
           </span>
         </template>
       </div>

@@ -68,7 +68,7 @@ function openDetail(): void {
           :key="tag.id"
           class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
         >
-          #{{ tag.name }}
+          {{ tag.name }}
         </span>
       </div>
       <p v-if="item.hiddenCount > 0" class="text-[10px] text-[var(--fg-dim)] mb-2">

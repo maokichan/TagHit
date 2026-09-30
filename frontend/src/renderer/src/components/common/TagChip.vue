@@ -13,6 +13,6 @@ defineEmits<{ (e: 'click'): void }>()
     "
     @click.stop="$emit('click')"
   >
-    #{{ name }}
+    {{ name }}
   </span>
 </template>

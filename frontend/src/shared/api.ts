@@ -53,11 +53,46 @@ function unwrap<T>(result: Result<T>): T {
   throw new ApiError(result.error.code, `${label}：${result.error.message}`)
 }
 
+/**
+ * 过桥前转成**纯数据**。
+ *
+ * 窄桥用结构化克隆传参，而 Pinia / `reactive` 里的值是 **Proxy**——克隆会直接抛
+ * `DataCloneError: #<Object> could not be cloned.`，且 `{...store 对象}` 也不够
+ * （嵌套数组仍是 Proxy）。所以凡是从 store 读回来的值，过桥前一律走这里。
+ *
+ * 教训（2026-10-01）：详情页的顺序上下文（从标签项读回）就是被这个坑整条打断的——请求
+ * 全部失败，界面还把它显示成"非内容条目"，看起来像功能没做；批量打标弹层把 `ref` 数组
+ * 直接过桥也是同一个病。**边界必须吃纯数据**，故在 bridge() 里统一转，而不是指望每个调用点记得。
+ */
+function plain<T>(value: T): T {
+  if (value == null || typeof value !== 'object') return value
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+let cachedBridge: NonNullable<Window['taghit']> | null = null
+
+/**
+ * 宿主桥（渲染层唯一出口）。返回的是**入参已纯化**的包装：
+ * 任何 `api.*` 调用都能安全地把 store 里的对象/数组当参数传进来。
+ */
 function bridge(): NonNullable<Window['taghit']> {
   if (!window.taghit) {
     throw new ApiError('UNKNOWN', '宿主未就绪：请在 Electron 宿主内运行（window.taghit 不可用）')
   }
-  return window.taghit
+  if (cachedBridge != null) return cachedBridge
+  const raw = window.taghit
+  cachedBridge = new Proxy(raw, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver)
+      if (typeof value !== 'function') return value
+      return (...args: unknown[]) =>
+        (value as (...a: unknown[]) => unknown).apply(
+          target,
+          args.map((a) => plain(a))
+        )
+    }
+  }) as NonNullable<Window['taghit']>
+  return cachedBridge
 }
 
 export const api = {
@@ -82,7 +117,7 @@ export const api = {
     async query(query: ItemsQuery): Promise<ItemHit[]> {
       return unwrap(await bridge().queryItems(query))
     },
-    /** 顺序窗口（详情页翻页 + 前后预览）：context 由打开详情页那一刻固化。 */
+    /** 顺序窗口（详情页翻页 + 前后预览）：context 由打开详情页那一刻固化（入参由 bridge 统一纯化）。 */
     async window(anchorId: Id, context: ItemContext): Promise<ItemWindowResult> {
       return unwrap(await bridge().itemWindow({ anchorId, context }))
     },

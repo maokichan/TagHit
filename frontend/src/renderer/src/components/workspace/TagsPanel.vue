@@ -60,7 +60,7 @@ async function createTag(): Promise<void> {
         :title="`${tag.description ?? ''}${activeTagFilterIds.includes(tag.id) ? '（点击取消筛选）' : '（点击筛选此标签的条目）'}`"
         @click="itemStore.toggleTagFilter(tag.id)"
       >
-        #{{ tag.name }}
+        {{ tag.name }}
         <span
           class="opacity-0 group-hover:opacity-100 cursor-pointer hover:text-[var(--danger)] inline-flex"
           title="取消声明（不影响已有挂载）"
@@ -100,7 +100,7 @@ async function createTag(): Promise<void> {
           :title="tag.description ?? ''"
           @click="tagStore.declare(props.workspaceId, tag.id)"
         >
-          +{{ tag.name }}
+          {{ tag.name }}
         </button>
       </div>
     </template>

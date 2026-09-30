@@ -170,7 +170,7 @@ async function deleteTag(id: string): Promise<void> {
         <div class="space-y-2">
           <div v-for="tag in tagStore.allTags" :key="tag.id" class="border border-[var(--border)] rounded-lg p-3">
             <div class="flex items-center gap-2">
-              <span class="font-medium">#{{ tag.name }}</span>
+              <span class="font-medium">{{ tag.name }}</span>
               <span v-if="tag.description" class="text-[11px] text-[var(--fg-dim)] truncate">{{ tag.description }}</span>
               <span class="flex-1" />
               <button class="btn text-[var(--danger)]" @click="deleteTag(tag.id)"><Trash2 :size="13" /></button>
