@@ -113,6 +113,7 @@ export async function runWindowScenario(store: Store): Promise<void> {
     '① 居中窗口 = 锚条目前后各 2 条（含自身）'
   )
   assertEqual(centered.index, 5, '① index = 锚条目在序列中的 0 起位置')
+  assertEqual(centered.from, 3, '① from = 切片起点（index − radius）——切片位置 = index − from')
   assertEqual(centered.total, MEMBER_COUNT, '① total = 成员总数（非成员不计）')
   assertEqual(centered.loose, false, '① 正常路径不触发回落')
 
@@ -120,9 +121,11 @@ export async function runWindowScenario(store: Store): Promise<void> {
   const head = await itemWindow(svc, 'w-01', { workspaceId: WS, order: 'createdAt', orderDir: 'asc', radius: RADIUS })
   assertEqual(head.items.map((h) => h.item.id), ['w-01', 'w-02', 'w-03'], '② 首条：窗口向一侧收缩')
   assertEqual(head.index, 0, '② 首条 index = 0')
+  assertEqual(head.from, 0, '② 首条 from = 0（切片位置 = 序列位置）')
   const tail = await itemWindow(svc, 'w-12', { workspaceId: WS, order: 'createdAt', orderDir: 'asc', radius: RADIUS })
   assertEqual(tail.items.map((h) => h.item.id), ['w-10', 'w-11', 'w-12'], '② 末条：窗口向一侧收缩')
   assertEqual(tail.index, MEMBER_COUNT - 1, '② 末条 index = 总数 − 1')
+  assertEqual(tail.from, MEMBER_COUNT - 1 - RADIUS, '② 末条 from = index − radius（尾部被截断）')
 
   // ---- ③ 与 queryItems 同解：三种排序键 × 两方向，窗口逐 id 等于序列切片 ----
   const ORDERS: Array<[ItemOrderField, 'asc' | 'desc']> = [

@@ -337,10 +337,10 @@ export class MemoryStore implements Store {
   async itemWindow(q: ItemWindowQuery): Promise<ItemWindow> {
     const hits = this.sortHits(this.matchingItems(q.scope), q.scope)
     const index = hits.findIndex((h) => h.item.id === q.anchorId)
-    if (index < 0) return { hits: [], index: -1, total: hits.length }
+    if (index < 0) return { hits: [], index: -1, from: 0, total: hits.length }
     const from = Math.max(0, index - q.radius)
     const to = Math.min(hits.length, index + q.radius + 1)
-    return { hits: hits.slice(from, to), index, total: hits.length }
+    return { hits: hits.slice(from, to), index, from, total: hits.length }
   }
 
   async countItems(q: ItemsQuery = {}): Promise<number> {

@@ -280,7 +280,10 @@ export function registerBuiltinFeatures(): void {
       title: '键鼠交互',
       mounts: ['settings'],
       settings: [
-        { key: 'enableSearchShortcut', type: 'boolean', label: 'Ctrl+F 搜索', default: true }
+        { key: 'enableSearchShortcut', type: 'boolean', label: 'Ctrl+F 搜索', default: true },
+        // 只读键位表：**自动取自快捷键注册表**（D23：快捷键 = 命令注册表的视图）。
+        // 手写的键位文档必然过期，这张表跟着注册表走：加一条绑定就多一行。
+        { key: 'shortcutTable', type: 'shortcuts', label: '键位表（随注册表自动生成）' }
       ]
     },
     { setup: setupKeyboardMouse }

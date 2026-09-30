@@ -35,7 +35,11 @@ export interface SettingOption {
  */
 export interface SettingSchema {
   key: string
-  type: 'boolean' | 'enum' | 'string' | 'number'
+  /**
+   * `shortcuts` = **只读键位表**（不是可配置值）：由快捷键注册表（shell 单一事实源）自动生成，
+   * 不写配置、不落存储——手写的键位文档必然过期，这张表跟着注册表走。见 D23/D31。
+   */
+  type: 'boolean' | 'enum' | 'string' | 'number' | 'shortcuts'
   label: string
   options?: SettingOption[]
   default?: unknown

@@ -122,6 +122,8 @@ export interface ItemWindowResult {
   items: ItemHit[]
   /** 锚条目在序列中的 0 起位置；找不到 → -1。 */
   index: number
+  /** `items[0]` 在序列里的 0 起位置——**切片位置 = index − from**，别拿 index 直接索引 items。 */
+  from: number
   total: number
   /**
    * true = 锚条目**不在固化视图的序列里**，已退到"全部素材"顺序（仍只认素材条目、保留排序）。
@@ -176,10 +178,12 @@ export async function itemWindow(
 ): Promise<ItemWindowResult> {
   const radius = Math.min(24, Math.max(1, Math.floor(ctx.radius ?? 6)))
   const win = await svc.store.itemWindow({ scope: contextScope(ctx), anchorId, radius })
-  if (win.index >= 0) return { items: win.hits, index: win.index, total: win.total, loose: false }
+  if (win.index >= 0) {
+    return { items: win.hits, index: win.index, from: win.from, total: win.total, loose: false }
+  }
   if (!hasViewConditions(ctx)) {
     // 本来就是"全部素材"序列：找不到就是真的不在序列内（如锚条目），不再重试
-    return { items: [], index: -1, total: win.total, loose: false }
+    return { items: [], index: -1, from: 0, total: win.total, loose: false }
   }
   const looseScope: ItemsQuery = {
     kinds: ['file'],
@@ -190,6 +194,7 @@ export async function itemWindow(
   return {
     items: looseWin.hits,
     index: looseWin.index,
+    from: looseWin.from,
     total: looseWin.total,
     loose: true,
   }

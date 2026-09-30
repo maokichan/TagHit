@@ -9,6 +9,7 @@ import { previewKindOf, taghitFileUrl, type PreviewKind } from '../lib/media'
 import { useTabStore, type ItemTab } from '../stores/tab'
 import { useTagStore } from '../stores/tag'
 import { itemRoute, resolveItemContext } from '../features/tabs'
+import { windowNav } from '../features/windowNav'
 import { registerDetailNav } from '../features/detailNav'
 import { formatSize } from '../lib/format'
 import TagChip from '../components/common/TagChip.vue'
@@ -43,13 +44,22 @@ let winSeq = 0
 const windowViews = computed<ItemView[]>(() => (win.value?.items ?? []).map(toItemView))
 const index = computed(() => win.value?.index ?? -1)
 const total = computed(() => win.value?.total ?? 0)
+/**
+ * 切片内定位：**切片位置 = index − from**（窗口是"锚条目 ± radius"的切片，index 是序列位置）。
+ * 直接拿 index 索引切片会跳张、越界（实机症状："前十张正常，然后跳到第十四张，之后按键没反应"）。
+ */
+const nav = computed(() =>
+  windowNav(
+    win.value == null
+      ? null
+      : { index: win.value.index, from: win.value.from, count: win.value.items.length }
+  )
+)
 const prev = computed<ItemView | null>(() =>
-  index.value > 0 ? (windowViews.value[index.value - 1] ?? null) : null
+  nav.value.prev != null ? (windowViews.value[nav.value.prev] ?? null) : null
 )
 const next = computed<ItemView | null>(() =>
-  win.value != null && index.value >= 0 && index.value < win.value.items.length - 1
-    ? (windowViews.value[index.value + 1] ?? null)
-    : null
+  nav.value.next != null ? (windowViews.value[nav.value.next] ?? null) : null
 )
 
 async function loadWindow(): Promise<void> {

@@ -596,10 +596,10 @@ export class SqliteStore implements Store {
     // 大库下这是 O(命中数) 的 id 扫描；要更省可走 keyset（排序键 + id 的复合游标），等真的卡再说。
     const ids = this.orderedIds(q.scope)
     const index = ids.indexOf(q.anchorId)
-    if (index < 0) return { hits: [], index: -1, total: ids.length }
+    if (index < 0) return { hits: [], index: -1, from: 0, total: ids.length }
     const from = Math.max(0, index - q.radius)
     const to = Math.min(ids.length, index + q.radius + 1)
-    return { hits: this.hydrate(ids.slice(from, to)), index, total: ids.length }
+    return { hits: this.hydrate(ids.slice(from, to)), index, from, total: ids.length }
   }
 
   async countItems(q: ItemsQuery = {}): Promise<number> {

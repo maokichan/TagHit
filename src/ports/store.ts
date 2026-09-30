@@ -163,6 +163,14 @@ export interface ItemWindow {
   hits: ItemHit[]
   /** 锚条目在结果集中的 0 起位置；不在结果集内 → -1。 */
   index: number
+  /**
+   * `hits[0]` 在**结果集**里的 0 起位置（窗口起点）。
+   *
+   * 必须给：窗口是"锚条目 ± radius"，所以 **`index` 是序列位置、不是切片位置**——
+   * 调用方若拿 index 直接索引 hits，下标一过 radius 就会挑错条目（跳张），
+   * 再往后直接越界（翻页失效）。切片位置 = `index - from`。
+   */
+  from: number
   /** 结果集总数（与 countItems 同解）。 */
   total: number
 }
