@@ -11,7 +11,7 @@
  *   内部多语句操作（压实位置/重排）在未处于外显事务时自开短事务。
  */
 
-import { DomainError } from '../../domain/index.ts'
+import { compareTagName, DomainError, isPermutationOf, isSelfLink } from '../../domain/index.ts'
 import type {
   Collection,
   CollectionMember,
@@ -42,6 +42,12 @@ import type {
 } from '../../ports/store.ts'
 
 type Row = Record<string, unknown>
+
+/**
+ * schema 版本（`PRAGMA user_version`）。0 = 无版本位的旧库或新库，1 = items 三个派生列（width/height/previewUri）齐备。
+ * 加列/改表一律走 migrate() 的版本化步骤，不再靠"构造时吞异常"隐式演进。
+ */
+const SCHEMA_VERSION = 1
 
 /** 同步 SQLite 驱动最小接口：node:sqlite DatabaseSync 与 better-sqlite3 Database 均满足。 */
 export interface SyncSqlite {
@@ -241,22 +247,34 @@ export class SqliteStore implements Store {
   constructor(driver: SyncSqlite) {
     this.db = driver
     this.db.exec(SCHEMA)
-    // 轻量迁移：v0.2.4 之前的库没有 items.width/height（重复加列会抛错，吞掉即可）
-    try {
-      this.db.exec('ALTER TABLE items ADD COLUMN width INTEGER')
-    } catch {
-      /* 列已存在 */
+    this.migrate()
+  }
+
+  /**
+   * 显式迁移：按 `PRAGMA user_version` 决定是否要跑步骤，跑完写上版本号。
+   * 步骤自身仍容忍"列已存在"——旧库没有版本位（user_version=0）时列可能已齐；
+   * 版本位保证的是**以后不再重复尝试**，并给后续步骤一个可判定的起点。
+   */
+  private migrate(): void {
+    const from = this.readSchemaVersion()
+    if (from >= SCHEMA_VERSION) return
+    // v1：items 的派生列——v0.2.4 之前无 width/height，v0.2.9 之前无 previewUri
+    for (const column of ['width INTEGER', 'height INTEGER', 'previewUri TEXT']) {
+      try {
+        this.db.exec(`ALTER TABLE items ADD COLUMN ${column}`)
+      } catch {
+        /* 列已存在 */
+      }
     }
+    this.db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`)
+  }
+
+  /** 读版本位；驱动不支持读 PRAGMA 时按"无版本位"（0）处理——迁移步骤本身容忍列已存在。 */
+  private readSchemaVersion(): number {
     try {
-      this.db.exec('ALTER TABLE items ADD COLUMN height INTEGER')
+      return Number((this.get('PRAGMA user_version', []) as Row | null)?.user_version ?? 0)
     } catch {
-      /* 列已存在 */
-    }
-    // v0.2.9：缩略图缓存路径（派生元数据，运行时生成）
-    try {
-      this.db.exec('ALTER TABLE items ADD COLUMN previewUri TEXT')
-    } catch {
-      /* 列已存在 */
+      return 0
     }
   }
 
@@ -329,11 +347,6 @@ export class SqliteStore implements Store {
     return row ? toTag(row) : null
   }
 
-  async findTagByName(name: string): Promise<Tag | null> {
-    const row = this.get('SELECT * FROM tags WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))', [name])
-    return row ? toTag(row) : null
-  }
-
   async queryTags(q?: TagsQuery): Promise<Tag[]> {
     let rows: Row[]
     if (q?.ids?.length) {
@@ -344,7 +357,7 @@ export class SqliteStore implements Store {
     }
     const contains = q?.nameContains?.trim().toLowerCase()
     if (contains) rows = rows.filter((r) => String(r.name).toLowerCase().includes(contains))
-    return rows.map(toTag).sort(byNameAsc)
+    return rows.map(toTag).sort(compareTagName)
   }
 
   // ---- 条目 ---------------------------------------------------------------
@@ -457,6 +470,15 @@ export class SqliteStore implements Store {
       where.push(`i.kind = 'file' AND (i.sourceUri = ? OR instr(i.sourceUri, ?) = 1)`)
       params.push(q.underDirPath, `${q.underDirPath}/`)
     }
+    if (q.underAnyDir) {
+      // 路径段并集（underDirPath 的正向式；嵌套/重叠目录下同一条目只计一次）
+      const clauses: string[] = []
+      for (const dir of q.underAnyDir) {
+        clauses.push('(i.sourceUri = ? OR instr(i.sourceUri, ?) = 1)')
+        params.push(dir, `${dir}/`)
+      }
+      where.push(`i.kind = 'file' AND (${clauses.length ? clauses.join(' OR ') : '0'})`)
+    }
     if (q.notUnderAnyDir) {
       // 脱根条目：任何根都不覆盖（路径段匹配的否定式）
       const clauses: string[] = []
@@ -549,7 +571,7 @@ export class SqliteStore implements Store {
 
     return ids.map((id) => {
       const item = toItem(byId.get(id)!)
-      const tags = (tagsByItem.get(id) ?? []).sort(byNameAsc)
+      const tags = (tagsByItem.get(id) ?? []).sort(compareTagName)
       return { item, tags }
     })
   }
@@ -593,7 +615,7 @@ export class SqliteStore implements Store {
   // ---- 标签关联 -----------------------------------------------------------
 
   async linkTag(fromId: Id, toId: Id): Promise<void> {
-    if (fromId === toId) throw invalid('标签不能自关联')
+    if (isSelfLink(fromId, toId)) throw invalid('标签不能自关联')
     this.requireTag(fromId)
     this.requireTag(toId)
     this.run('INSERT OR IGNORE INTO taglinks (fromId, toId) VALUES (?,?)', [fromId, toId])
@@ -681,7 +703,7 @@ export class SqliteStore implements Store {
   async removeWorkspaceRoot(workspaceId: Id, path: string): Promise<void> {
     this.requireWorkspace(workspaceId)
     this.run('DELETE FROM workspaceRoots WHERE workspaceId = ? AND path = ?', [workspaceId, path])
-    // 删该来源根下的整棵节点树（dirPath == path 或其下）
+    // 删该来源根下的整棵节点树（dirPath == path 或其下）；路径段匹配的 SQL 译文（domain/paths.isUnderDir）
     const prefix = `${path}/`
     this.run('DELETE FROM pathNodes WHERE workspaceId = ? AND (dirPath = ? OR substr(dirPath, 1, ?) = ?)', [
       workspaceId,
@@ -854,11 +876,7 @@ export class SqliteStore implements Store {
       'SELECT itemId FROM collectionMembers WHERE collectionId = ? ORDER BY position ASC',
       [collectionId]
     ).map((r) => r.itemId as string)
-    const sameSet =
-      current.length === orderedItemIds.length &&
-      new Set(orderedItemIds).size === orderedItemIds.length &&
-      [...current].sort().join('\u0000') === [...orderedItemIds].sort().join('\u0000')
-    if (!sameSet) throw invalid('重排必须恰好是当前成员集合的一个排列')
+    if (!isPermutationOf(current, orderedItemIds)) throw invalid('重排必须恰好是当前成员集合的一个排列')
     this.inTx(() => {
       orderedItemIds.forEach((itemId, i) => {
         this.run('UPDATE collectionMembers SET position = ? WHERE collectionId = ? AND itemId = ?', [
@@ -966,6 +984,7 @@ export class SqliteStore implements Store {
   }
 
   private tagNameExists(name: string): boolean {
+    // 等价译文（domain/rules.tagNameTaken）——唯一索引 ux_tags_name 是这条判定的存储侧落点
     return this.get('SELECT 1 AS x FROM tags WHERE LOWER(TRIM(name)) = LOWER(?)', [name]) !== null
   }
 

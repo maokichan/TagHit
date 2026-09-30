@@ -11,7 +11,7 @@ import { DomainError } from '../domain/index.ts'
 import type { Id } from '../domain/index.ts'
 import type { FileSystem, Trash } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
-import { basename, isUnderRoot, joinPath, normalizePath } from './paths.ts'
+import { basename, isUnderDir, isUnderRoot, joinPath, normalizePath } from './paths.ts'
 
 /** 断言 path 位于工作区某来源根之下；越界 → NOT_FOUND。 */
 async function assertUnderRoot(
@@ -53,7 +53,7 @@ export async function moveFsEntry(
   if ((await fs.stat(to)).exists) {
     throw new DomainError('CONFLICT', `目标已存在（${to}）`)
   }
-  if (st.kind === 'dir' && to.startsWith(`${from}/`)) {
+  if (st.kind === 'dir' && isUnderDir(from, to)) {
     throw new DomainError('INVALID', '目录不能移入自身子树')
   }
   await fs.rename(from, to)

@@ -66,7 +66,9 @@ export async function browseWorkspace(
  * - hiddenByExcluded：直接节点被用户排除 → 排除只隐藏其**直接**条目（不级联）；
  * - nodeMissing：直接节点行不存在（目录已消失或未被扫描到）→ 条目仍在库中但无归属。
  *
- * 与浏览共用同一份派生译文（directNodeStateIn），故三者之和 == 该工作区来源根下的条目总数。
+ * 与浏览共用同一份派生译文（directNodeStateIn），故三者之和 == 该工作区来源根下的条目总数
+ * ——**含来源根嵌套/重叠**的情形：根下总数用 `underAnyDir` 一次并集计数，
+ * 不逐根求和（逐根求和会把重叠部分重复计入，nodeMissing 因此虚高，2026-09-30 修）。
  */
 export interface VisibilitySummary {
   visible: number
@@ -85,14 +87,12 @@ export async function visibilitySummary(
   const excluded = await svc.store.countItems({
     directNodeStateIn: { workspaceId, state: 'excluded' },
   })
-  let underRoots = 0
-  for (const root of roots) {
-    underRoots += await svc.store.countItems({ underDirPath: root })
-  }
+  const underRoots = await svc.store.countItems({ underAnyDir: roots })
   return {
     visible: included,
     hiddenByExcluded: excluded,
-    // 根下总数 − 有节点归属者 = 直接节点行缺失者（无来源根则恒为 0）
+    // 根下总数 − 有节点归属者 = 直接节点行缺失者（无来源根则恒为 0）。
+    // 并集计数后三者是同一集合的划分；钳零只是数据不一致时的兜底，不再用来掩盖多计。
     nodeMissing: Math.max(0, underRoots - included - excluded),
   }
 }

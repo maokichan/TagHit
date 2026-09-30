@@ -102,6 +102,13 @@ export interface ItemsQuery {
    */
   notUnderAnyDir?: string[]
   /**
+   * 落在任一给定目录之下（**路径段匹配的并集**，同 `underDirPath` 的语义）。
+   * 与 `notUnderAnyDir` 互为否定式，区别是"并集计数"：多个目录**嵌套/重叠**时
+   * 同一条目只计一次——摘要类统计用本条件，逐根求和会把重叠部分重复计入（D19 副产物修复）。
+   * 空数组 = 恒不命中。
+   */
+  underAnyDir?: string[]
+  /**
    * 工作区路径节点派生（D18）：条目**直接节点**（sourceUri 父目录）须在该工作区存在，
    * 且状态等于 `state`。`state:'included'` = 浏览成员（可见性语义）；
    * `'excluded'` = 被用户排除的直接条目（统计"隐藏了多少条"用同一份译文）。
@@ -148,7 +155,7 @@ export interface Store {
 
   // ---- 标签 tag ----------------------------------------------------------
 
-  /** 新建标签。空名（trim 后）→ INVALID；名字大小写不敏感重复 → CONFLICT。返回创建实体。 */
+  /** 新建标签。空名（trim 后）→ INVALID；名字大小写不敏感重复 → CONFLICT（口径见 domain/rules.tagNameTaken）。返回创建实体。 */
   createTag(input: NewTag): Promise<Tag>
 
   /** 改描述（name 不变；改名需求出现时在 patch 上扩展）。不存在 → NOT_FOUND。 */
@@ -159,10 +166,7 @@ export interface Store {
 
   getTag(id: Id): Promise<Tag | null>
 
-  /** 按名查找；语义与 rules.findTagNamed 一致（trim + 小写）。 */
-  findTagByName(name: string): Promise<Tag | null>
-
-  /** 条件查标签；空条件 = 全部，按名升序。 */
+  /** 条件查标签；空条件 = 全部，按标签名口径升序（与唯一性同键，见 domain/rules.compareTagName）。 */
   queryTags(q?: TagsQuery): Promise<Tag[]>
 
   // ---- 条目 item ---------------------------------------------------------
@@ -216,7 +220,7 @@ export interface Store {
 
   // ---- 标签关联：有向 tag → tag（语义由使用方组织，领域不解义） ----------
 
-  /** 建关联。自环 → INVALID；同向已存在 → no-op；端点不存在 → NOT_FOUND。 */
+  /** 建关联。自环 → INVALID（domain/rules.isSelfLink）；同向已存在 → no-op；端点不存在 → NOT_FOUND。 */
   linkTag(fromId: Id, toId: Id): Promise<void>
 
   /** 拆关联。行不存在 → no-op；端点实体不存在 → NOT_FOUND。 */
@@ -311,7 +315,7 @@ export interface Store {
   removeCollectionMember(collectionId: Id, itemId: Id): Promise<void>
 
   /**
-   * 整体重排：orderedItemIds 必须是当前成员集合的一个排列（集合相同），
+   * 整体重排：orderedItemIds 必须是当前成员集合的一个排列（集合相同，domain/rules.isPermutationOf），
    * 否则 → INVALID（防静默丢成员）。collection 不存在 → NOT_FOUND。
    */
   reorderCollectionMembers(collectionId: Id, orderedItemIds: Id[]): Promise<void>

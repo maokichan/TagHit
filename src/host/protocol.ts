@@ -60,8 +60,23 @@ function mimeFor(file: string): string {
   return MIME_BY_EXT[ext] ?? 'application/octet-stream'
 }
 
-/** 白名单：全部工作区的来源根 + userData（未来缩略图落点）。 */
+/**
+ * 白名单：全部工作区的来源根 + userData（缩略图落点）。
+ *
+ * 缓存与失效：媒体请求逐个过协议 handler（网格 N 张图 = N 次），而白名单只随
+ * 工作区/来源根变化——故缓存，并在挂载/卸载来源根、建/删工作区时显式失效
+ * （宿主在对应 IPC handler 里调 invalidateAllowedRoots）。
+ * 失效疏漏宁可偏向"拒绝合法路径"（可重试），不偏向"放行"（安全问题）。
+ */
+let allowedRootsCache: string[] | null = null
+
+/** 工作区集合或来源根集合变化后调用。 */
+export function invalidateAllowedRoots(): void {
+  allowedRootsCache = null
+}
+
 async function allowedRoots(services: AppServices): Promise<string[]> {
+  if (allowedRootsCache != null) return allowedRootsCache
   const roots = new Set<string>()
   for (const ws of await services.store.listWorkspaces()) {
     for (const root of await services.store.listWorkspaceRoots(ws.id)) {
@@ -69,7 +84,8 @@ async function allowedRoots(services: AppServices): Promise<string[]> {
     }
   }
   roots.add(normalize(app.getPath('userData')))
-  return [...roots]
+  allowedRootsCache = [...roots]
+  return allowedRootsCache
 }
 
 /** 从 opaque URL 原始字符串提取本地路径：taghit-file:///C%3A/Users/... → C:\Users\... */

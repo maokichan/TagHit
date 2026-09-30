@@ -7,6 +7,7 @@
  */
 
 import type { FileSystem, FsEntry, FsStat } from '../../ports/filesystem.ts'
+import { isUnderDir } from '../../domain/paths.ts'
 import { sampleHash } from '../sample-hash.ts'
 
 export type MemoryFsSpec = Readonly<Record<string, string | 'dir'>>
@@ -14,6 +15,16 @@ export type MemoryFsSpec = Readonly<Record<string, string | 'dir'>>
 /** 可选的故障注入（校准用）：声明"不可读"的目录，walk 对其产出 kind='error' 条目。 */
 export interface MemoryFsOptions {
   unreadable?: readonly string[]
+  /**
+   * 声明"读不到"的文件：walk 照常列出、stat 报存在，但 hash/readHead reject（权限/IO 失败的等价物）。
+   * 用于校准**文件级容错**——单文件失败不得让整次扫描回滚，也不得被当"已消失"。
+   */
+  badFiles?: readonly string[]
+  /**
+   * 声明"遍历后已消失"的文件：walk 照常列出，但 stat 报不存在（walk 与 stat 之间的竞态等价物）。
+   * 与 badFiles 的区别是语义：这一种确实消失了，应交给消失判定按策略处理。
+   */
+  ghostFiles?: readonly string[]
 }
 
 const T0 = '2026-09-05T00:00:00.000Z'
@@ -28,10 +39,16 @@ export class MemoryFileSystem implements FileSystem {
   private readonly entries: Map<string, Uint8Array | null>
   /** 注入的不可读路径（归一化）：walk 跳过其子树并产出 error 条目。 */
   private readonly unreadable: Set<string>
+  /** 注入的读不到文件（归一化）：stat 报存在，hash/readHead reject。 */
+  private readonly badFiles: Set<string>
+  /** 注入的消失文件（归一化）：walk 会列出，stat 报不存在。 */
+  private readonly ghostFiles: Set<string>
 
   constructor(spec: MemoryFsSpec, options: MemoryFsOptions = {}) {
     this.entries = new Map()
     this.unreadable = new Set((options.unreadable ?? []).map(normalize))
+    this.badFiles = new Set((options.badFiles ?? []).map(normalize))
+    this.ghostFiles = new Set((options.ghostFiles ?? []).map(normalize))
     for (const [raw, value] of Object.entries(spec)) {
       const path = normalize(raw)
       this.ensureParents(path)
@@ -70,7 +87,9 @@ export class MemoryFileSystem implements FileSystem {
   }
 
   async stat(path: string): Promise<FsStat> {
-    const value = this.entries.get(normalize(path))
+    const p = normalize(path)
+    if (this.ghostFiles.has(p)) return { exists: false } // 注入：遍历后消失
+    const value = this.entries.get(p)
     if (value === undefined) return { exists: false }
     if (value === null) return { exists: true, kind: 'dir', modifiedAt: T0 }
     return {
@@ -82,18 +101,22 @@ export class MemoryFileSystem implements FileSystem {
   }
 
   async readHead(path: string, maxBytes: number): Promise<Uint8Array> {
-    const value = this.entries.get(normalize(path))
+    const p = normalize(path)
+    const value = this.entries.get(p)
     if (value === undefined || value === null) {
       throw new Error(`MemoryFileSystem: 文件不存在（${path}）`)
     }
+    if (this.badFiles.has(p)) throw new Error(`MemoryFileSystem: 读取失败（注入 EIO）（${path}）`)
     return value.subarray(0, maxBytes)
   }
 
   async hash(path: string): Promise<string> {
-    const value = this.entries.get(normalize(path))
+    const p = normalize(path)
+    const value = this.entries.get(p)
     if (value === undefined || value === null) {
       throw new Error(`MemoryFileSystem: 文件不存在（${path}）`)
     }
+    if (this.badFiles.has(p)) throw new Error(`MemoryFileSystem: 读取失败（注入 EIO）（${path}）`)
     return sampleHash(value)
   }
 
@@ -103,7 +126,7 @@ export class MemoryFileSystem implements FileSystem {
     const value = this.entries.get(src)
     if (value === undefined) throw new Error(`MemoryFileSystem: 路径不存在（${from}）`)
     if (this.entries.has(dst)) throw new Error(`MemoryFileSystem: 目标已存在（${to}）`)
-    if (value === null && dst.startsWith(`${src}/`)) {
+    if (value === null && isUnderDir(src, dst)) {
       throw new Error(`MemoryFileSystem: 目录不能移入自身子树（${from} → ${to}）`)
     }
     const dstParent = dst.slice(0, dst.lastIndexOf('/'))

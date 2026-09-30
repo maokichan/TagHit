@@ -249,4 +249,30 @@ export async function runViewScenario(store: Store): Promise<void> {
     '⑧ 摘要三类之和 = 本工作区来源根下的条目总数'
   )
 
+  // ---- ⑨ 来源根嵌套/重叠：目录范围并集计数，不逐根求和（2026-09-30 修） ----------
+  // 挂载侧不禁止嵌套（同一路径的重复挂载才 no-op），故 R:/库/深 可以再挂一次。
+  // 逐根求和会把 deep 计两次 → nodeMissing 虚高；并集计数（underAnyDir）后摘要不变。
+  assertEqual(
+    await store.countItems({ underAnyDir: ['R:/库/深'] }),
+    1,
+    '⑨ underAnyDir：深 之下 1 条（deep）'
+  )
+  assertEqual(
+    await store.countItems({ underAnyDir: ['R:/库', 'R:/库/深'] }),
+    30,
+    '⑨ underAnyDir：嵌套目录并集仍计 30（同一条目不重复计）'
+  )
+  assertEqual(await store.countItems({ underAnyDir: [] }), 0, '⑨ underAnyDir 空数组 = 恒不命中')
+  await store.addWorkspaceRoot(WS, 'R:/库/深')
+  assertEqual(
+    await visibilitySummary(svc, WS),
+    { visible: allMemberIds.length, hiddenByExcluded: 1, nodeMissing: 1 },
+    '⑨ 嵌套来源根下摘要不变（逐根求和会给出 nodeMissing=2）'
+  )
+  assertEqual(
+    (await store.listWorkspaceRoots(WS)).length,
+    2,
+    '⑨ 嵌套挂载确实生效（两个来源根）'
+  )
+
   console.log(`\nVIEW CHECKS PASSED（断言执行 ${executedAsserts} 个）`)}

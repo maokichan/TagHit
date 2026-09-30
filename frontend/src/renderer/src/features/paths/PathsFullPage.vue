@@ -65,6 +65,9 @@ void onMounted(() => {
         <span v-if="itemStore.lastScanResult.dirsUnreadable > 0" class="text-[var(--danger)]">
           · {{ itemStore.lastScanResult.dirsUnreadable }} 个目录不可读（已跳过其子树，未当消失处理）
         </span>
+        <span v-if="itemStore.lastScanResult.filesUnreadable > 0" class="text-[var(--danger)]">
+          · {{ itemStore.lastScanResult.filesUnreadable }} 个文件不可读（已跳过，未当消失处理）
+        </span>
       </div>
     </section>
 

@@ -87,6 +87,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsMissing: 0,
       itemsDiscarded: 0,
       dirsUnreadable: 0,
+      filesUnreadable: 0,
     },
     '扫描①：初始整树入库'
   )
@@ -122,6 +123,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsMissing: 1, // sub/video.mp4 消失 → missing（keep）
       itemsDiscarded: 0,
       dirsUnreadable: 0,
+      filesUnreadable: 0,
     },
     '扫描②：增量 diff（变更/新增/消失目录/消失文件）'
   )
@@ -155,6 +157,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsMissing: s3.itemsMissing,
       itemsDiscarded: s3.itemsDiscarded,
       dirsUnreadable: s3.dirsUnreadable,
+      filesUnreadable: s3.filesUnreadable,
     },
     {
       scannedRoots: 1,
@@ -166,6 +169,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsMissing: 1,
       itemsDiscarded: 0,
       dirsUnreadable: 0,
+      filesUnreadable: 0,
     },
     '扫描③：photo1 消失 → keep 标 missing'
   )
@@ -190,6 +194,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsMissing: 0,
       itemsDiscarded: 0,
       dirsUnreadable: 0,
+      filesUnreadable: 0,
     },
     '扫描③b：同内容新路径认领 missing 条目（移动语义）'
   )
@@ -218,6 +223,7 @@ export async function runScanScenario(store: Store): Promise<void> {
       itemsMissing: 0,
       itemsDiscarded: 1, // 仅 video（先前已 missing、磁盘已无）
       dirsUnreadable: 0,
+      filesUnreadable: 0,
     },
     '扫描④：discard 策略删除消失条目（已认领的 photo1 不受影响）'
   )
@@ -277,6 +283,92 @@ export async function runScanScenario(store: Store): Promise<void> {
     (await browseWorkspace(svc, 'ws-scan')).total,
     4,
     '⑤ 不可读子树内的条目仍在视图内（4 条：photo1/2/3 + locked/deep）'
+  )
+
+  // ---- ⑥ 文件级容错：单个文件读不到，不得让整次扫描回滚，也不得被当"消失" ----------
+  // 场景：遍历见到 bad.jpg，但 hash/readHead 失败（权限/IO）。此前这一处会 reject → 整事务回滚
+  //     （"什么都没扫到"）；文件级 try/catch 后：跳过该文件、计入 filesUnreadable、其余照常。
+  const fsBadFile = createMemoryFileSystem(
+    {
+      'R:/库/photo2.jpg': 'JPGDATA-222-BBBBBBBBBBBBBBBB-CHANGED',
+      'R:/库/photo3.jpg': 'JPGDATA-333-CCCCCCCCCCCCCCCC',
+      'R:/库/moved/photo1.jpg': 'JPGDATA-111-AAAAAAAAAAAAAAAA',
+      'R:/库/locked/deep.jpg': 'JPGDATA-999-LOCKEDLOCKEDLOCKED',
+      'R:/库/bad.jpg': 'JPGDATA-BAD-0000000000000000',
+    },
+    { badFiles: ['R:/库/bad.jpg'] }
+  )
+  const s6 = await scanWorkspace(svc, fsBadFile, 'ws-scan')
+  assertEqual(s6.filesUnreadable, 1, '⑥ 不可读文件计入摘要（filesUnreadable=1）')
+  assertEqual(s6.itemsCreated, 0, '⑥ 读不到的文件不建条目')
+  assertEqual(s6.itemsMissing, 0, '⑥ 读不到 ≠ 已消失：不被标 missing')
+  assertEqual(s6.nodesRemoved, 0, '⑥ 扫描未回滚（其余部分照常完成）')
+  assertEqual(
+    (await store.queryItems({ underDirPath: 'R:/库/bad.jpg' })).length,
+    0,
+    '⑥ bad.jpg 未入库'
+  )
+  assertEqual(
+    (await browseWorkspace(svc, 'ws-scan')).total,
+    4,
+    '⑥ 其余 4 条不受影响（对比：修复前这里整次扫描回滚，4 条的状态也不会更新）'
+  )
+
+  // ---- ⑦ 用户排除的目录消失：节点行保留，排除意图不随目录消失而丢失（D27） ----------
+  const fsKeepout = createMemoryFileSystem({
+    'R:/库/photo2.jpg': 'JPGDATA-222-BBBBBBBBBBBBBBBB-CHANGED',
+    'R:/库/photo3.jpg': 'JPGDATA-333-CCCCCCCCCCCCCCCC',
+    'R:/库/moved/photo1.jpg': 'JPGDATA-111-AAAAAAAAAAAAAAAA',
+    'R:/库/locked/deep.jpg': 'JPGDATA-999-LOCKEDLOCKEDLOCKED',
+    'R:/库/keepout/secret.jpg': 'JPGDATA-KEEP-KEEPKEEPKEEPKEEP',
+  })
+  const s7a = await scanWorkspace(svc, fsKeepout, 'ws-scan')
+  assertEqual(s7a.nodesCreated, 1, '⑦ 新目录 keepout 入库（节点行建立）')
+  assertEqual(s7a.itemsCreated, 1, '⑦ keepout/secret.jpg 入库')
+  await store.setPathNodeState('ws-scan', 'R:/库/keepout', 'excluded')
+  const fsKeepoutGone = createMemoryFileSystem({
+    'R:/库/photo2.jpg': 'JPGDATA-222-BBBBBBBBBBBBBBBB-CHANGED',
+    'R:/库/photo3.jpg': 'JPGDATA-333-CCCCCCCCCCCCCCCC',
+    'R:/库/moved/photo1.jpg': 'JPGDATA-111-AAAAAAAAAAAAAAAA',
+    'R:/库/locked/deep.jpg': 'JPGDATA-999-LOCKEDLOCKEDLOCKED',
+  })
+  const s7b = await scanWorkspace(svc, fsKeepoutGone, 'ws-scan')
+  assertEqual(s7b.nodesRemoved, 0, '⑦ 被排除目录消失：节点行保留（不计入 nodesRemoved）')
+  assertEqual(
+    (await store.listPathNodes({ workspaceId: 'ws-scan' })).find((n) => n.dirPath === 'R:/库/keepout')
+      ?.state,
+    'excluded',
+    '⑦ 保留的节点行仍为 excluded（用户意图是资产）'
+  )
+  assertEqual(s7b.itemsMissing, 1, '⑦ 该目录下的文件确实消失了 → 条目按策略标 missing')
+  const s7c = await scanWorkspace(svc, fsKeepout, 'ws-scan')
+  assertEqual(s7c.nodesCreated, 0, '⑦ 目录重现：不新建节点（既有行仍在）')
+  assertEqual(
+    (await browseWorkspace(svc, 'ws-scan', { underDirPath: 'R:/库/keepout' })).total,
+    0,
+    '⑦ 目录重现后其直接条目仍被排除（排除不会"自己回来"）'
+  )
+
+  // ---- ⑧ 遍历与采集之间消失（walk 见到、stat 报不存在）：不炸、不误记不可读 ----------
+  const fsGhost = createMemoryFileSystem(
+    {
+      'R:/库/photo2.jpg': 'JPGDATA-222-BBBBBBBBBBBBBBBB-CHANGED',
+      'R:/库/photo3.jpg': 'JPGDATA-333-CCCCCCCCCCCCCCCC',
+      'R:/库/moved/photo1.jpg': 'JPGDATA-111-AAAAAAAAAAAAAAAA',
+      'R:/库/locked/deep.jpg': 'JPGDATA-999-LOCKEDLOCKEDLOCKED',
+      'R:/库/keepout/secret.jpg': 'JPGDATA-KEEP-KEEPKEEPKEEPKEEP',
+    },
+    { ghostFiles: ['R:/库/photo2.jpg'] }
+  )
+  const s8 = await scanWorkspace(svc, fsGhost, 'ws-scan')
+  assertEqual(s8.filesUnreadable, 0, '⑧ 消失（不是读不到）不计入 filesUnreadable')
+  assertEqual(s8.itemsMissing, 1, '⑧ 消失的既有条目按 keep 策略标 missing')
+  assertEqual(s8.itemsCreated, 0, '⑧ 不因竞态新建条目')
+  assertEqual(s8.nodesRemoved, 0, '⑧ 扫描未回滚（目录与其余条目照常）')
+  assertEqual(
+    asFile(await findItemByUri(store, 'R:/库/photo2.jpg')).status,
+    'missing',
+    '⑧ photo2 条目状态 missing'
   )
 
   console.log(`\nSCAN CHECKS PASSED（断言执行 ${executedAsserts} 个）`)

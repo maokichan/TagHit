@@ -18,7 +18,7 @@ import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
 import { createNodeFileSystem } from '../adapters/node/index.ts'
 import { openSqlite } from './sqliteDriver.ts'
-import { registerPrivilegedSchemes, registerTaghitFileProtocol } from './protocol.ts'
+import { invalidateAllowedRoots, registerPrivilegedSchemes, registerTaghitFileProtocol } from './protocol.ts'
 import {
   appendCollectionMember,
   browseWorkspace,
@@ -184,7 +184,14 @@ function registerHandlers(): void {
   )
 
   // ---- 工作区 ----
-  ipcMain.handle('workspace.create', (_event, name: string) => envelope(createWorkspace(services, name)))
+  ipcMain.handle('workspace.create', (_event, name: string) =>
+    envelope(
+      createWorkspace(services, name).then((ws) => {
+        invalidateAllowedRoots() // 新工作区尚无来源根，失效只为保持"集合变了就失效"的单一口径
+        return ws
+      })
+    )
+  )
   ipcMain.handle('workspace.list', () => envelope(listWorkspaces(services)))
   ipcMain.handle('workspace.get', (_event, workspaceId: Id) => envelope(getWorkspace(services, workspaceId)))
   ipcMain.handle('workspace.browse', (_event, workspaceId: Id, query?: ItemsQuery) =>
@@ -197,10 +204,20 @@ function registerHandlers(): void {
     envelope(declaredTagIds(services, workspaceId))
   )
   ipcMain.handle('workspace.mountRoot', (_event, input: { workspaceId: Id; path: string }) =>
-    envelope(mountWorkspaceRoot(services, input.workspaceId, input.path).then(() => null))
+    envelope(
+      mountWorkspaceRoot(services, input.workspaceId, input.path).then(() => {
+        invalidateAllowedRoots() // 白名单 = 工作区来源根集合，挂载后失效
+        return null
+      })
+    )
   )
   ipcMain.handle('workspace.unmountRoot', (_event, input: { workspaceId: Id; path: string }) =>
-    envelope(unmountWorkspaceRoot(services, input.workspaceId, input.path).then(() => null))
+    envelope(
+      unmountWorkspaceRoot(services, input.workspaceId, input.path).then(() => {
+        invalidateAllowedRoots() // 卸载后该根不再放行
+        return null
+      })
+    )
   )
   ipcMain.handle('workspace.listRoots', (_event, workspaceId: Id) =>
     envelope(listWorkspaceRoots(services, workspaceId))
@@ -212,7 +229,12 @@ function registerHandlers(): void {
     envelope(cleanupDetachedItems(services, input.workspaceId, input.dirPath))
   )
   ipcMain.handle('workspace.delete', (_event, workspaceId: Id) =>
-    envelope(deleteWorkspaceCascade(services, workspaceId).then(() => null))
+    envelope(
+      deleteWorkspaceCascade(services, workspaceId).then(() => {
+        invalidateAllowedRoots() // 工作区没了，其来源根随之退出白名单
+        return null
+      })
+    )
   )
 
   // ---- 扫描（真实文件系统在此注入，渲染层拿不到 fs） ----

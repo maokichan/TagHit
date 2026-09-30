@@ -15,7 +15,15 @@
  * 规则在 domain/rules.ts，编排在应用层用例。
  */
 
-import { DomainError, isUnderDir, parentDir } from '../../domain/index.ts'
+import {
+  compareTagName,
+  DomainError,
+  isPermutationOf,
+  isSelfLink,
+  isUnderDir,
+  parentDir,
+  tagNameTaken,
+} from '../../domain/index.ts'
 import type {
   Collection,
   CollectionMember,
@@ -189,14 +197,6 @@ export class MemoryStore implements Store {
     return this.state.tags.get(id) ?? null
   }
 
-  async findTagByName(name: string): Promise<Tag | null> {
-    const target = name.trim().toLowerCase()
-    for (const tag of this.state.tags.values()) {
-      if (tag.name.trim().toLowerCase() === target) return tag
-    }
-    return null
-  }
-
   async queryTags(q?: TagsQuery): Promise<Tag[]> {
     const ids = q?.ids ? new Set(q.ids) : null
     const contains = q?.nameContains?.trim().toLowerCase()
@@ -206,7 +206,7 @@ export class MemoryStore implements Store {
       if (contains && !tag.name.toLowerCase().includes(contains)) continue
       out.push(tag)
     }
-    out.sort(byNameAsc)
+    out.sort(compareTagName)
     return out
   }
 
@@ -281,6 +281,10 @@ export class MemoryStore implements Store {
       if (titleContains && !item.title.toLowerCase().includes(titleContains)) continue
       // 路径段匹配（与 sqlite 的 `= ? OR instr(?, prefix + '/') = 1` 同解）
       if (prefix && (item.kind !== 'file' || !isUnderDir(prefix, item.sourceUri))) continue
+      if (q.underAnyDir) {
+        if (item.kind !== 'file') continue
+        if (!q.underAnyDir.some((dir) => isUnderDir(dir, item.sourceUri))) continue
+      }
       if (q.notUnderAnyDir) {
         if (item.kind !== 'file') continue
         if (q.notUnderAnyDir.some((dir) => isUnderDir(dir, item.sourceUri))) continue
@@ -359,7 +363,7 @@ export class MemoryStore implements Store {
   // ---- 标签关联 -----------------------------------------------------------
 
   async linkTag(fromId: Id, toId: Id): Promise<void> {
-    if (fromId === toId) throw invalid('标签不能自关联')
+    if (isSelfLink(fromId, toId)) throw invalid('标签不能自关联')
     this.requireTag(fromId)
     this.requireTag(toId)
     const key = pairKey(fromId, toId)
@@ -442,9 +446,8 @@ export class MemoryStore implements Store {
   async removeWorkspaceRoot(workspaceId: Id, path: string): Promise<void> {
     this.requireWorkspace(workspaceId)
     this.state.workspaceRoots.delete(pairKey(workspaceId, path))
-    const prefix = `${path}/`
     for (const node of this.nodesOf(workspaceId)) {
-      if (node.dirPath === path || node.dirPath.startsWith(prefix)) {
+      if (isUnderDir(path, node.dirPath)) {
         this.state.pathNodes.delete(pairKey(workspaceId, node.dirPath))
       }
     }
@@ -481,9 +484,7 @@ export class MemoryStore implements Store {
     const out: PathNode[] = []
     for (const node of this.state.pathNodes.values()) {
       if (opts?.workspaceId !== undefined && node.workspaceId !== opts.workspaceId) continue
-      if (opts?.dirPrefix !== undefined && node.dirPath !== opts.dirPrefix && !node.dirPath.startsWith(`${opts.dirPrefix}/`)) {
-        continue
-      }
+      if (opts?.dirPrefix !== undefined && !isUnderDir(opts.dirPrefix, node.dirPath)) continue
       out.push(node)
     }
     out.sort((a, b) => (a.dirPath < b.dirPath ? -1 : a.dirPath > b.dirPath ? 1 : 0))
@@ -581,11 +582,7 @@ export class MemoryStore implements Store {
   async reorderCollectionMembers(collectionId: Id, orderedItemIds: Id[]): Promise<void> {
     this.requireCollection(collectionId)
     const current = this.membersOfCollection(collectionId).map((r) => r.itemId)
-    const sameSet =
-      current.length === orderedItemIds.length &&
-      new Set(orderedItemIds).size === orderedItemIds.length &&
-      [...current].sort().join('\u0000') === [...orderedItemIds].sort().join('\u0000')
-    if (!sameSet) throw invalid('重排必须恰好是当前成员集合的一个排列')
+    if (!isPermutationOf(current, orderedItemIds)) throw invalid('重排必须恰好是当前成员集合的一个排列')
     // 整组重写位置
     for (const row of this.membersOfCollection(collectionId)) {
       this.state.collectionMembers.delete(pairKey(collectionId, row.itemId))
@@ -667,11 +664,7 @@ export class MemoryStore implements Store {
   // ---- 内部辅助 -----------------------------------------------------------
 
   private hasTagNamed(name: string): boolean {
-    const target = name.toLowerCase()
-    for (const tag of this.state.tags.values()) {
-      if (tag.name.toLowerCase() === target) return true
-    }
-    return false
+    return tagNameTaken([...this.state.tags.values()], name)
   }
 
   private tagsOf(itemId: Id): Tag[] {
@@ -681,7 +674,7 @@ export class MemoryStore implements Store {
       const tag = this.state.tags.get(row.tagId)
       if (tag) out.push(tag)
     }
-    out.sort(byNameAsc)
+    out.sort(compareTagName)
     return out
   }
 

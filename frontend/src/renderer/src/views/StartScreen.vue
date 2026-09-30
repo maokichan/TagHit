@@ -76,7 +76,8 @@ async function runGlobalSearch(): Promise<void> {
   }
   globalLoading.value = true
   try {
-    const hits = await api.items.query({ titleContains: q, limit: 60 })
+    // kinds: ['file'] —— 内容检索只认素材条目；锚条目（承接作品标签的空条目）不是内容
+    const hits = await api.items.query({ titleContains: q, limit: 60, kinds: ['file'] })
     globalResults.value = hits.map(toItemView)
   } finally {
     globalLoading.value = false

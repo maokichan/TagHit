@@ -11,7 +11,7 @@
 import type { Id, NodeState, PathNode } from '../domain/index.ts'
 import { DomainError } from '../domain/index.ts'
 import type { AppServices } from './services.ts'
-import { isUnderRoot, normalizePath } from './paths.ts'
+import { isUnderDir, isUnderRoot, normalizePath } from './paths.ts'
 
 /** 列出工作区全部路径节点（含各来源根根节点；按存储返回序）。 */
 export async function listWorkspaceNodes(
@@ -51,7 +51,7 @@ export async function setSubtreeState(
   await assertUnderRoot(svc, workspaceId, dirPath)
   const base = normalizePath(dirPath)
   const nodes = await svc.store.listPathNodes({ workspaceId })
-  const targets = nodes.filter((n) => n.dirPath === base || n.dirPath.startsWith(`${base}/`))
+  const targets = nodes.filter((n) => isUnderDir(base, n.dirPath))
   if (targets.length === 0) {
     throw new DomainError('NOT_FOUND', `路径节点不存在（${dirPath}）`)
   }

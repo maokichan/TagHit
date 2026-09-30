@@ -102,7 +102,8 @@ export function createPathManagement(workspaceId: string): PathManagement {
     }
   }
 
-  /** 树形由路径前缀派生（不另存父指针，与域模型一致）；父节点缺失则挂顶层。 */
+  /** 树形由路径前缀派生（不另存父指针，与域模型一致）；父节点缺失则挂顶层。
+   *  路径段判定与领域 isUnderDir 同解（渲染层零运行时依赖根 src，故此处保留等价写法）。 */
   function treeFor(rootPath: string): TreeNode[] {
     const rootsSet = new Set(roots.value.map((r) => r.path))
     const scoped = nodes.value

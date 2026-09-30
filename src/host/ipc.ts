@@ -4,7 +4,8 @@
  * 设计要点：
  * - 每个端点 = 一个应用层用例/读操作的窄封装，参数与结果全部类型化；
  * - 统一结果信封 Result<T>：成功 { ok:true, data } / 失败 { ok:false, error:{code,message} }
- *   ——D9 错误转译在此落地：DomainError.code 原样带出，渲染层只按 code 转文案；
+ *   ——D9 错误转译在此落地：DomainError.code 原样带出，宿主附上产生侧的 message；
+ *   渲染层按 code 取中文短句并把 message 作为细节附后（shared/api.ts）；
  * - 渲染层**不直接触碰 Store**：所有读写都经这里路由到应用层用例，
  *   字节/文件/数据库永不进入渲染层；
  * - 本表是契约的**单一事实源**：新增端点在此加一行即获得两端类型；
