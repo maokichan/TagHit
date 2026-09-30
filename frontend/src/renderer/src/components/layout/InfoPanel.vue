@@ -31,7 +31,9 @@ const rows = computed(() => {
 function openDetail(): void {
   const it = item.value
   if (!it) return
-  const activeWs = tabStore.activeWorkspaceId
+  // 工作区取"这个条目所属的视图"（选中它时那个工作区），而不是当前活动标签——
+  // 两者不一致时（切了工作区但选中项还在面板上）用活动标签会把详情页带进错误的序列
+  const activeWs = itemStore.viewWorkspaceId ?? tabStore.activeWorkspaceId
   // 顺序上下文：有活动工作区就沿它的视图（排序/筛选/范围），否则按默认排序跨工作区
   const context: ItemContext =
     activeWs != null

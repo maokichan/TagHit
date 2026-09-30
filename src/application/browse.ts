@@ -118,26 +118,20 @@ export interface ItemContext {
 
 /** 顺序窗口结果：序列片段（含锚条目）+ 位置 + 总数。 */
 export interface ItemWindowResult {
-  /** 窗口条目，按顺序上下文排列；锚条目不在序列内（例如打开了锚条目）→ 空数组。 */
+  /** 窗口条目，按顺序上下文排列；锚条目在当前序列内找不到 → 空数组。 */
   items: ItemHit[]
-  /** 锚条目在序列中的 0 起位置；不在序列内 → -1（渲染层据此隐藏进度与翻页）。 */
+  /** 锚条目在序列中的 0 起位置；找不到 → -1。 */
   index: number
   total: number
+  /**
+   * true = 锚条目**不在固化视图的序列里**，已退到"全部素材"顺序（仍只认素材条目、保留排序）。
+   * 渲染层据此如实提示（而不是给用户一个死胡同）。
+   */
+  loose: boolean
 }
 
-/**
- * 条目窗口：详情页翻页与前后预览的数据面（2026-09-30）。
- *
- * 三条口径：① 只认**素材条目**（kinds = file）——锚条目不是内容，不进浏览序列；
- * ② 成员条件与浏览同源（`directNodeStateIn`），故序列与网格一致；
- * ③ 窗口只用于导航与预览，**不做声明投影**（当前条目的标签仍由详情页自己按 id 取），
- * 因此这里只落一次存储调用，翻页成本可控。
- */
-export async function itemWindow(
-  svc: AppServices,
-  anchorId: Id,
-  ctx: ItemContext = {}
-): Promise<ItemWindowResult> {
+/** 顺序上下文 → 查询条件（窗口与浏览同源的那一份）。 */
+function contextScope(ctx: ItemContext): ItemsQuery {
   const scope: ItemsQuery = {
     kinds: ['file'],
     order: ctx.order ?? 'createdAt',
@@ -149,8 +143,54 @@ export async function itemWindow(
   if (ctx.withAllTags?.length) scope.withAllTags = ctx.withAllTags
   if (ctx.titleContains) scope.titleContains = ctx.titleContains
   if (ctx.underDirPath != null && ctx.underDirPath !== '') scope.underDirPath = ctx.underDirPath
+  return scope
+}
 
+/** 上下文是否带"视图条件"（工作区成员前提或视图筛选）；纯排序不算。 */
+function hasViewConditions(ctx: ItemContext): boolean {
+  return (
+    ctx.workspaceId != null ||
+    (ctx.withAllTags?.length ?? 0) > 0 ||
+    ctx.titleContains != null ||
+    (ctx.underDirPath != null && ctx.underDirPath !== '')
+  )
+}
+
+/**
+ * 条目窗口：详情页翻页与前后预览的数据面（2026-09-30）。
+ *
+ * 三条口径：① 只认**素材条目**（kinds = file）——锚条目不是内容，不进浏览序列；
+ * ② 成员条件与浏览同源（`directNodeStateIn`），故序列与网格一致；
+ * ③ 窗口只用于导航与预览，**不做声明投影**（当前条目的标签仍由详情页自己按 id 取），
+ * 因此这里只落存储调用，翻页成本可控。
+ *
+ * **找不到就退一步**（2026-09-30 补）：锚条目可能不在固化视图的序列里——从搜索结果打开后
+ * 关键词又变了、从信息面板跨工作区打开、条目无节点归属、不在「只看某节点」范围内……
+ * 这些都不是"没有内容可翻"，而是"它不在这条序列上"。此时退到**全部素材**（保留排序方向），
+ * 让翻页继续可用，并用 `loose` 如实回报；连全部素材里都没有（例如锚条目）才是真的没有序列。
+ */
+export async function itemWindow(
+  svc: AppServices,
+  anchorId: Id,
+  ctx: ItemContext = {}
+): Promise<ItemWindowResult> {
   const radius = Math.min(24, Math.max(1, Math.floor(ctx.radius ?? 6)))
-  const win = await svc.store.itemWindow({ scope, anchorId, radius })
-  return { items: win.hits, index: win.index, total: win.total }
+  const win = await svc.store.itemWindow({ scope: contextScope(ctx), anchorId, radius })
+  if (win.index >= 0) return { items: win.hits, index: win.index, total: win.total, loose: false }
+  if (!hasViewConditions(ctx)) {
+    // 本来就是"全部素材"序列：找不到就是真的不在序列内（如锚条目），不再重试
+    return { items: [], index: -1, total: win.total, loose: false }
+  }
+  const looseScope: ItemsQuery = {
+    kinds: ['file'],
+    order: ctx.order ?? 'createdAt',
+    orderDir: ctx.orderDir ?? 'desc',
+  }
+  const looseWin = await svc.store.itemWindow({ scope: looseScope, anchorId, radius })
+  return {
+    items: looseWin.hits,
+    index: looseWin.index,
+    total: looseWin.total,
+    loose: true,
+  }
 }

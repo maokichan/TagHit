@@ -114,6 +114,7 @@ export async function runWindowScenario(store: Store): Promise<void> {
   )
   assertEqual(centered.index, 5, '① index = 锚条目在序列中的 0 起位置')
   assertEqual(centered.total, MEMBER_COUNT, '① total = 成员总数（非成员不计）')
+  assertEqual(centered.loose, false, '① 正常路径不触发回落')
 
   // ---- ② 两端边界：不越界，窗口按可用条数收缩 ------------------------------
   const head = await itemWindow(svc, 'w-01', { workspaceId: WS, order: 'createdAt', orderDir: 'asc', radius: RADIUS })
@@ -142,16 +143,20 @@ export async function runWindowScenario(store: Store): Promise<void> {
     assertEqual([win.index, win.total], [4, all.length], `③ 位置与总数（${order} ${orderDir}）`)
   }
 
-  // ---- ④ 锚条目不在序列内：读宽松（index=-1、窗口为空），总数仍可信 ----------
+  // ---- ④ 锚条目不在视图序列内：退到"全部素材"，而不是死胡同 ------------------
   const anchorOut = await itemWindow(svc, 'x-anchor', { workspaceId: WS, radius: RADIUS })
   assertEqual(
     [anchorOut.index, anchorOut.items.length],
     [-1, 0],
-    '④ 锚条目不是内容：不在序列内 → index=-1、窗口为空'
+    '④ 锚条目不是内容：退到全部素材后仍无序列 → index=-1、窗口为空'
   )
-  assertEqual(anchorOut.total, MEMBER_COUNT, '④ 总数仍等于成员数（读宽松，不抛错）')
+  assertEqual(anchorOut.loose, true, '④ 如实标记"已退到全部素材序列"')
+  assertEqual(anchorOut.total, MEMBER_COUNT + 2, '④ 退到全部素材后的总数（锚条目始终不计入）')
   const otherOut = await itemWindow(svc, 'x-noNode', { workspaceId: WS, radius: RADIUS })
-  assertEqual(otherOut.index, -1, '④ 无节点归属的条目不在本工作区序列内')
+  assertEqual(otherOut.loose, true, '④ 无节点归属的条目不在本工作区序列 → 触发回落')
+  assertEqual(otherOut.index >= 0, true, '④ 回落之后翻页仍可用（不再是死胡同）')
+  const noCtx = await itemWindow(svc, 'x-anchor', { radius: RADIUS })
+  assertEqual(noCtx.loose, false, '④ 上下文本就无视图条件 → 不重试（loose 保持 false）')
 
   // ---- ⑤ 视图筛选参与序列：标签筛选下窗口随之缩小 --------------------------
   await store.createTag({ id: 'tag-hot', name: '精选', createdAt: T0 })
@@ -166,6 +171,22 @@ export async function runWindowScenario(store: Store): Promise<void> {
   })
   assertEqual(filtered.items.map((h) => h.item.id), ['w-03', 'w-07'], '⑤ 标签筛选下序列只剩命中项')
   assertEqual([filtered.index, filtered.total], [1, 2], '⑤ 筛选后的位置与总数')
+  assertEqual(filtered.loose, false, '⑤ 命中筛选的条目走原序列（不回落）')
+  // 真实场景：从筛选视图点开某条目后，它不再满足筛选（打标被卸掉等）→ 退到全部素材而不是死胡同
+  const outOfFilter = await itemWindow(svc, 'w-01', {
+    workspaceId: WS,
+    order: 'createdAt',
+    orderDir: 'asc',
+    withAllTags: ['tag-hot'],
+    radius: RADIUS,
+  })
+  assertEqual(outOfFilter.loose, true, '⑤ 不满足筛选的锚条目触发回落')
+  assertEqual(
+    outOfFilter.items.map((h) => h.item.id),
+    ['w-01', 'w-02', 'w-03'],
+    '⑤ 回落按"全部素材 + 原排序"给出窗口'
+  )
+  assertEqual(outOfFilter.index, 0, '⑤ 回落后的位置同样可信')
 
   // ---- ⑥ 跨工作区序列（无成员前提）：素材条目全在内，锚条目仍不进序列 --------
   const cross = await itemWindow(svc, 'x-other', { order: 'createdAt', orderDir: 'asc', radius: RADIUS })

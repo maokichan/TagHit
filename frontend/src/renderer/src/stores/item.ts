@@ -39,6 +39,8 @@ export const useItemStore = defineStore('item', () => {
   const hasMore = ref(false)
   /** 成员总数（不受分页影响）——条目数的唯一可信来源。 */
   const total = ref(0)
+  /** 当前视图属于哪个工作区（信息面板据此定位"这个选中条目是从哪来的"）。 */
+  const viewWorkspaceId = ref<Id | null>(null)
 
   // 排序（显示面板控制）
   const sortBy = ref<SortOrder>('createdAt')
@@ -62,6 +64,12 @@ export const useItemStore = defineStore('item', () => {
   async function load(workspaceId: Id): Promise<void> {
     loading.value = true
     try {
+      // 换了工作区 → 多选集与"选中条目"属于上一个视图，先清掉：
+      // 否则信息面板会继续显示别的库的条目，从那里打开详情还会得到一个不属于本视图的序列
+      if (viewWorkspaceId.value !== workspaceId) {
+        clearSelection()
+        viewWorkspaceId.value = workspaceId
+      }
       const res = await api.workspaces.browse(workspaceId, buildQuery(0))
       items.value = res.items.map(toItemView)
       total.value = res.total
@@ -241,6 +249,7 @@ export const useItemStore = defineStore('item', () => {
     page,
     hasMore,
     total,
+    viewWorkspaceId,
     load,
     loadMore,
     scan,

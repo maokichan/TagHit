@@ -59,6 +59,23 @@ async function loadWindow(): Promise<void> {
 }
 
 /**
+ * 进度文案：正常走"当前视图序列"；若锚条目不在该序列里（关键词已变、跨工作区打开、
+ * 无节点归属…），用例会退到"全部素材"并回报 `loose`——**如实说明**，不给死胡同。
+ * 连全部素材里都没有（锚条目=非内容）才是真的没有序列。
+ */
+const progressText = computed(() => {
+  if (index.value < 0) return '非内容条目 · 无浏览序列'
+  const base = `第 ${index.value + 1} / ${total.value}`
+  return win.value?.loose === true ? `${base}（已按全部素材）` : base
+})
+
+const progressTitle = computed(() =>
+  win.value?.loose === true
+    ? '该条目不在打开时的视图序列里（关键词已变 / 跨工作区 / 无节点归属），已退到「全部素材」顺序'
+    : `当前视图顺序：第 ${index.value + 1} 张，共 ${total.value} 张`
+)
+
+/**
  * 翻页：在当前条目标签内换内容（**不新开标签**——翻十张就是十个标签），
  * 路由用 replace（同一次浏览不写历史；侧键返回回到来处的网格/搜索）。
  * 打标导致当前条目退出视图时**当前页不跳**：窗口只在翻页时按新集合重算。
@@ -232,12 +249,12 @@ const rows = computed(() => {
           <span
             v-if="index >= 0"
             class="text-[11px] text-[var(--fg-dim)] shrink-0"
-            :title="`当前视图顺序：第 ${index + 1} 张，共 ${total} 张`"
+            :title="progressTitle"
           >
-            第 {{ index + 1 }} / {{ total }}
+            {{ progressText }}
           </span>
-          <span v-else class="text-[11px] text-[var(--fg-dim)] shrink-0" title="该条目不在当前视图的序列内">
-            不在当前序列
+          <span v-else class="text-[11px] text-[var(--fg-dim)] shrink-0" :title="progressTitle">
+            {{ progressText }}
           </span>
         </div>
 
