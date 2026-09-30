@@ -39,6 +39,11 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{d
 - **真机运行**：`npm run dev`（一键：打包宿主 → vite dev（端口自适应回退）→ Electron；开发库 `build/taghit-dev.db`）；手动分步见 README。开发态 userData 按库隔离，同库双开由单实例锁拒绝。
 - **宿主产物**：esbuild 打包 `src/host` → `build/main.cjs` + `preload.cjs`（宿主代码改动必须重新打包并重启应用；渲染层改动只需刷新窗口）。
 - 根 node_modules 仅 better-sqlite3/bindings/file-uri-to-path（Electron ABI，**勿让 node v24 直接加载**）。
+- **工作区文件权限（Windows ACL，2026-10-01 记录；下次再遇到 = 专题修理对象）**：
+  - 症状：本会话**所有** shell 命令在启动前就失败（`SetNamedSecurityInfoW failed (Win32 5): grantWrite(D:\PROJECT)`），随后即使能跑，工作区内的写入也被拒（`EPERM`，连 `.git/index.lock` 都建不了）；读操作与 `write`/`edit` 工具不受影响。
+  - 当时处置：跑内置的 ACL 诊断脚本（`diagnose-windows-sandbox-acl`），给当前用户补一条完全控制项、复核通过后再跑原命令。**备份与回滚脚本**在 `C:\Users\1\dsh-acl-report\`（文件内容与所有者未改）。
+  - 这不是应用问题：TagHit 的代码与数据都无关。**下次遇到按专题修**（先取证再改权限，别手工编辑 ACL）。
+- **受限沙箱的已知边界（同上，2026-10-01）**：`npm test`（Vitest）在受限模式下必失败——esbuild 要 spawn 子进程并用管道收集输出，沙箱直接拒（`spawn EPERM`）。放行一次即可跑通，属环境边界而非代码问题。
 
 ## 六、目录（要点）
 
