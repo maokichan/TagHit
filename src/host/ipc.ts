@@ -35,6 +35,8 @@ import type {
 import type { ItemHit, ItemsQuery } from '../ports/index.ts'
 import type {
   BrowseResult,
+  ItemContext,
+  ItemWindowResult,
   ProjectedHit,
   RetiredRootView,
   RootManagementView,
@@ -49,9 +51,11 @@ export type {
   Group,
   Id,
   Item,
+  ItemContext,
   ItemHit,
   ItemsQuery,
   ItemStatus,
+  ItemWindowResult,
   NodeState,
   PathNode,
   ProjectedHit,
@@ -93,6 +97,8 @@ export interface IpcContracts {
 
   // ---- 条目 item：查 / 打标 / 删 ------------------------------------------
   'items.query': { args: [query: ItemsQuery]; result: ItemHit[] }
+  /** 顺序窗口（详情页翻页 + 前后预览）：按固化顺序上下文取锚条目的前后各 N 条 */
+  'item.window': { args: [{ anchorId: Id; context: ItemContext }]; result: ItemWindowResult }
   'item.tag': { args: [{ itemId: Id; tagIds: Id[] }]; result: null }
   'item.untag': { args: [{ itemId: Id; tagIds: Id[] }]; result: null }
   'items.tag': { args: [{ itemIds: Id[]; tagIds: Id[] }]; result: null }
@@ -181,6 +187,7 @@ export interface TaghitRendererApi {
   undeclareTag(input: { workspaceId: Id; tagId: Id }): Promise<IpcResult<'tags.undeclare'>>
 
   queryItems(query: ItemsQuery): Promise<IpcResult<'items.query'>>
+  itemWindow(input: { anchorId: Id; context: ItemContext }): Promise<IpcResult<'item.window'>>
   tagItem(input: { itemId: Id; tagIds: Id[] }): Promise<IpcResult<'item.tag'>>
   untagItem(input: { itemId: Id; tagIds: Id[] }): Promise<IpcResult<'item.untag'>>
   tagItems(input: { itemIds: Id[]; tagIds: Id[] }): Promise<IpcResult<'items.tag'>>

@@ -142,6 +142,31 @@ export interface ItemHit {
   tags: Tag[]
 }
 
+/**
+ * 顺序窗口查询（条目详情页的翻页与前后预览，2026-09-30）。
+ *
+ * 与分页的区别：分页问"从第 N 条起的一页"，窗口问"某一条的前后邻居是谁"——
+ * 后者需要一个锚条目。顺序语义与 ItemsQuery.order/orderDir **完全一致**（tiebreak = id 升序），
+ * 所以详情页翻页的顺序与它来的那个视图的顺序是同一个（顺序上下文由调用方固化）。
+ */
+export interface ItemWindowQuery {
+  /** 结果集条件（order/orderDir 决定窗口顺序；limit/offset 不参与）。 */
+  scope: ItemsQuery
+  /** 锚条目 = 详情页当前条目。 */
+  anchorId: Id
+  /** 前后各取多少条（不含锚条目自身）。 */
+  radius: number
+}
+
+export interface ItemWindow {
+  /** 窗口条目，按顺序上下文排列（含锚条目——若它在结果集内；不在则为空）。 */
+  hits: ItemHit[]
+  /** 锚条目在结果集中的 0 起位置；不在结果集内 → -1。 */
+  index: number
+  /** 结果集总数（与 countItems 同解）。 */
+  total: number
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -206,6 +231,12 @@ export interface Store {
    * 与 queryItems 必须同解：两处的条件构建在适配器内共用一份实现。
    */
   countItems(q: ItemsQuery): Promise<number>
+
+  /**
+   * 顺序窗口：按 scope 的顺序定位 anchorId，返回其前后各 radius 条（详情页翻页 + 前后预览）。
+   * 命中集合与 countItems/queryItems 同解；锚条目不在集合内 → `index = -1`、`hits = []`（读宽松）。
+   */
+  itemWindow(q: ItemWindowQuery): Promise<ItemWindow>
 
   // ---- 挂载：条目 × 标签（条目级；关系记录 ItemAttach） ------------------
 

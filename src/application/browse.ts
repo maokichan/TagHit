@@ -13,7 +13,7 @@
  */
 
 import type { Id, Item, Tag } from '../domain/index.ts'
-import type { ItemsQuery } from '../ports/index.ts'
+import type { ItemHit, ItemsQuery } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
 
 /** 投影后的条目视图。 */
@@ -95,4 +95,62 @@ export async function visibilitySummary(
     // 并集计数后三者是同一集合的划分；钳零只是数据不一致时的兜底，不再用来掩盖多计。
     nodeMissing: Math.max(0, underRoots - included - excluded),
   }
+}
+
+/**
+ * 条目详情页的**顺序上下文**（渲染层在打开标签页的瞬间固化，见渲染层 tab 的 ItemTab）：
+ * 决定"上一张 / 下一张"沿哪个序列走。字段与工作区视图的查询条件一一对应——
+ * 这样"详情页的下一张"与"网格里的下一张"是同一个序列。
+ */
+export interface ItemContext {
+  /** 工作区成员前提；null/缺省 = 跨工作区（全局搜索、主页搜索结果）。 */
+  workspaceId?: Id | null
+  order?: ItemsQuery['order']
+  orderDir?: 'asc' | 'desc'
+  /** 视图筛选（与工作区视图同款下推条件）。 */
+  withAllTags?: Id[]
+  titleContains?: string
+  /** 「只看某节点」的目录范围。 */
+  underDirPath?: string | null
+  /** 前后各取多少条（缺省 6，钳制 1..24）。 */
+  radius?: number
+}
+
+/** 顺序窗口结果：序列片段（含锚条目）+ 位置 + 总数。 */
+export interface ItemWindowResult {
+  /** 窗口条目，按顺序上下文排列；锚条目不在序列内（例如打开了锚条目）→ 空数组。 */
+  items: ItemHit[]
+  /** 锚条目在序列中的 0 起位置；不在序列内 → -1（渲染层据此隐藏进度与翻页）。 */
+  index: number
+  total: number
+}
+
+/**
+ * 条目窗口：详情页翻页与前后预览的数据面（2026-09-30）。
+ *
+ * 三条口径：① 只认**素材条目**（kinds = file）——锚条目不是内容，不进浏览序列；
+ * ② 成员条件与浏览同源（`directNodeStateIn`），故序列与网格一致；
+ * ③ 窗口只用于导航与预览，**不做声明投影**（当前条目的标签仍由详情页自己按 id 取），
+ * 因此这里只落一次存储调用，翻页成本可控。
+ */
+export async function itemWindow(
+  svc: AppServices,
+  anchorId: Id,
+  ctx: ItemContext = {}
+): Promise<ItemWindowResult> {
+  const scope: ItemsQuery = {
+    kinds: ['file'],
+    order: ctx.order ?? 'createdAt',
+    orderDir: ctx.orderDir ?? 'desc',
+  }
+  if (ctx.workspaceId != null) {
+    scope.directNodeStateIn = { workspaceId: ctx.workspaceId, state: 'included' }
+  }
+  if (ctx.withAllTags?.length) scope.withAllTags = ctx.withAllTags
+  if (ctx.titleContains) scope.titleContains = ctx.titleContains
+  if (ctx.underDirPath != null && ctx.underDirPath !== '') scope.underDirPath = ctx.underDirPath
+
+  const radius = Math.min(24, Math.max(1, Math.floor(ctx.radius ?? 6)))
+  const win = await svc.store.itemWindow({ scope, anchorId, radius })
+  return { items: win.hits, index: win.index, total: win.total }
 }

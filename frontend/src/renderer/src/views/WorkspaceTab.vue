@@ -7,7 +7,9 @@ import { useItemStore } from '../stores/item'
 import { useTabStore } from '../stores/tab'
 import { useWorkspaceStore } from '../stores/workspace'
 import { openBatchTagDialog } from '../features/services/batchTag'
+import { itemRoute } from '../features/tabs'
 import { type SelectIntent } from '../features/selection'
+import type { ItemContext } from '@shared/contract'
 import type { ItemView } from '../lib/viewModel'
 
 const props = defineProps<{ id: string }>()
@@ -56,9 +58,11 @@ onMounted(async () => {
 })
 
 function openItem(item: ItemView): void {
-  // 双击打开详情 = 新开一个条目标签页（当前工作区标签不受影响）
-  tabStore.openItem(item.id, workspaceId, item.title)
-  router.push(`/item/${item.id}?workspace=${workspaceId}`)
+  // 双击打开详情 = 新开一个条目标签页（当前工作区标签不受影响）；
+  // 顺序上下文在此固化：详情页翻页沿的就是网格此刻的排序 + 筛选 + 范围
+  const context: ItemContext = { workspaceId, ...itemStore.orderContext() }
+  tabStore.openItem(item.id, workspaceId, item.title, context)
+  router.push(itemRoute(item.id, context))
 }
 
 function selectItem(item: ItemView, intent: SelectIntent): void {

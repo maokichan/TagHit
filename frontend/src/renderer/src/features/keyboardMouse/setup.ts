@@ -46,6 +46,23 @@ function enabledByGate(binding: ShortcutBinding): boolean {
   return config.value(binding.gate.featureId, binding.gate.key, binding.gate.fallback)
 }
 
+/**
+ * 媒体元素（video/audio）自带键盘语义：方向键属于原生控件（seek/音量），
+ * 绑定的方向键在此**让位**——不触发、也不 preventDefault，否则视频就没法用键盘定位。
+ * （详情页的翻页因此同时提供 PgUp/PgDn 与两侧按钮，见 officialCommands。）
+ */
+function isMediaTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null
+  if (el == null || el.tagName == null) return false
+  const tag = el.tagName.toLowerCase()
+  return tag === 'video' || tag === 'audio'
+}
+
+function isArrowKey(key: string): boolean {
+  const k = key.toLowerCase()
+  return k === 'arrowleft' || k === 'arrowright' || k === 'arrowup' || k === 'arrowdown'
+}
+
 async function runBinding(binding: ShortcutBinding): Promise<void> {
   const entry = getCommand(binding.commandId)
   if (entry == null) {
@@ -69,6 +86,8 @@ export function setupKeyboardMouse(): () => void {
     if (isEditableTarget(e.target) && binding.allowInEditable !== true && binding.key !== 'escape') {
       return
     }
+    // 媒体元素聚焦时方向键让位原生控件（不触发、不吞键）
+    if (isMediaTarget(e.target) && isArrowKey(binding.key)) return
     if (!enabledByGate(binding)) return
     e.preventDefault()
     void runBinding(binding)

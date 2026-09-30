@@ -32,7 +32,10 @@ import type {
 } from '../../domain/index.ts'
 import type {
   ItemHit,
+  ItemOrderField,
   ItemsQuery,
+  ItemWindow,
+  ItemWindowQuery,
   NewCollection,
   NewGroup,
   NewTag,
@@ -518,38 +521,30 @@ export class SqliteStore implements Store {
     return { where, params }
   }
 
-  async queryItems(q: ItemsQuery = {}): Promise<ItemHit[]> {
+  /** ORDER BY 表达式（`sourceUri` 对 anchor 取空串参与排序；与 memory 的 orderValue 同解）。 */
+  private static orderExpr(order: ItemOrderField): string {
+    return order === 'title'
+      ? 'i.title'
+      : order === 'sourceUri'
+        ? "CASE WHEN i.kind = 'file' THEN i.sourceUri ELSE '' END"
+        : 'i.createdAt'
+  }
+
+  /** 顺序上下文下的**全部**命中 id（不含分页）——窗口定位（itemWindow）用。 */
+  private orderedIds(q: ItemsQuery): string[] {
     const { where, params } = this.itemWhere(q)
+    const sql =
+      `SELECT i.id FROM items i${where.length ? ` WHERE ${where.join(' AND ')}` : ''}` +
+      ` ORDER BY ${SqliteStore.orderExpr(q.order ?? 'createdAt')} ${
+        q.orderDir === 'desc' ? 'DESC' : 'ASC'
+      }, i.id ASC`
+    return this.all(sql, params).map((r) => r.id as string)
+  }
 
-    const orderField = q.order ?? 'createdAt'
-    const orderExpr =
-      orderField === 'title'
-        ? 'i.title'
-        : orderField === 'sourceUri'
-          ? "CASE WHEN i.kind = 'file' THEN i.sourceUri ELSE '' END"
-          : 'i.createdAt'
-    const dir = q.orderDir === 'desc' ? 'DESC' : 'ASC'
-
-    let sql = `SELECT i.id FROM items i`
-    if (where.length) sql += ` WHERE ${where.join(' AND ')}`
-    sql += ` ORDER BY ${orderExpr} ${dir}, i.id ASC`
-    if (q.limit !== undefined) {
-      sql += ` LIMIT ?`
-      params.push(q.limit)
-      if (q.offset !== undefined) {
-        sql += ` OFFSET ?`
-        params.push(q.offset)
-      }
-    }
-
-    const idRows = this.all(sql, params)
-    if (idRows.length === 0) return []
-
-    const ids = idRows.map((r) => r.id as string)
+  /** id 列表 → 条目 + 标签（保持入参顺序）；分批绑定参数，防大库撞 SQLite 参数上限。 */
+  private hydrate(ids: string[]): ItemHit[] {
     const byId = new Map<string, Row>()
     const tagsByItem = new Map<string, Tag[]>()
-    // 分批取行与标签：单条 `IN (?,?,…)` 的绑定参数有个数上限（SQLite 32766），
-    // 无 limit 的全量读（扫描快照、工作区统计）在大库上会直接抛错，故按块收敛。
     for (const chunk of chunked(ids, SQL_PARAM_CHUNK)) {
       const marks = chunk.map(() => '?').join(',')
       for (const r of this.all(`SELECT * FROM items WHERE id IN (${marks})`, chunk)) {
@@ -568,12 +563,43 @@ export class SqliteStore implements Store {
         tagsByItem.set(itemId, list)
       }
     }
-
     return ids.map((id) => {
       const item = toItem(byId.get(id)!)
       const tags = (tagsByItem.get(id) ?? []).sort(compareTagName)
       return { item, tags }
     })
+  }
+
+  async queryItems(q: ItemsQuery = {}): Promise<ItemHit[]> {
+    const { where, params } = this.itemWhere(q)
+    let sql = `SELECT i.id FROM items i`
+    if (where.length) sql += ` WHERE ${where.join(' AND ')}`
+    sql += ` ORDER BY ${SqliteStore.orderExpr(q.order ?? 'createdAt')} ${
+      q.orderDir === 'desc' ? 'DESC' : 'ASC'
+    }, i.id ASC`
+    if (q.limit !== undefined) {
+      sql += ` LIMIT ?`
+      params.push(q.limit)
+      if (q.offset !== undefined) {
+        sql += ` OFFSET ?`
+        params.push(q.offset)
+      }
+    }
+
+    const idRows = this.all(sql, params)
+    if (idRows.length === 0) return []
+    return this.hydrate(idRows.map((r) => r.id as string))
+  }
+
+  async itemWindow(q: ItemWindowQuery): Promise<ItemWindow> {
+    // 定位锚条目需要完整 id 序列（只取 id，不取行与标签）；窗口内那几条才 hydrate。
+    // 大库下这是 O(命中数) 的 id 扫描；要更省可走 keyset（排序键 + id 的复合游标），等真的卡再说。
+    const ids = this.orderedIds(q.scope)
+    const index = ids.indexOf(q.anchorId)
+    if (index < 0) return { hits: [], index: -1, total: ids.length }
+    const from = Math.max(0, index - q.radius)
+    const to = Math.min(ids.length, index + q.radius + 1)
+    return { hits: this.hydrate(ids.slice(from, to)), index, total: ids.length }
   }
 
   async countItems(q: ItemsQuery = {}): Promise<number> {

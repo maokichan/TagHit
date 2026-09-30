@@ -45,6 +45,8 @@ import type {
 import type {
   ItemHit,
   ItemsQuery,
+  ItemWindow,
+  ItemWindowQuery,
   NewCollection,
   NewGroup,
   NewTag,
@@ -312,22 +314,33 @@ export class MemoryStore implements Store {
     return node?.state === cond.state
   }
 
-  async queryItems(q: ItemsQuery = {}): Promise<ItemHit[]> {
-    const hits = this.matchingItems(q)
-
+  /** 顺序排序（与 sqlite 的 ORDER BY 同解：orderValue + id 升序 tiebreak）。 */
+  private sortHits(hits: ItemHit[], q: ItemsQuery): ItemHit[] {
     const dir = q.orderDir === 'desc' ? -1 : 1
     const order = q.order ?? 'createdAt'
-    hits.sort((a, b) => {
+    return hits.sort((a, b) => {
       const va = orderValue(a.item, order)
       const vb = orderValue(b.item, order)
       if (va < vb) return -1 * dir
       if (va > vb) return 1 * dir
       return a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0
     })
+  }
 
+  async queryItems(q: ItemsQuery = {}): Promise<ItemHit[]> {
+    const hits = this.sortHits(this.matchingItems(q), q)
     const start = q.offset ?? 0
     const end = q.limit === undefined ? hits.length : start + q.limit
     return hits.slice(start, end)
+  }
+
+  async itemWindow(q: ItemWindowQuery): Promise<ItemWindow> {
+    const hits = this.sortHits(this.matchingItems(q.scope), q.scope)
+    const index = hits.findIndex((h) => h.item.id === q.anchorId)
+    if (index < 0) return { hits: [], index: -1, total: hits.length }
+    const from = Math.max(0, index - q.radius)
+    const to = Math.min(hits.length, index + q.radius + 1)
+    return { hits: hits.slice(from, to), index, total: hits.length }
   }
 
   async countItems(q: ItemsQuery = {}): Promise<number> {

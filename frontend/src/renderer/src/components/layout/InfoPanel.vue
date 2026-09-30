@@ -4,7 +4,9 @@ import { useRouter } from 'vue-router'
 import { ExternalLink, Info } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
 import { useTabStore } from '../../stores/tab'
+import { itemRoute } from '../../features/tabs'
 import { formatSize } from '../../lib/format'
+import type { ItemContext } from '@shared/contract'
 
 defineProps<{ side?: 'left' | 'right' }>()
 const router = useRouter()
@@ -30,8 +32,13 @@ function openDetail(): void {
   const it = item.value
   if (!it) return
   const activeWs = tabStore.activeWorkspaceId
-  tabStore.openItem(it.id, activeWs, it.title)
-  router.push(activeWs != null ? `/item/${it.id}?workspace=${activeWs}` : `/item/${it.id}`)
+  // 顺序上下文：有活动工作区就沿它的视图（排序/筛选/范围），否则按默认排序跨工作区
+  const context: ItemContext =
+    activeWs != null
+      ? { workspaceId: activeWs, ...itemStore.orderContext() }
+      : { workspaceId: null, order: 'createdAt', orderDir: 'desc' }
+  tabStore.openItem(it.id, activeWs, it.title, context)
+  router.push(itemRoute(it.id, context))
 }
 </script>
 

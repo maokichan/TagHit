@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import type { ItemContext } from '@shared/contract'
 
 export interface HomeTab {
   key: string
@@ -26,6 +27,11 @@ export interface ItemTab {
   itemId: string
   workspaceId: string | null
   title: string
+  /**
+   * **顺序上下文**（打开瞬间固化，见“相册式详情页”裁决）：详情页的"上一张 / 下一张"
+   * 沿它走——字段与来处的视图条件一一对应。翻页只改 itemId，上下文不变。
+   */
+  context: ItemContext
 }
 
 /**
@@ -126,21 +132,51 @@ export const useTabStore = defineStore('tab', () => {
 
   /**
    * 打开条目详情：新开一个条目标签页（不占用当前标签）。
-   * 若同一条目已有标签页，则激活它并更新上下文（工作区/标题）。
+   * 若同一条目已有标签页，则激活它并更新上下文（工作区/标题/顺序上下文）。
+   * `context` = **顺序上下文**（来自工作区视图、搜索结果等）；缺省按默认排序、跨工作区。
    */
-  function openItem(itemId: string, workspaceId: string | null, title: string): void {
+  function openItem(
+    itemId: string,
+    workspaceId: string | null,
+    title: string,
+    context: ItemContext = { workspaceId, order: 'createdAt', orderDir: 'desc' }
+  ): void {
     const existing = tabs.value.find(
       (t): t is ItemTab => t.kind === 'item' && t.itemId === itemId
     )
     if (existing) {
       existing.workspaceId = workspaceId
       existing.title = title
+      existing.context = context
       activeKey.value = existing.key
       return
     }
-    const tab: ItemTab = { key: `item:${itemId}`, kind: 'item', itemId, workspaceId, title }
+    const tab: ItemTab = { key: `item:${itemId}`, kind: 'item', itemId, workspaceId, title, context }
     tabs.value.push(tab)
     activeKey.value = tab.key
+  }
+
+  /**
+   * 详情页翻页：在当前条目标签内换内容（同一个浏览会话不新开标签——翻十张就是十个标签，
+   * 那是标签栏的灾难）。顺序上下文不变（它固化的是"从哪个视图进来的"），标题随之更新，
+   * 标签键同步改成新条目 id；若目标条目**已有**标签页，则本次翻页落到它上面（不留重复键）。
+   */
+  function flipItemTab(fromItemId: string, toItemId: string, title: string): void {
+    const tab = tabs.value.find((t): t is ItemTab => t.kind === 'item' && t.itemId === fromItemId)
+    if (tab == null) return
+    const targetKey = `item:${toItemId}`
+    const existing = tabs.value.find((t) => t.key === targetKey && t !== tab)
+    if (existing != null) {
+      const idx = tabs.value.indexOf(tab)
+      if (idx >= 0) tabs.value.splice(idx, 1)
+      activeKey.value = existing.key
+      return
+    }
+    const oldKey = tab.key
+    tab.itemId = toItemId
+    tab.title = title
+    tab.key = targetKey
+    if (activeKey.value === oldKey) activeKey.value = targetKey
   }
 
   /**
@@ -207,6 +243,7 @@ export const useTabStore = defineStore('tab', () => {
     openNewHome,
     openWorkspace,
     openItem,
+    flipItemTab,
     openFeature,
     openSettings,
     setActive,

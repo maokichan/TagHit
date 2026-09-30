@@ -11,8 +11,10 @@
 import type {
   BrowseResult,
   Id,
+  ItemContext,
   ItemsQuery,
   ItemHit,
+  ItemWindowResult,
   NodeState,
   PathNode,
   Result,
@@ -79,6 +81,10 @@ export const api = {
   items: {
     async query(query: ItemsQuery): Promise<ItemHit[]> {
       return unwrap(await bridge().queryItems(query))
+    },
+    /** 顺序窗口（详情页翻页 + 前后预览）：context 由打开详情页那一刻固化。 */
+    async window(anchorId: Id, context: ItemContext): Promise<ItemWindowResult> {
+      return unwrap(await bridge().itemWindow({ anchorId, context }))
     },
     async tag(itemId: Id, tagIds: Id[]): Promise<void> {
       unwrap(await bridge().tagItem({ itemId, tagIds }))

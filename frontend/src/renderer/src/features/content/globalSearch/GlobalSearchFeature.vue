@@ -10,6 +10,8 @@ import { Search } from 'lucide-vue-next'
 import { api } from '@shared/api'
 import { toItemView, type ItemView } from '../../../lib/viewModel'
 import { useTabStore } from '../../../stores/tab'
+import { itemRoute } from '../../tabs'
+import type { ItemContext } from '@shared/contract'
 import ItemCard from '../../../components/item/ItemCard.vue'
 
 const router = useRouter()
@@ -42,8 +44,15 @@ async function runSearch(): Promise<void> {
 }
 
 function openItem(item: ItemView): void {
-  tabStore.openItem(item.id, null, item.title)
-  router.push(`/item/${item.id}`)
+  // 顺序上下文 = 这次搜索的结果序列（跨工作区；标题子串就是搜索结果的条件）
+  const context: ItemContext = {
+    workspaceId: null,
+    order: 'createdAt',
+    orderDir: 'asc',
+    titleContains: query.value.trim()
+  }
+  tabStore.openItem(item.id, null, item.title, context)
+  router.push(itemRoute(item.id, context))
 }
 </script>
 

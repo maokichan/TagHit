@@ -1,5 +1,6 @@
 import router from '../router'
 import { useTabStore, type Tab } from '../stores/tab'
+import type { ItemContext } from '@shared/contract'
 
 /**
  * 标签与导航的**语义单点**（壳能力）。
@@ -14,6 +15,42 @@ import { useTabStore, type Tab } from '../stores/tab'
  *   这是"去了一个新地方"，返回 = 撤销这次打开，语义自然。
  */
 
+/**
+ * 条目详情路由：**顺序上下文随路由携带**（打开时写、刷新后读回）——
+ * 路由是标签的投影，上下文必须能从路由复原，否则刷新一次详情页就丢了"从哪个视图进来的"。
+ */
+export function itemRoute(itemId: string, context: ItemContext): string {
+  const q = new URLSearchParams()
+  if (context.workspaceId != null) q.set('workspace', context.workspaceId)
+  if (context.order != null) q.set('order', context.order)
+  if (context.orderDir != null) q.set('dir', context.orderDir)
+  if (context.withAllTags?.length) q.set('tags', context.withAllTags.join(','))
+  if (context.titleContains) q.set('q', context.titleContains)
+  if (context.underDirPath != null && context.underDirPath !== '') q.set('scope', context.underDirPath)
+  const s = q.toString()
+  return `/item/${itemId}${s !== '' ? `?${s}` : ''}`
+}
+
+/** 路由 query → 顺序上下文（详情页读；标签项丢失时的回落路径）。 */
+export function itemContextFromQuery(query: Record<string, unknown>): ItemContext {
+  const str = (k: string): string | null => {
+    const v = query[k]
+    return typeof v === 'string' && v !== '' ? v : null
+  }
+  const ctx: ItemContext = {
+    workspaceId: str('workspace'),
+    order: (str('order') as ItemContext['order']) ?? 'createdAt',
+    orderDir: str('dir') === 'asc' ? 'asc' : 'desc'
+  }
+  const tags = str('tags')
+  if (tags != null) ctx.withAllTags = tags.split(',').filter((x) => x !== '')
+  const keyword = str('q')
+  if (keyword != null) ctx.titleContains = keyword
+  const scope = str('scope')
+  if (scope != null) ctx.underDirPath = scope
+  return ctx
+}
+
 /** 标签 → 路由（唯一映射；TabBar、守卫、打开入口共用，避免各处手写模板字符串）。 */
 export function routeOfTab(tab: Tab): string {
   switch (tab.kind) {
@@ -24,7 +61,7 @@ export function routeOfTab(tab: Tab): string {
     case 'feature':
       return `/feature/${tab.featureId}`
     case 'item':
-      return `/item/${tab.itemId}${tab.workspaceId != null ? `?workspace=${tab.workspaceId}` : ''}`
+      return itemRoute(tab.itemId, tab.context)
     case 'workspace':
       return `/workspace/${tab.workspaceId}`
   }
@@ -42,9 +79,19 @@ export function activeTabRoute(): string {
   return active != null ? routeOfTab(active) : '/'
 }
 
-/** 路由 → 应激活的活动标签（守卫用同一映射，反向判定）。 */
+/**
+ * 路由是否命中该标签（守卫用同一映射反向判定）。
+ *
+ * 条目详情只看**路径**（`/item/:id`）：查询串是**顺序上下文**，它是标签项的投影——
+ * 上下文以标签项为准（打开瞬间固化），手改查询串或编码差异都不该被当成"另一个地方"，
+ * 否则守卫会把路由改写回去、翻页被弹回（编码差异在带空格/中文的搜索关键词上真实存在）。
+ * 其余标签没有查询串，整串比较即可。
+ */
 export function routeMatchesTab(tab: Tab, path: string): boolean {
-  return routeOfTab(tab) === path
+  const route = routeOfTab(tab)
+  if (tab.kind !== 'item') return route === path
+  const cut = (s: string): string => s.split('?')[0] ?? s
+  return cut(route) === cut(path)
 }
 
 /**

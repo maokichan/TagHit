@@ -1,9 +1,13 @@
+import router from '../router'
 import { useTabStore } from '../stores/tab'
 import { useItemStore } from '../stores/item'
 import { registerCommand, type CommandEntry } from './commands'
 import { registerShortcut } from './keyboardMouse/shortcuts'
 import { openBatchTagDialog } from './services/batchTag'
+import { detailNext, detailPrev } from './detailNav'
+import { itemRoute } from './tabs'
 import { api } from '@shared/api'
+import type { ItemContext } from '@shared/contract'
 import type { CommandManifest, MenuContext } from '@shared/types/command'
 
 /**
@@ -30,7 +34,9 @@ export function registerBuiltinCommands(): void {
     (ctx) => {
       const view = useItemStore().items.find((i) => i.id === ctx.target.id)
       if (view == null) return
-      useTabStore().openItem(view.id, ctx.workspaceId, view.title)
+      const context: ItemContext = { workspaceId: ctx.workspaceId, ...useItemStore().orderContext() }
+      useTabStore().openItem(view.id, ctx.workspaceId, view.title, context)
+      void router.push(itemRoute(view.id, context))
     }
   )
 
@@ -113,6 +119,17 @@ export function registerBuiltinCommands(): void {
     }
   )
 
+  // 条目详情页翻页（相册式浏览）：命令在注册表里，快捷键与页面上的两侧按钮**同源**——
+  // 实现在详情页（挂载期登记到 detailNav 桥），没挂详情页时空操作。
+  official(
+    { id: 'item.prev', title: '上一张', when: { kind: 'targetIs', value: 'shell' } },
+    () => detailPrev()
+  )
+  official(
+    { id: 'item.next', title: '下一张', when: { kind: 'targetIs', value: 'shell' } },
+    () => detailNext()
+  )
+
   // ── 官方快捷键绑定（快捷键 = 命令注册表的视图；行为逐个增补） ──
   // Ctrl+F：沿用"键鼠交互"设置开关；输入态也允许（本来就在找搜索框）
   registerShortcut({
@@ -125,6 +142,12 @@ export function registerBuiltinCommands(): void {
   })
   // Esc：清空多选集（含输入态——打字时按 Esc 也应当退出选择态）
   registerShortcut({ commandId: 'selection.clear', key: 'escape', label: '清空选择' })
+  // 详情页翻页：← / → 与 PgUp / PgDn 四路并存——笔记本可能没有 PgUp/PgDn（要 Fn+↑），
+  // 而视频聚焦时方向键属原生控件（见 keyboardMouse/setup.ts 的让位规则），那时 PgUp/PgDn 是主力。
+  registerShortcut({ commandId: 'item.prev', key: 'arrowleft', label: '上一张' })
+  registerShortcut({ commandId: 'item.next', key: 'arrowright', label: '下一张' })
+  registerShortcut({ commandId: 'item.prev', key: 'pageup', label: '上一张' })
+  registerShortcut({ commandId: 'item.next', key: 'pagedown', label: '下一张' })
 }
 
 /** 批量命令的操作对象集：selection ∩ 当前工作区视图条目（过滤离屏/删除 id，防 NOT_FOUND）。 */

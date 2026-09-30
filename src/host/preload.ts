@@ -23,6 +23,7 @@ const api: TaghitRendererApi = {
   undeclareTag: (input) => invoke('tags.undeclare', input),
 
   queryItems: (query) => invoke('items.query', query),
+  itemWindow: (input) => invoke('item.window', input),
   tagItem: (input) => invoke('item.tag', input),
   untagItem: (input) => invoke('item.untag', input),
   tagItems: (input) => invoke('items.tag', input),

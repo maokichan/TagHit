@@ -11,7 +11,7 @@ import SurfaceHost from './features/SurfaceHost.vue'
 import ServiceHost from './features/services/ServiceHost.vue'
 import { openContextMenu } from './features/contextMenu'
 import { listFeatures, resolvedIcon, type FeatureEntry } from './features/registry'
-import { activeTabRoute, routeOfTab } from './features/tabs'
+import { activeTabRoute, routeMatchesTab } from './features/tabs'
 import { useItemStore } from './stores/item'
 
 const route = useRoute()
@@ -43,7 +43,7 @@ watch(
       if (tabStore.activeTab?.kind !== 'home') void router.replace(activeTabRoute())
       return
     }
-    const match = tabStore.tabs.find((t) => routeOfTab(t) === path)
+    const match = tabStore.tabs.find((t) => routeMatchesTab(t, path))
     if (match != null) {
       if (tabStore.activeKey !== match.key) tabStore.setActive(match.key)
       return

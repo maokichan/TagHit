@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { api } from '@shared/api'
 import { toItemView, type ItemView } from '../lib/viewModel'
 import type { SelectIntent } from '../features/selection'
-import type { Id, ItemsQuery, ScanSummary } from '@shared/contract'
+import type { Id, ItemContext, ItemsQuery, ScanSummary } from '@shared/contract'
 
 const PAGE_SIZE = 120
 
@@ -210,6 +210,22 @@ export const useItemStore = defineStore('item', () => {
     filter.value.keyword = kw
   }
 
+  /**
+   * 当前视图的**顺序上下文**（打开详情页时固化到标签项）：详情页的"上一张 / 下一张"沿它走。
+   * 与 buildQuery 同源——少的只有工作区（由调用方给）与分页（分页不进上下文：
+   * 序列是全量、翻页自己会跨页取）。
+   */
+  function orderContext(): Omit<ItemContext, 'workspaceId' | 'radius'> {
+    const ctx: Omit<ItemContext, 'workspaceId' | 'radius'> = {
+      order: sortBy.value,
+      orderDir: sortDir.value
+    }
+    if (filter.value.tagIds.length) ctx.withAllTags = [...filter.value.tagIds]
+    if (filter.value.keyword) ctx.titleContains = filter.value.keyword
+    if (scopeDirPath.value != null) ctx.underDirPath = scopeDirPath.value
+    return ctx
+  }
+
   return {
     items,
     loading,
@@ -241,6 +257,7 @@ export const useItemStore = defineStore('item', () => {
     clearTagFilters,
     setKeyword,
     setScope,
+    orderContext,
     toggleSortDir
   }
 })

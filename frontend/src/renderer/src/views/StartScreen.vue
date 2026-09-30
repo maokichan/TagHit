@@ -4,8 +4,10 @@ import { useRouter } from 'vue-router'
 import { FolderPlus, Search } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../stores/workspace'
 import { useTabStore } from '../stores/tab'
+import { itemRoute } from '../features/tabs'
 import { api } from '@shared/api'
 import { toItemView, type ItemView } from '../lib/viewModel'
+import type { ItemContext } from '@shared/contract'
 import ItemCard from '../components/item/ItemCard.vue'
 
 const router = useRouter()
@@ -86,8 +88,15 @@ async function runGlobalSearch(): Promise<void> {
 
 function openGlobalItem(item: ItemView): void {
   // 点击搜索结果 = 新开一个条目标签页（0.2 全局结果不带工作区归属）
-  tabStore.openItem(item.id, null, item.title)
-  router.push(`/item/${item.id}`)
+  // 顺序上下文 = 这次搜索的结果序列（跨工作区，标题子串即搜索结果的条件）
+  const context: ItemContext = {
+    workspaceId: null,
+    order: 'createdAt',
+    orderDir: 'asc',
+    titleContains: globalQuery.value.trim()
+  }
+  tabStore.openItem(item.id, null, item.title, context)
+  router.push(itemRoute(item.id, context))
 }
 </script>
 

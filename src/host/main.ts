@@ -35,6 +35,7 @@ import {
   deleteWorkspaceCascade,
   addGroupMember,
   getWorkspace,
+  itemWindow,
   listWorkspaceNodes,
   listWorkspaceRoots,
   listWorkspaces,
@@ -64,7 +65,7 @@ import {
   cleanupDetachedItems,
   repairLegacyPaths,
 } from '../application/index.ts'
-import type { AppServices, ScanOptions } from '../application/index.ts'
+import type { AppServices, ItemContext, ScanOptions } from '../application/index.ts'
 import type { Id } from '../domain/index.ts'
 import type { ItemsQuery } from '../ports/index.ts'
 import type { DomainErrorCode } from '../domain/index.ts'
@@ -136,6 +137,9 @@ function registerHandlers(): void {
   // ---- 条目 ----
   ipcMain.handle('items.query', (_event, query: ItemsQuery) =>
     envelope(queryItems(services, query))
+  )
+  ipcMain.handle('item.window', (_event, input: { anchorId: Id; context: ItemContext }) =>
+    envelope(itemWindow(services, input.anchorId, input.context))
   )
   ipcMain.handle('item.tag', (_event, input: { itemId: Id; tagIds: Id[] }) =>
     envelope(tagItem(services, input.itemId, input.tagIds).then(() => null))
