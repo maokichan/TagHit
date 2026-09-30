@@ -1,7 +1,7 @@
 # TagHit 开发交接（CONTEXT）
 
 > 面向 AI 会话的快速交接。**架构见 ARCHITECTURE · 词汇 GLOSSARY · 裁决 DECISIONS · 待办 TODO.md（唯一清单）**。
-> 版本：0.2.13。
+> 版本：0.2.14。
 
 ## 一、一句话
 
