@@ -86,7 +86,18 @@ if (process.env.TAGHIT_RENDERER_URL != null) {
 // 而不是黑屏；不同库实例各自持锁，互不影响。
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
-  console.error('[host] 已有同库实例在运行：退出本次启动（关掉旧窗口或换 TAGHIT_DB 再开）')
+  // 静默退出最容易造成"我明明重启了却还是旧的"——用原生错误框把原因摆到眼前
+  const msg =
+    '已有同库实例在运行：本次启动将退出。\n\n' +
+    '同一个库文件只允许一个实例（避免缓存锁冲突）。\n' +
+    '请先关掉已打开的 TagHit 窗口（或在任务管理器结束 electron 进程）后重试；' +
+    '想同时开两个库，用不同的 TAGHIT_DB。'
+  console.error(`[host] ${msg.replace(/\n+/g, ' ')}`)
+  try {
+    dialog.showErrorBox('TagHit 已在运行', msg)
+  } catch {
+    /* 对话框不可用（无 GUI 会话）→ 只留日志 */
+  }
   app.quit()
 }
 

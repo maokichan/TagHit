@@ -171,6 +171,15 @@ function openGlobalItem(item: ItemView): void {
           <p v-if="error" class="text-[11px] text-[var(--danger)] mt-2">{{ error }}</p>
         </div>
 
+        <!-- 列表加载失败：**明着报**，不要让"空列表"看起来像工作区丢了 -->
+        <p
+          v-if="workspaceStore.error"
+          class="w-full max-w-xl text-[12px] text-[var(--danger)] panel p-3 mb-3 break-all"
+        >
+          工作区列表加载失败：{{ workspaceStore.error }}
+          <button class="btn ml-2 text-[11px]" @click="workspaceStore.refresh()">重试</button>
+        </p>
+
         <!-- 已有工作区卡片 -->
         <div
           v-if="workspaceStore.workspaces.length"

@@ -53,6 +53,8 @@ declare module 'electron' {
       window: BrowserWindow,
       options: { properties: string[] }
     ): Promise<{ canceled: boolean; filePaths: string[] }>
+    /** 原生错误框（无 GUI 会话时宿主自行吞异常）：用于"已在运行"这类必须看见的启动失败。 */
+    showErrorBox(title: string, content: string): void
   }
 
   export const app: {
