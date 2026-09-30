@@ -11,14 +11,20 @@ declare module 'node:path' {
   export const sep: string
   export function normalize(path: string): string
   export function join(...parts: string[]): string
+  export function resolve(...parts: string[]): string
 }
 
 declare module 'node:fs' {
   export interface ReadStream {
     [Symbol.asyncIterator](): AsyncIterator<Uint8Array>
   }
+  export interface StatLike {
+    size: number
+    mtime: Date
+  }
   export function createReadStream(path: string, options?: { start?: number; end?: number }): ReadStream
-  export function statSync(path: string): { size: number }
+  export function statSync(path: string): StatLike
+  export function existsSync(path: string): boolean
   export function readFileSync(path: string, encoding: 'utf8'): string
   export function mkdirSync(path: string, options?: { recursive?: boolean }): void
   export function writeFileSync(path: string, data: Uint8Array): void

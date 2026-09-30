@@ -95,6 +95,8 @@ declare module 'electron' {
 declare const process: {
   env: Record<string, string | undefined>
   platform: string
+  argv: string[]
+  exit(code?: number): never
 }
 
 declare interface Window {

@@ -72,26 +72,39 @@ function plain<T>(value: T): T {
 let cachedBridge: NonNullable<Window['taghit']> | null = null
 
 /**
- * 宿主桥（渲染层唯一出口）。返回的是**入参已纯化**的包装：
- * 任何 `api.*` 调用都能安全地把 store 里的对象/数组当参数传进来。
+ * 宿主桥（渲染层唯一出口）。返回的是**入参已纯化**的包装：任何 `api.*` 调用都能安全地
+ * 把 store 里的对象/数组当参数传进来（纯化原因见 `plain` 的注释）。
+ *
+ * **不能用 Proxy 包装它**（2026-10-01 实机踩到）：`contextBridge` 暴露的属性是
+ * **只读且不可配置的数据属性**，而 Proxy 的 `get` 陷阱对这类属性必须返回原值——
+ * 包一层函数会直接抛
+ * `TypeError: 'get' on proxy: property 'listWorkspaces' is a read-only and non-configurable
+ * data property on the proxy target but the proxy did not return its actual value`，
+ * 结果是**所有调用全线失败**（界面表现：工作区列表空、详情页无序列）。
+ * 正解是**拷成一个普通对象**、逐方法包一层。
  */
 function bridge(): NonNullable<Window['taghit']> {
   if (!window.taghit) {
     throw new ApiError('UNKNOWN', '宿主未就绪：请在 Electron 宿主内运行（window.taghit 不可用）')
   }
   if (cachedBridge != null) return cachedBridge
-  const raw = window.taghit
-  cachedBridge = new Proxy(raw, {
-    get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver)
-      if (typeof value !== 'function') return value
-      return (...args: unknown[]) =>
-        (value as (...a: unknown[]) => unknown).apply(
-          target,
-          args.map((a) => plain(a))
-        )
-    }
-  }) as NonNullable<Window['taghit']>
+  const raw = window.taghit as unknown as Record<string, unknown>
+  const keys = Object.keys(raw)
+  if (keys.length === 0) {
+    // 理论上不会发生（contextBridge 的属性可枚举）；真发生就退回原桥，宁可少了纯化也不能全断
+    console.warn('[api] window.taghit 无可枚举属性，跳过入参纯化包装')
+    cachedBridge = window.taghit
+    return cachedBridge
+  }
+  const wrapped: Record<string, unknown> = {}
+  for (const key of keys) {
+    const value = raw[key]
+    wrapped[key] =
+      typeof value === 'function'
+        ? (...args: unknown[]) => (value as (...a: unknown[]) => unknown)(...args.map((a) => plain(a)))
+        : value
+  }
+  cachedBridge = wrapped as unknown as NonNullable<Window['taghit']>
   return cachedBridge
 }
 

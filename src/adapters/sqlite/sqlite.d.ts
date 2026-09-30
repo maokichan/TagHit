@@ -11,7 +11,8 @@ declare module 'node:sqlite' {
   }
 
   export class DatabaseSync {
-    constructor(path?: string)
+    /** `readOnly` 只读打开（自检工具用：对着运行中的库跑，绝不写）。 */
+    constructor(path?: string, options?: { readOnly?: boolean })
     exec(sql: string): void
     prepare(sql: string): StatementSync
     close(): void
