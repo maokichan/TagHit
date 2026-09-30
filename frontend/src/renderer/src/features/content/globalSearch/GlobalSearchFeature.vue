@@ -20,6 +20,11 @@ const tabStore = useTabStore()
 const query = ref('')
 const results = ref<ItemView[]>([])
 const loading = ref(false)
+/**
+ * **产出这批结果的关键词**（不是输入框的实时值）：输入框有 250ms 防抖，用户改完字立刻点旧结果时，
+ * 实时值已不是这批结果的条件——拿它当顺序上下文会让详情页退成"全部素材"，方向键在整库里乱跳。
+ */
+const resultsKeyword = ref('')
 let debounce: number | undefined
 
 watch(query, () => {
@@ -31,6 +36,7 @@ async function runSearch(): Promise<void> {
   const q = query.value.trim()
   if (!q) {
     results.value = []
+    resultsKeyword.value = ''
     return
   }
   loading.value = true
@@ -38,6 +44,7 @@ async function runSearch(): Promise<void> {
     // kinds: ['file'] —— 内容检索只认素材条目；锚条目（承接作品标签的空条目）不是内容
     const hits = await api.items.query({ titleContains: q, limit: 60, kinds: ['file'] })
     results.value = hits.map(toItemView)
+    resultsKeyword.value = q
   } finally {
     loading.value = false
   }
@@ -49,7 +56,7 @@ function openItem(item: ItemView): void {
     workspaceId: null,
     order: 'createdAt',
     orderDir: 'asc',
-    titleContains: query.value.trim()
+    titleContains: resultsKeyword.value
   }
   tabStore.openItem(item.id, null, item.title, context)
   router.push(itemRoute(item.id, context))

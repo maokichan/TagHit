@@ -6,9 +6,9 @@ import { api } from '@shared/api'
 import type { Id, ItemContext, ItemWindowResult } from '@shared/contract'
 import { toItemView, type ItemView } from '../lib/viewModel'
 import { previewKindOf, taghitFileUrl, type PreviewKind } from '../lib/media'
-import { useTabStore } from '../stores/tab'
+import { useTabStore, type ItemTab } from '../stores/tab'
 import { useTagStore } from '../stores/tag'
-import { itemContextFromQuery, itemRoute } from '../features/tabs'
+import { itemRoute, resolveItemContext } from '../features/tabs'
 import { registerDetailNav } from '../features/detailNav'
 import { formatSize } from '../lib/format'
 import TagChip from '../components/common/TagChip.vue'
@@ -25,13 +25,15 @@ const error = ref('')
 
 // ---- 顺序上下文 + 顺序窗口（相册式浏览：翻页与前后预览） ----------------------
 /**
- * 顺序上下文：**标签项是单点**（打开详情页那一刻固化，见 tab 的 ItemTab）；
- * 标签丢失（刷新/手改地址）时从路由 query 复原——路由是标签的投影，两者必须能互相复原。
+ * 顺序上下文：**标签项优先**（打开详情页那一刻固化，见 tab 的 ItemTab）→ 路由 query →
+ * 补齐标签项的工作区。解析规则是纯函数（features/routes.ts），有断言盯着：
+ * 尤其是"标签项没有 context 时**不得**退成跨工作区全库"——那会让方向键在整库里乱跳。
  */
 const context = computed<ItemContext>(() => {
-  const tab = tabStore.tabs.find((t) => t.kind === 'item' && t.itemId === props.id)
-  if (tab != null && tab.kind === 'item') return tab.context
-  return itemContextFromQuery(route.query as Record<string, unknown>)
+  const tab = tabStore.tabs.find(
+    (t): t is ItemTab => t.kind === 'item' && t.itemId === props.id
+  )
+  return resolveItemContext(tab ?? null, route.query as Record<string, unknown>)
 })
 
 const win = ref<ItemWindowResult | null>(null)

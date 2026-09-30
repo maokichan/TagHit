@@ -22,6 +22,12 @@ const showNewForm = ref(false)
 const globalQuery = ref('')
 const globalResults = ref<ItemView[]>([])
 const globalLoading = ref(false)
+/**
+ * **产出这批结果的关键词**（不是输入框的实时值）：输入框有 250ms 防抖，
+ * 用户改完字立刻点旧结果时，实时值已经不是这批结果的条件了——若拿它当顺序上下文，
+ * 详情页会发现"这条目不在序列里"并退成全部素材，方向键就会在整库里乱跳（实机症状）。
+ */
+const resultsKeyword = ref('')
 let debounce: number | undefined
 
 onMounted(() => {
@@ -74,6 +80,7 @@ async function runGlobalSearch(): Promise<void> {
   const q = globalQuery.value.trim()
   if (!q) {
     globalResults.value = []
+    resultsKeyword.value = ''
     return
   }
   globalLoading.value = true
@@ -81,6 +88,7 @@ async function runGlobalSearch(): Promise<void> {
     // kinds: ['file'] —— 内容检索只认素材条目；锚条目（承接作品标签的空条目）不是内容
     const hits = await api.items.query({ titleContains: q, limit: 60, kinds: ['file'] })
     globalResults.value = hits.map(toItemView)
+    resultsKeyword.value = q
   } finally {
     globalLoading.value = false
   }
@@ -93,7 +101,7 @@ function openGlobalItem(item: ItemView): void {
     workspaceId: null,
     order: 'createdAt',
     orderDir: 'asc',
-    titleContains: globalQuery.value.trim()
+    titleContains: resultsKeyword.value
   }
   tabStore.openItem(item.id, null, item.title, context)
   router.push(itemRoute(item.id, context))

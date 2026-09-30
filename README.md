@@ -43,6 +43,7 @@ npm run typecheck:application && npm run typecheck:host
 npm run calibrate && npm run calibrate:sqlite && npm run calibrate:scan
 npm run calibrate:boundary && npm run calibrate:view && npm run calibrate:roots
 npm run calibrate:window
+npm --prefix frontend run test              # 渲染层断言（Vitest：标签↔路由/顺序上下文/窄桥边界）
 npm --prefix frontend run check:templates   # 模板解析（vue-tsc 会漏报标签不闭合）
 
 # 真机运行

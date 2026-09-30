@@ -57,5 +57,8 @@
 ## 工程化
 
 - **LICENSE**：未定未加。
-- **CI**：六份校准 + 五层 typecheck + 前端 `check:templates`（模板解析，vue-tsc 盲区）可直接脚本化。
-- **测试三件套落地**（2026-09-12 方案裁决：成熟工具为主，自研只留场景）：Vitest（运行器/断言，承接校准脚本可选）、fast-check（property-based，打输入边界）、Playwright（Electron E2E；把 GUI 冒烟脚本化：建工作区→挂根→树操作→右键）。
+- **CI**：七份校准（`calibrate` / `calibrate:sqlite` / `scan` / `boundary` / `view` / `roots` / `window`）+ 五层 typecheck + 前端 `check:templates` 与 `test`（Vitest）+ `doctor` 可直接脚本化。
+- **测试三件套落地**（2026-09-12 方案裁决：成熟工具为主，自研只留场景；渲染层断言归 Vitest，见 D30）：
+  - **Vitest ✅ 已落地**（2026-10-01）：`npm --prefix frontend run test` 跑渲染层纯逻辑与边界行为（桥包装不变式、入参纯化、顺序上下文解析、路由命中、缺桥报错）——起因是同一类边界问题连踩两次（reactive Proxy 过桥 / Proxy 包装冻结对象），而界面表现都像"功能没做"；剩余——**校准脚本可选迁入**（裁决原文"承接校准脚本可选"）与组件级断言（需 happy-dom）；
+  - **fast-check**：property-based 打输入边界；首选靶子是"路径判定 vs SQL 译文等价"（双实现漂移面，比手工样本强）；
+  - **Playwright**：Electron E2E 冒烟（建工作区→挂根→树操作→右键），押后到界面稳定。
