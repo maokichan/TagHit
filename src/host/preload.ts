@@ -72,6 +72,9 @@ const api: TaghitRendererApi = {
 
   windowControl: (action) => invoke('window.control', action),
   isWindowMaximized: () => invoke('window.isMaximized'),
+
+  // 单向端点：原生拖出必须在 dragstart 手势内发起，不能等 invoke 往返（见 IpcSendContracts）
+  startDrag: (input) => ipcRenderer.send('drag.start', input),
 }
 
 contextBridge.exposeInMainWorld('taghit', api)

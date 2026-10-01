@@ -9,7 +9,9 @@
  * - 渲染层**不直接触碰 Store**：所有读写都经这里路由到应用层用例，
  *   字节/文件/数据库永不进入渲染层；
  * - 本表是契约的**单一事实源**：新增端点在此加一行即获得两端类型；
- *   frontend 仅 type-only 引用本文件，零运行时依赖。
+ *   frontend 仅 type-only 引用本文件，零运行时依赖；
+ * - 通道形状**两类**：请求/响应（`IpcContracts`，统一信封）与单向（`IpcSendContracts`，
+ *   仅"手势内必须同步发起"的原生拖动用，无回程——见该类型上的说明）。
  *
  * v0 范围：已落地的应用层用例全覆盖。明确**不进**契约（旧 UI 对应处置灰）：
  * config、插件调用、条目 readText 之外的 openWithSystem、
@@ -176,6 +178,23 @@ export type IpcKind = keyof IpcContracts
 export type IpcArgs<K extends IpcKind> = IpcContracts[K]['args']
 export type IpcResult<K extends IpcKind> = Result<IpcContracts[K]['result']>
 
+/**
+ * 单向端点（`ipcRenderer.send` / `ipcMain.on`）——**只在"手势内必须同步发起"时使用**。
+ *
+ * 与上面信封式端点的差别是能力性的，不是风格：原生文件拖动（`webContents.startDrag`）
+ * 必须在 `dragstart` 事件里就发起，等一次 invoke 往返（渲染层 → 主进程 → 回程）就已经出手势了。
+ * 代价是**没有回程**：失败不能靠信封报给渲染层，故本类端点只收窄输入、宿主侧自行裁决，
+ * 用户可感知的失败由渲染层在调用前预检并提示（见 features/drag.ts）。
+ * 新增单向端点前先自问：真的非单向不可吗——能走信封就走信封（D9 错误转译依赖它）。
+ */
+export interface IpcSendContracts {
+  /** 拖出：按条目 id 交付真实文件（路径由宿主查库 + 过白名单，渲染层不交路径）。 */
+  'drag.start': { args: [{ itemIds: Id[] }] }
+}
+
+export type IpcSendKind = keyof IpcSendContracts
+export type IpcSendArgs<K extends IpcSendKind> = IpcSendContracts[K]['args']
+
 /** 渲染层通过 window.taghit 获得的面（preload 实现）。 */
 export interface TaghitRendererApi {
   ping(): Promise<IpcResult<'ping'>>
@@ -249,4 +268,7 @@ export interface TaghitRendererApi {
 
   windowControl(action: WindowAction): Promise<IpcResult<'window.control'>>
   isWindowMaximized(): Promise<IpcResult<'window.isMaximized'>>
+
+  /** 单向（无回程）：把选中的真实文件交给系统拖放；失败由渲染层预检提示，见 IpcSendContracts。 */
+  startDrag(input: IpcSendArgs<'drag.start'>[0]): void
 }

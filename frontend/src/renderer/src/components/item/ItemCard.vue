@@ -71,6 +71,13 @@ const iconMap: Record<string, Component> = {
   other: File
 }
 const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
+/**
+ * 卡片（瀑布流/网格/列表三态）。调用面纪律（D23/D32/D34）：
+ * 卡片只**声明自己是什么**（`data-ctx-*` = 右键菜单与拖拽共用的上下文目标）与**转发原始事件**
+ * （点击/双击），修饰键解释、拖拽带出哪些条目、交付什么路径全部归壳与宿主。
+ * `draggable` 加在卡片容器上而不在缩略图上（缩略图另标 draggable=false）：
+ * 拖拽要交付的是**文件**，不是浏览器把 <img> 当图片拖的那套默认行为。
+ */
 </script>
 
 <template>
@@ -82,9 +89,10 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       'opacity-50': item.status === 'missing',
       'border-[var(--accent)]': selected
     }"
-    :title="`${item.title}（双击打开详情；Ctrl/Cmd+单击多选，Shift+单击区间选择）`"
+    :title="`${item.title}（双击打开详情；Ctrl/Cmd+单击多选，Shift+单击区间选择；拖出可交付文件）`"
     data-ctx-target="item"
     :data-ctx-id="item.id"
+    draggable="true"
     @click="onPick"
     @dblclick="onDblClick"
   >
@@ -164,9 +172,10 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       'opacity-50': item.status === 'missing',
       'border-[var(--accent)] shadow-lg': selected
     }"
-    :title="`${item.title}（双击打开详情；Ctrl/Cmd+单击多选，Shift+单击区间选择）`"
+    :title="`${item.title}（双击打开详情；Ctrl/Cmd+单击多选，Shift+单击区间选择；拖出可交付文件）`"
     data-ctx-target="item"
     :data-ctx-id="item.id"
+    draggable="true"
     @click="onPick"
     @dblclick="onDblClick"
   >

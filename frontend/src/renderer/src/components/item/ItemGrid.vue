@@ -4,7 +4,8 @@ import { Inbox } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
 import { masonryRatioOf } from '../../lib/media'
 import { useConfigStore } from '../../stores/config'
-import { isBlankClick, type SelectIntent } from '../../features/selection'
+import { isBlankClick, marqueeIntentOf, type MarqueeIntent, type SelectIntent } from '../../features/selection'
+import { collectCardRects, hitIds, isDragGesture, rectBetween, type Rect } from '../../features/marquee'
 import type { LayoutMode } from '@shared/types/config'
 import ItemCard from './ItemCard.vue'
 
@@ -21,6 +22,8 @@ const emit = defineEmits<{
   (e: 'open', item: ItemView): void
   (e: 'pick', item: ItemView, intent: SelectIntent): void
   (e: 'blank'): void
+  /** 框选结果：命中 id 集 + 意图（replace/add 由壳的选择模型解释）。 */
+  (e: 'marquee', ids: string[], intent: MarqueeIntent): void
   (e: 'tag-click', tagId: string): void
   (e: 'load-more'): void
 }>()
@@ -35,7 +38,68 @@ function isSelected(id: string): boolean {
  * 判定与右键菜单共用同一份 DOM 契约：命中 `[data-ctx-target]`（条目卡片）= 非空白。
  */
 function onContainerClick(e: MouseEvent): void {
+  // 刚做完一次框选：紧随其后的 click 不该再清空（否则"框完就没了"）。
+  // 标志位由下一次 mousedown 复位，而不是"消费一次"——鼠标在容器外抬起时那次 click 根本不出现，
+  // 消费式标志会留下一个假的抑制态，表现为"点空白清不掉选择"。
+  if (suppressClick) {
+    suppressClick = false
+    return
+  }
   if (isBlankClick(e)) emit('blank')
+}
+
+/* ── 框选（拖拽多选，D35）──────────────────────────────────────────────
+ * 分工：手势在这里（要容器与几何），**意图解释归壳**（selection.marqueeIntentOf），
+ * **状态变更归 store**（setSelection）——组件不自己改多选集。
+ * 只在**空白处**起手：卡片上按下是"选择/拖出"手势（拖出由壳根部拦截，见 features/drag.ts）。
+ * 坐标一律视口坐标（见 features/marquee.ts 的说明），覆盖层用 position:fixed 直出。
+ * 阈值：超过 4px 才算框选，免得裸点击（点空白清空选择）被手抖变成一次框选。 */
+const marquee = ref<Rect | null>(null)
+let dragStart: { x: number; y: number; intent: MarqueeIntent } | null = null
+let suppressClick = false
+
+function onContainerMouseDown(e: MouseEvent): void {
+  suppressClick = false // 每次新手势都从干净状态开始（见 onContainerClick 的说明）
+  if (e.button !== 0) return
+  if (!isBlankClick(e)) return
+  // 滚动条不算"空白"：在它上面 preventDefault 会把"拖动滚动条"一起掐掉
+  const el = scrollEl.value
+  if (el != null && e.target === el && (e.offsetX >= el.clientWidth || e.offsetY >= el.clientHeight)) {
+    return
+  }
+  e.preventDefault() // 抑制文本选择（拖框时满屏选字）；不影响随后的 click 事件
+  // 意图在**按下瞬间**定型：中途再按/松开 Ctrl 不改语义，避免"边拖边变"
+  dragStart = { x: e.clientX, y: e.clientY, intent: marqueeIntentOf(e) }
+  window.addEventListener('mousemove', onWindowMouseMove)
+  window.addEventListener('mouseup', onWindowMouseUp)
+}
+
+function onWindowMouseMove(e: MouseEvent): void {
+  const start = dragStart
+  if (start == null) return
+  // 鼠标在窗口外抬起时收不到 mouseup：以"没有按键按下"为准收场，避免框选矩形跟着光标乱跑
+  if (e.buttons === 0) {
+    onWindowMouseUp()
+    return
+  }
+  const dx = e.clientX - start.x
+  const dy = e.clientY - start.y
+  // 未过阈值前仍算"点了一下"（裸点击 = 点空白清空选择），过了就一次算到底
+  if (marquee.value == null && !isDragGesture(dx, dy)) return
+  marquee.value = rectBetween(start.x, start.y, e.clientX, e.clientY)
+}
+
+function onWindowMouseUp(): void {
+  window.removeEventListener('mousemove', onWindowMouseMove)
+  window.removeEventListener('mouseup', onWindowMouseUp)
+  const start = dragStart
+  const box = marquee.value
+  dragStart = null
+  marquee.value = null
+  const container = scrollEl.value
+  if (start == null || box == null || container == null) return
+  suppressClick = true
+  emit('marquee', hitIds(box, collectCardRects(container)), start.intent)
 }
 
 /* ── 布局常量（与 ItemCard 保持一致） ── */
@@ -96,6 +160,9 @@ onUnmounted(() => {
   scrollEl.value?.removeEventListener('scroll', onScroll)
   resizeObs?.disconnect()
   if (rafId) cancelAnimationFrame(rafId)
+  // 框选手势挂在 window 上（拖出网格也不断线），卸载时必须收回
+  window.removeEventListener('mousemove', onWindowMouseMove)
+  window.removeEventListener('mouseup', onWindowMouseUp)
 })
 
 /* ── 布局计算：瀑布流 = JS 列分配（追加不动旧卡片）；网格/列表 = 均匀行 ──
@@ -257,9 +324,10 @@ watch(
     <div
       v-else
       ref="scrollEl"
-      class="flex-1 min-h-0 overflow-y-auto"
+      class="flex-1 min-h-0 overflow-y-auto select-none"
       @scroll.passive="onScroll"
       @click="onContainerClick"
+      @mousedown="onContainerMouseDown"
     >
       <!-- 瀑布流：JS 列布局 + 绝对定位容器（ItemCard 自带 relative，须外包一层定位） -->
       <template v-if="isMasonry">
@@ -328,5 +396,18 @@ watch(
         <div ref="sentinel" class="h-1" />
       </template>
     </div>
+
+    <!-- 框选覆盖层（视口坐标直出；pointer-events-none 免得挡住鼠标事件） -->
+    <div
+      v-if="marquee"
+      class="fixed z-30 pointer-events-none rounded-sm border border-[var(--accent)]"
+      style="background: color-mix(in srgb, var(--accent) 14%, transparent)"
+      :style="{
+        left: marquee.x + 'px',
+        top: marquee.y + 'px',
+        width: marquee.w + 'px',
+        height: marquee.h + 'px'
+      }"
+    />
   </div>
 </template>

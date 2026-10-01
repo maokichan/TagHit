@@ -11,6 +11,7 @@ import CommandPalette from './features/CommandPalette.vue'
 import SurfaceHost from './features/SurfaceHost.vue'
 import ServiceHost from './features/services/ServiceHost.vue'
 import { openContextMenu } from './features/contextMenu'
+import { startItemDrag } from './features/drag'
 import { listFeatures, resolvedIcon, type FeatureEntry } from './features/registry'
 import { activeTabRoute, routeMatchesTab } from './features/tabs'
 import { useItemStore } from './stores/item'
@@ -160,10 +161,23 @@ function onContextMenu(e: MouseEvent): void {
     e.clientY
   )
 }
+
+// ── 拖出应用：与右键菜单同一份 DOM 契约、同一条投影规则（调用面统一入口）──
+// 组件只声明"自己是上下文目标"并加 draggable；起手哪个目标、带出哪些条目由壳判定。
+// 一律 preventDefault：网页拖拽放不出真实文件，改由宿主发起原生拖动（features/drag.ts）。
+function onDragStart(e: DragEvent): void {
+  const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-ctx-target]')
+  if (el == null) return
+  if ((el.dataset.ctxTarget ?? '') !== 'item') return
+  const id = el.dataset.ctxId
+  if (id == null) return
+  e.preventDefault()
+  startItemDrag(itemStore.isSelected(id) ? [...itemStore.selectedIds] : [id])
+}
 </script>
 
 <template>
-  <div class="h-full flex flex-col" @contextmenu="onContextMenu">
+  <div class="h-full flex flex-col" @contextmenu="onContextMenu" @dragstart="onDragStart">
     <TabBar />
 
     <div class="flex-1 flex min-h-0">

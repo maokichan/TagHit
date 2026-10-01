@@ -245,5 +245,14 @@ export const api = {
     async pickDirectory(): Promise<string | null> {
       return unwrap(await bridge().pickDirectory())
     }
+  },
+  drag: {
+    /**
+     * 拖出应用（**单向端点，无回程**）：把条目交给系统拖放，真实路径由宿主查库 + 过白名单后交付。
+     * 无回程意味着这里拿不到成败——失败提示由调用方（features/drag.ts）在调用前预检完成。
+     */
+    start(itemIds: Id[]): void {
+      bridge().startDrag({ itemIds })
+    }
   }
 }

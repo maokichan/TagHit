@@ -159,6 +159,31 @@ export const useItemStore = defineStore('item', () => {
     return selectedIds.value.includes(id)
   }
 
+  /**
+   * 框选（拖拽多选）的结果落库——与点击同一条纪律：**意图在壳，状态变更在这里**（D23/D35）。
+   * - 命中集按**当前视图顺序**排列（后续 Shift 区间据此铺开），离屏 id 顺带被剔除；
+   * - `add` 与已有选择**求并**（不动未命中的既有选择）；`replace` 整体替换；
+   * - 锚点与"选中条目"取命中集在视图里的**第一项**：随后 Shift+点击从框选起点扩展，
+   *   与"从哪儿开始框的"直觉一致；`replace` 且框空（等于点空白）时清空选中。
+   */
+  function setSelection(hitIds: Id[], mode: 'replace' | 'add'): void {
+    const order = items.value.map((it) => it.id)
+    const hits = new Set(hitIds)
+    const orderedHits = order.filter((id) => hits.has(id))
+    selectedIds.value =
+      mode === 'add'
+        ? order.filter((id) => hits.has(id) || selectedIds.value.includes(id))
+        : orderedHits
+
+    const anchorIndexInView = orderedHits.length > 0 ? order.indexOf(orderedHits[0]!) : -1
+    if (anchorIndexInView >= 0) {
+      anchorIndex.value = anchorIndexInView
+      selected.value = items.value[anchorIndexInView] ?? selected.value
+    } else if (mode === 'replace') {
+      clearSelection()
+    }
+  }
+
   /** 多选集计数（右键/批量入口判断）。 */
   function selectionCount(): number {
     return selectedIds.value.length
@@ -255,6 +280,7 @@ export const useItemStore = defineStore('item', () => {
     scan,
     select,
     applySelection,
+    setSelection,
     toggleSelect,
     isSelected,
     selectionCount,

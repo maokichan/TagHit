@@ -21,6 +21,20 @@ export function selectIntentOf(e: MouseEvent): SelectIntent {
 }
 
 /**
+ * 框选（空白处按下拖出选择框）的意图：只有两态——
+ * 裸拖 = **替换**选择；Ctrl/Cmd+拖 = **并入**已有选择。
+ *
+ * 为什么不是"Ctrl+拖 = 切换（命中即反选）"：一次框选常命中几十张，反选几乎总是误操作，
+ * 而"追加"才是拖第二框时的真实意图（与文件管理器惯例一致）。Shift 在框选里不另立语义——
+ * 它已经是"区间"的修饰键（见上），而框选本身就是一个连续区间，叠加只会含混。
+ */
+export type MarqueeIntent = 'replace' | 'add'
+
+export function marqueeIntentOf(e: MouseEvent): MarqueeIntent {
+  return e.ctrlKey || e.metaKey ? 'add' : 'replace'
+}
+
+/**
  * 是否允许触发"打开"（条目详情）：**带任何修饰键的点击都不打开**——
  * 带修饰键的点击是选择手势，用户连点两次是为了多选，不期望跳出详情页。
  */

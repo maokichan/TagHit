@@ -5,13 +5,15 @@
  * 不走 IPC 窄桥，直接由 <img>/<video>/<audio> 抓取本协议。
  * 移植自 0.1（freeze src/main/protocol.ts），白名单改从 Store 端口查询（不再裸 SQL）：
  * 仅放行各工作区已挂载来源根 + userData 下的文件，防任意路径读取。
+ * **白名单裁决在 host/pathGate.ts**（拖出交付与字节读取共用同一实现，不各写一份）。
  */
 
-import { app, net, protocol } from 'electron'
+import { net, protocol } from 'electron'
 import { pathToFileURL } from 'node:url'
-import { normalize, sep } from 'node:path'
+import { normalize } from 'node:path'
 import { createReadStream, statSync } from 'node:fs'
 import { Readable } from 'node:stream'
+import { isPathAllowed } from './pathGate.ts'
 import type { AppServices } from '../application/index.ts'
 
 export const TAGHIT_FILE_SCHEME = 'taghit-file'
@@ -62,31 +64,8 @@ function mimeFor(file: string): string {
 
 /**
  * 白名单：全部工作区的来源根 + userData（缩略图落点）。
- *
- * 缓存与失效：媒体请求逐个过协议 handler（网格 N 张图 = N 次），而白名单只随
- * 工作区/来源根变化——故缓存，并在挂载/卸载来源根、建/删工作区时显式失效
- * （宿主在对应 IPC handler 里调 invalidateAllowedRoots）。
- * 失效疏漏宁可偏向"拒绝合法路径"（可重试），不偏向"放行"（安全问题）。
+ * 实现在 host/pathGate.ts（与拖出交付共用；缓存/失效规则见那里）。
  */
-let allowedRootsCache: string[] | null = null
-
-/** 工作区集合或来源根集合变化后调用。 */
-export function invalidateAllowedRoots(): void {
-  allowedRootsCache = null
-}
-
-async function allowedRoots(services: AppServices): Promise<string[]> {
-  if (allowedRootsCache != null) return allowedRootsCache
-  const roots = new Set<string>()
-  for (const ws of await services.store.listWorkspaces()) {
-    for (const root of await services.store.listWorkspaceRoots(ws.id)) {
-      roots.add(normalize(root.path))
-    }
-  }
-  roots.add(normalize(app.getPath('userData')))
-  allowedRootsCache = [...roots]
-  return allowedRootsCache
-}
 
 /** 从 opaque URL 原始字符串提取本地路径：taghit-file:///C%3A/Users/... → C:\Users\... */
 function extractPath(rawUrl: string): string {
@@ -101,15 +80,7 @@ function extractPath(rawUrl: string): string {
 export function registerTaghitFileProtocol(services: AppServices): void {
   protocol.handle(TAGHIT_FILE_SCHEME, async (request) => {
     const normalized = extractPath(request.url)
-    // 白名单按路径段匹配：目录根的裸前缀会放行同前缀兄弟目录（D:\media 放行 D:\media-archive），
-    // 故要求完全相等或紧随路径分隔符
-    const candidate = normalized.toLowerCase()
-    const ok = (await allowedRoots(services)).some((root) => {
-      const r = root.toLowerCase()
-      const scoped = r.endsWith(sep) ? r : r + sep
-      return candidate === r || candidate.startsWith(scoped)
-    })
-    if (!ok) {
+    if (!(await isPathAllowed(services, normalized))) {
       console.warn(`[protocol] 拒绝访问路径: ${normalized}`)
       return new Response('forbidden', { status: 403 })
     }

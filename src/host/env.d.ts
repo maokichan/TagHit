@@ -38,6 +38,28 @@ declare module 'electron' {
 
   export interface WebContents {
     send(channel: string, ...args: unknown[]): void
+    /** 原生文件拖动（拖出应用）：由主进程发起，必须在 dragstart 手势内调用（D34）。 */
+    startDrag(item: DragItem): void
+  }
+
+  /**
+   * 拖动的负载（Electron `webContents.startDrag(item)`）。
+   * `files` 覆盖 `file`（多文件交付用前者）；`icon` 在 macOS 上必须非空，故类型上必填。
+   */
+  export interface DragItem {
+    file: string
+    files?: string[]
+    icon: NativeImage | string
+  }
+
+  /** 拖动预览图（原生图片）。 */
+  export interface NativeImage {
+    isEmpty(): boolean
+  }
+
+  export const nativeImage: {
+    createFromBuffer(buffer: Uint8Array): NativeImage
+    createFromPath(path: string): NativeImage
   }
 
   export const Menu: {
@@ -69,6 +91,8 @@ declare module 'electron' {
 
   export const ipcMain: {
     handle(channel: string, listener: (event: { sender: WebContents }, ...args: any[]) => any): void
+    /** 单向端点（无回程）：仅"手势内必须同步发起"的宿主动作用（见 ipc.ts 的 IpcSendContracts）。 */
+    on(channel: string, listener: (event: { sender: WebContents }, input: any) => void): void
   }
 
   export const contextBridge: {
@@ -77,6 +101,7 @@ declare module 'electron' {
 
   export const ipcRenderer: {
     invoke(channel: string, ...args: unknown[]): Promise<unknown>
+    send(channel: string, ...args: unknown[]): void
   }
 
   export const net: {

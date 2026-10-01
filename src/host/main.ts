@@ -18,7 +18,9 @@ import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
 import { createNodeFileSystem } from '../adapters/node/index.ts'
 import { openSqlite } from './sqliteDriver.ts'
-import { invalidateAllowedRoots, registerPrivilegedSchemes, registerTaghitFileProtocol } from './protocol.ts'
+import { registerPrivilegedSchemes, registerTaghitFileProtocol } from './protocol.ts'
+import { invalidateAllowedRoots } from './pathGate.ts'
+import { startFileDrag } from './drag.ts'
 import {
   appendCollectionMember,
   browseWorkspace,
@@ -333,6 +335,14 @@ function registerHandlers(): void {
   ipcMain.handle('window.isMaximized', (_event) => {
     const win = BrowserWindow.fromWebContents(_event.sender)
     return envelope(Promise.resolve(win?.isMaximized() ?? false))
+  })
+
+  // ---- 拖出应用（单向：原生拖动必须在 dragstart 手势内发起；见 ipc.ts 的 IpcSendContracts）----
+  // 交付的路径由宿主查库 + 过白名单（与字节闸门同一条规则），渲染层交来的只有条目 id。
+  ipcMain.on('drag.start', (event, input: { itemIds: Id[] }) => {
+    void startFileDrag(services, event.sender, input.itemIds).catch((e) =>
+      console.error('[drag] 发起拖动失败', e)
+    )
   })
 }
 

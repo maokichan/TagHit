@@ -120,6 +120,7 @@ function openBatchTag(mode: 'add' | 'remove'): void {
         @open="openItem"
         @pick="selectItem"
         @blank="itemStore.clearSelection()"
+        @marquee="(ids, intent) => itemStore.setSelection(ids, intent)"
         @tag-click="itemStore.toggleTagFilter"
         @load-more="itemStore.loadMore(workspaceId)"
       />
