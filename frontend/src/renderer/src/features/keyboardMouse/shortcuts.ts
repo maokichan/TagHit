@@ -22,7 +22,7 @@ export interface ShortcutBinding {
   allowInEditable?: boolean
   /** 开关来源：功能组件的设置项关闭时该绑定失效（如 Ctrl+F 随"键鼠交互"设置）。 */
   gate?: { featureId: string; key: string; fallback: boolean }
-  /** 展示用（设置页/将来的命令面板）。 */
+  /** 展示用（设置页与命令面板的"组合键"列）。 */
   label?: string
 }
 
@@ -38,7 +38,7 @@ export function registerShortcut(binding: ShortcutBinding): boolean {
   return true
 }
 
-/** 全部绑定（只读视图；设置页与将来的命令面板据此展示）。 */
+/** 全部绑定（只读视图；设置页键位表与命令面板据此展示）。 */
 export function listShortcuts(): readonly ShortcutBinding[] {
   return bindings
 }

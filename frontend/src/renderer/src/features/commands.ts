@@ -36,6 +36,14 @@ export function getCommand(id: string): CommandEntry | undefined {
   return registry.get(id)
 }
 
+/**
+ * 注册表的只读视图：**命令面板**用它列行（面板是注册表的视图，D23 的推论）。
+ * 与 assembleMenu 的区别：菜单按 when 过滤（不适用的项不出现），面板要**如实列出**再标注可用性。
+ */
+export function listCommands(): CommandEntry[] {
+  return [...registry.values()]
+}
+
 /** when 谓词求值：壳用，不加载任何实现。 */
 export function evalWhen(when: WhenClause | undefined, ctx: MenuContext): boolean {
   if (when == null) return true

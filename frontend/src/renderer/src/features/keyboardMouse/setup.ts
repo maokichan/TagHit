@@ -19,6 +19,7 @@ import { useConfigStore } from '../../stores/config'
 import { useItemStore } from '../../stores/item'
 import { useTabStore } from '../../stores/tab'
 import { evalWhen, getCommand } from '../commands'
+import { isDetailNavMounted } from '../detailNav'
 import {
   describe,
   isEditableTarget,
@@ -28,14 +29,18 @@ import {
 } from './shortcuts'
 import type { MenuContext } from '@shared/types/command'
 
-/** 键盘触发的上下文：无 DOM 目标 → target.kind = 'shell'（命令的 when 以此判断可用性）。 */
+/**
+ * 键盘触发的上下文：无 DOM 目标 → target.kind = 'shell'（命令的 when 以此判断可用性）。
+ * 现场事实（detailNav）一并填上：命令的 when 据此判定"这个动作此刻是否真的能做"。
+ */
 function shellContext(): MenuContext {
   const itemStore = useItemStore()
   const tabStore = useTabStore()
   return {
     target: { kind: 'shell' },
     workspaceId: tabStore.activeWorkspaceId,
-    selection: { ids: [...itemStore.selectedIds] }
+    selection: { ids: [...itemStore.selectedIds] },
+    detailNav: isDetailNavMounted()
   }
 }
 

@@ -29,3 +29,13 @@ export function detailPrev(): void {
 export function detailNext(): void {
   current?.next()
 }
+
+/**
+ * 详情页翻页是否可用（当前是否挂着详情页）。
+ * 壳把它填进调用上下文（MenuContext 的现场事实），命令的 when 据此判定：
+ * 没挂详情页时"上一张 / 下一张"对用户是**空的**，命令面板要如实标不可用，
+ * 而不是让它执行成一个静默空操作（D31 的"生效范围"由此从提示文字变成可求值的事实）。
+ */
+export function isDetailNavMounted(): boolean {
+  return current != null
+}

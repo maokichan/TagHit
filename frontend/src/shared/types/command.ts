@@ -9,14 +9,31 @@
 export type MenuGroup = 'nav' | 'modify' | 'danger'
 
 /**
+ * 调用上下文的目标种类：
+ * - `item`：条目卡片/网格行（`id` = 条目 id）；
+ * - `node`：来源根树的一行（`dirPath` = 目录路径，节点身份 = 工作区 × 目录路径）；
+ * - `shell`：无 DOM 目标（键盘触发、命令面板），命令自行判断可用性；
+ * - 其余为组件自定义种类（when 里按字符串相等匹配）。
+ */
+export type TargetKind = 'item' | 'node' | 'shell' | (string & {})
+
+/**
  * 命令上下文：壳在拦截点构造（context target 就近声明 + 视图状态投影）。
  * selection：target 落入多选集时为多选集、否则为单个 target——批量命令经此取操作对象。
+ * workspaceId：拦截点优先取**目标自己声明的工作区**（`data-ctx-workspace`），
+ * 其次才是活动标签的——功能标签页的工作区上下文在打开瞬间固化到标签项，活动工作区可能为空（D25）。
  */
 export interface MenuContext {
-  target: { kind: string; id?: string }
+  target: { kind: TargetKind; id?: string; dirPath?: string }
   workspaceId: string | null
   /** 本次操作的对象集（id 列表）。target.kind='item' 时非空。 */
   selection?: { ids: string[] }
+  /**
+   * 壳现场填充的**可用性事实**：只由壳写入，命令用 when 的 `fieldEquals` 读取。
+   * 例：`detailNav` = 详情页翻页是否可用（当前挂着详情页）——"生效范围"由此可求值，
+   * 命令面板因此能如实标"当前不可用"，而不是让命令执行成一个静默空操作。
+   */
+  detailNav?: boolean
 }
 
 /**

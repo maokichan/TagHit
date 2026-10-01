@@ -2,6 +2,8 @@
 /**
  * 来源根树（共用块）：停靠面板与全页呈现共用同一套行与动作，只有外层布局不同。
  * 行内动作：眼 = 可见性（Shift = 子树批量）· Focus = 只看此节点 · 垃圾桶 = 卸载来源根。
+ * 每一行同时是**调用上下文目标**（data-ctx-*，右键菜单的节点类命令据此聚合；D32）——
+ * 目标自带工作区（`data-ctx-workspace`）：功能标签页里活动工作区为空，不能靠运行时推断（D25）。
  * refs 在此解构成顶层绑定（模板自动解包）；动作一律走 pm。
  */
 import { ChevronRight, Eye, EyeOff, Focus, FolderOpen, Plus, Trash2 } from 'lucide-vue-next'
@@ -17,7 +19,12 @@ const { roots, expanded, scopeDirPath } = pm
     <div v-if="roots.length" class="divide-y divide-[var(--border)]">
       <div v-for="r in roots" :key="r.path" class="text-[12px] py-1">
         <!-- 容器头：根目录（可见性同样可切换） -->
-        <div class="flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[var(--bg-hover)]">
+        <div
+          class="flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[var(--bg-hover)]"
+          data-ctx-target="node"
+          :data-ctx-dir="r.path"
+          :data-ctx-workspace="pm.workspaceId"
+        >
           <button
             class="shrink-0 flex items-center justify-center w-4 h-4 cursor-pointer text-[var(--fg-dim)] hover:text-[var(--fg)]"
             :title="expanded.has(r.path) ? '折叠' : '展开'"
@@ -64,6 +71,9 @@ const { roots, expanded, scopeDirPath } = pm
             :key="row.node.dirPath"
             class="group flex items-center gap-1.5 pr-2 py-1 hover:bg-[var(--bg-hover)]"
             :style="{ paddingLeft: `${8 + row.depth * 14}px` }"
+            data-ctx-target="node"
+            :data-ctx-dir="row.node.dirPath"
+            :data-ctx-workspace="pm.workspaceId"
           >
             <button
               v-if="row.node.children.length"

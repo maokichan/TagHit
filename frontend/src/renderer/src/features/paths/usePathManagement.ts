@@ -32,6 +32,15 @@ function bump(): void {
   revision.value++
 }
 
+/**
+ * 让所有在挂的来源根实例失效重查。
+ * 供**壳级调用面**使用（右键菜单的节点命令、命令面板）：那里拿不到 pm 实例，
+ * 却同样改了节点可见性或浏览范围——不广播就会出现"改了但树没变"的假象。
+ */
+export function invalidatePathManagement(): void {
+  bump()
+}
+
 export interface TreeNode {
   dirPath: string
   name: string

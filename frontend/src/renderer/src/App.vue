@@ -7,6 +7,7 @@ import ActivityBar, { type ActivityTool } from './components/layout/ActivityBar.
 import { useTabStore } from './stores/tab'
 import { useUiStore, type LeftTool, type RightTool } from './stores/ui'
 import ContextMenuHost from './features/ContextMenuHost.vue'
+import CommandPalette from './features/CommandPalette.vue'
 import SurfaceHost from './features/SurfaceHost.vue'
 import ServiceHost from './features/services/ServiceHost.vue'
 import { openContextMenu } from './features/contextMenu'
@@ -137,18 +138,24 @@ function onToggleRight(id: string): void {
 // 组件只声明 context target（data-ctx-*）；根部统一拦截、就近取 target、构造上下文。
 // 无 target 时不拦截：文本选择等场景保留原生菜单。
 // selection 投影：target 已在多选集内 → 带出整个多选集（批量操作）；否则 = 单个 target。
+// workspaceId 投影：目标自带 `data-ctx-workspace`（如来源根树行——功能标签页里活动工作区为空）优先。
 function onContextMenu(e: MouseEvent): void {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-ctx-target]')
   if (el == null) return
   e.preventDefault()
   const kind = el.dataset.ctxTarget ?? ''
   const id = el.dataset.ctxId
+  const dirPath = el.dataset.ctxDir
   let selection: string[] = []
   if (kind === 'item' && id != null) {
     selection = itemStore.isSelected(id) ? itemStore.selectedIds : [id]
   }
   openContextMenu(
-    { target: { kind, id }, workspaceId: tabStore.activeWorkspaceId, selection: { ids: selection } },
+    {
+      target: { kind, id, dirPath },
+      workspaceId: el.dataset.ctxWorkspace ?? tabStore.activeWorkspaceId,
+      selection: { ids: selection }
+    },
     e.clientX,
     e.clientY
   )
@@ -204,6 +211,7 @@ function onContextMenu(e: MouseEvent): void {
 
     <StatusBar />
     <ContextMenuHost />
+    <CommandPalette />
     <ServiceHost />
   </div>
 </template>
