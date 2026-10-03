@@ -11,20 +11,7 @@ import { DomainError } from '../domain/index.ts'
 import type { Id } from '../domain/index.ts'
 import type { FileSystem, Trash } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
-import { basename, isUnderDir, isUnderRoot, joinPath, normalizePath } from './paths.ts'
-
-/** 断言 path 位于工作区某来源根之下；越界 → NOT_FOUND。 */
-async function assertUnderRoot(
-  svc: AppServices,
-  workspaceId: Id,
-  path: string
-): Promise<void> {
-  const roots = await svc.store.listWorkspaceRoots(workspaceId)
-  const p = normalizePath(path)
-  if (!isUnderRoot(roots.map((r) => r.path), p)) {
-    throw new DomainError('NOT_FOUND', `路径不在工作区来源根之下（${p}）`)
-  }
-}
+import { assertUnderRoot, basename, isUnderDir, joinPath, normalizePath } from './paths.ts'
 
 /**
  * 改名/移动文件或目录（磁盘操作）。newName 缺省保持原名（纯移动）。
@@ -39,10 +26,12 @@ export async function moveFsEntry(
   toDir: string,
   newName?: string | null
 ): Promise<{ to: string }> {
-  await assertUnderRoot(svc, workspaceId, fromPath)
-  const from = normalizePath(fromPath)
-  const to = normalizePath(joinPath(normalizePath(toDir), newName != null && newName !== '' ? newName : basename(from)))
-  await assertUnderRoot(svc, workspaceId, to)
+  const from = await assertUnderRoot(svc, workspaceId, fromPath)
+  const to = await assertUnderRoot(
+    svc,
+    workspaceId,
+    joinPath(normalizePath(toDir), newName != null && newName !== '' ? newName : basename(from))
+  )
   if (from === to) {
     throw new DomainError('INVALID', '源与目标是同一路径')
   }
@@ -68,8 +57,7 @@ export async function trashFsEntry(
   workspaceId: Id,
   path: string
 ): Promise<void> {
-  await assertUnderRoot(svc, workspaceId, path)
-  const p = normalizePath(path)
+  const p = await assertUnderRoot(svc, workspaceId, path)
   if (!(await fs.stat(p)).exists) {
     throw new DomainError('NOT_FOUND', `路径不存在（${p}）`)
   }

@@ -2,8 +2,8 @@
  * 视图模型适配器：契约形状（Item/ItemHit/ProjectedHit）→ 网格/详情页可渲染的 ItemView。
  *
  * - 扩展名 / 媒体类别是**展示推导**（从标题文件名后缀），不涉及数据过滤语义；
- * - 旧版 width/height/previewUri/metadata（EAV）不在契约 v0，ItemView 不含这些字段，
- *   卡片以图标占位、瀑布流退化为统一比例。
+ * - width/height/previewUri（派生元数据，D16 抓帧回写）在契约内、随 ItemView 透传；
+ *   EAV 长尾元数据未建模（词表留位），卡片信息只到核心事实为止。
  */
 
 import type { Id, Item, ItemStatus, Tag } from '@shared/contract'

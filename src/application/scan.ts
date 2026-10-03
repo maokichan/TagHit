@@ -133,7 +133,7 @@ export async function scanWorkspace(
   /** 本次不可读的目录：其子树不参与消失判定（无法区分"消失"与"读不到"）。 */
   const unreadableDirs: string[] = []
   /** 本次不可读的文件：同样不参与消失判定（D24 的文件级同规则）。 */
-  const unreadableFiles: string[] = []
+  const unreadableFiles = new Set<string>()
   const underUnreadable = (path: string): boolean =>
     unreadableDirs.some((dir) => isUnderDir(dir, path))
   const now = svc.clock.now()
@@ -172,7 +172,7 @@ export async function scanWorkspace(
         if (facts.kind === 'gone') continue // 遍历与采集之间消失：交给下面的消失判定按策略处理
         if (facts.kind === 'unreadable') {
           // 单点故障不得让整次扫描失败（D24 同规则，此前只覆盖目录级）
-          unreadableFiles.push(path)
+          unreadableFiles.add(path)
           summary.filesUnreadable++
           console.warn(`[scan] 文件不可读，本次跳过：${path}（${facts.message}）`)
           continue
@@ -251,7 +251,7 @@ export async function scanWorkspace(
     // 不可读子树/文件内的条目不判定——读不到 ≠ 已消失，宁可留着让下次扫描再说）
     for (const [uri, item] of itemByUri) {
       if (claimedIds.has(item.id)) continue
-      if (underUnreadable(uri) || unreadableFiles.includes(uri)) continue
+      if (underUnreadable(uri) || unreadableFiles.has(uri)) continue
       if ((await fs.stat(uri)).exists) continue
       if (policy === 'keep') {
         if (item.status !== 'missing') {

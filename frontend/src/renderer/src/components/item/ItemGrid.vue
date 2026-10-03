@@ -166,7 +166,8 @@ onUnmounted(() => {
 })
 
 /* ── 布局计算：瀑布流 = JS 列分配（追加不动旧卡片）；网格/列表 = 均匀行 ──
- * 比值经 lib/media.masonryRatioOf：优先扫描实测 width/height，缺失回退 contentHash 派生。 */
+ * 比值经 lib/media.masonryRatioOf：只取扫描实测 width/height（钳制 [1/2.2, 2.2]），
+ * 缺失 → 中性 4:3 占位（D26：contentHash 假比例已被裁定为缺陷源，勿回退）。 */
 function ratioOf(item: ItemView): number {
   return masonryRatioOf(item)
 }

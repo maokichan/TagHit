@@ -11,6 +11,7 @@ import { useTagStore } from '../stores/tag'
 import { itemRoute, resolveItemContext } from '../features/tabs'
 import { windowNav } from '../features/windowNav'
 import { registerDetailNav } from '../features/detailNav'
+import { showToast } from '../features/services/dialog'
 import { formatSize } from '../lib/format'
 import TagChip from '../components/common/TagChip.vue'
 import ItemFilmstrip from '../components/item/ItemFilmstrip.vue'
@@ -210,8 +211,14 @@ watch(
 async function toggleTag(tagId: Id): Promise<void> {
   if (!item.value || workspaceId.value == null) return
   const has = item.value.tags.some((t) => t.id === tagId)
-  if (has) await api.items.untag(item.value.id, [tagId])
-  else await api.items.tag(item.value.id, [tagId])
+  try {
+    if (has) await api.items.untag(item.value.id, [tagId])
+    else await api.items.tag(item.value.id, [tagId])
+  } catch (e) {
+    // 失败不静默：打标失败（如扫描进行中的嵌套事务受限）若无提示就是"点了没反应"
+    showToast(e instanceof Error ? e.message : String(e), 'error')
+    return
+  }
   await load() // 打标后当前页不跳：窗口不重算，翻页时才按新集合取邻居
 }
 

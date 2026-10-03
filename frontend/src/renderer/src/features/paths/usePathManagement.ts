@@ -72,8 +72,8 @@ export interface PathManagement {
     state: NodeState,
     cascade: boolean
   ) => Promise<void>
-  toggleScope: (dirPath: string) => void
-  clearScope: () => void
+  toggleScope: (dirPath: string) => Promise<void>
+  clearScope: () => Promise<void>
   scopedName: () => string
   /** 当前浏览范围（只看某节点）；null = 不限。 */
   scopeDirPath: Ref<string | null>
@@ -203,19 +203,20 @@ export function createPathManagement(workspaceId: string): PathManagement {
       if (cascade) await api.nodes.setSubtreeState(workspaceId, node.dirPath, state)
       else await api.nodes.setState(workspaceId, node.dirPath, state)
       bump()
-      void itemStore.load(workspaceId)
+      // load 一并 await：失败落进本面板的 error 位（run 的 catch），不吞成 unhandled rejection
+      await itemStore.load(workspaceId)
     })
   }
 
   /** 只看此节点（范围）：视图状态，不改节点可见性；再点一次或点提示条退出。 */
-  function toggleScope(dirPath: string): void {
+  async function toggleScope(dirPath: string): Promise<void> {
     itemStore.setScope(itemStore.scopeDirPath === dirPath ? null : dirPath)
-    void itemStore.load(workspaceId)
+    await run(() => itemStore.load(workspaceId))
   }
 
-  function clearScope(): void {
+  async function clearScope(): Promise<void> {
     itemStore.setScope(null)
-    void itemStore.load(workspaceId)
+    await run(() => itemStore.load(workspaceId))
   }
 
   /** 一键恢复全部可见：把本工作区所有 excluded 节点调回 included（逐节点入口）。 */
@@ -225,7 +226,7 @@ export function createPathManagement(workspaceId: string): PathManagement {
         await api.nodes.setState(workspaceId, n.dirPath, 'included')
       }
       bump()
-      void itemStore.load(workspaceId)
+      await itemStore.load(workspaceId)
     })
   }
 
@@ -289,7 +290,7 @@ export function createPathManagement(workspaceId: string): PathManagement {
     await run(async () => {
       const res = await api.workspaces.cleanupDetached({ workspaceId, dirPath })
       bump()
-      void itemStore.load(workspaceId)
+      await itemStore.load(workspaceId)
       if (res.deleted === 0) {
         error.value = '没有可清理的脱根条目（可能已被清理或已挂回来源根）'
       }

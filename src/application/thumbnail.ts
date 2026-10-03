@@ -5,7 +5,9 @@
  * 本用例只负责把派生元数据**按内容为单位**回写数据库：同一 contentHash 的全部条目
  * 共享同一份缩略图与同一组固有尺寸（contentHash 语义：同内容必同文件）。
  *
- * 输入校验：文件名写入键为 contentHash，防止路径注入（宿主侧也按哈希拼文件名）。
+ * 输入校验：文件名写入键为 contentHash，**格式闸在宿主端点**（main.ts：拼
+ * `{userData}/thumbnails/{hash}.jpg` 前先校验 64 位十六进制——相对段/分隔符不可达，
+ * 路径注入不可行）；本用例只把 contentHash 当查询键与回写条件使用。
  */
 
 import type { AppServices } from './services.ts'

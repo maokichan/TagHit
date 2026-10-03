@@ -174,30 +174,37 @@ function registerHandlers(): void {
   )
 
   // ---- 缩略图：base64 落盘 {userData}/thumbnails/{contentHash}.jpg + 按哈希回写 ----
-  // 写入键 = contentHash（路径注入不可达）；base64 超 2MiB 拒绝（INVALID）。
+  // 写入键 = contentHash，**拼文件名前先过格式闸**（sha256 十六进制 64 位）：相对段/分隔符
+  // 不可达，渲染层给什么都不能把文件写到缩略图目录之外（D15/D18 闸门纪律的同款教训：
+  // 闸门按文本拼接近行时相对段可穿透）。base64 尺寸上限与转换一并收进信封（D9）。
   ipcMain.handle(
     'thumbnail.save',
-    (_event, input: { contentHash: string; base64: string; width?: number | null; height?: number | null }) => {
-      const buf = Buffer.from(input.base64, 'base64')
-      if (buf.byteLength > 2 * 1024 * 1024) {
-        return Promise.resolve({
-          ok: false as const,
-          error: { code: 'INVALID' as const, message: '缩略图数据超过 2MiB 上限' },
-        })
-      }
-      const dir = join(app.getPath('userData'), 'thumbnails')
-      mkdirSync(dir, { recursive: true })
-      const previewUri = join(dir, `${input.contentHash}.jpg`)
-      writeFileSync(previewUri, buf)
-      return envelope(
-        recordThumbnail(services, {
-          contentHash: input.contentHash,
-          previewUri,
-          width: input.width,
-          height: input.height,
-        }).then(() => ({ previewUri }))
+    (_event, input: { contentHash: string; base64: string; width?: number | null; height?: number | null }) =>
+      envelope(
+        (async () => {
+          if (!/^[0-9a-f]{64}$/.test(input?.contentHash ?? '')) {
+            throw new DomainError('INVALID', '缩略图回写：contentHash 必须是 64 位十六进制内容签名')
+          }
+          if (typeof input.base64 !== 'string') {
+            throw new DomainError('INVALID', '缩略图回写：base64 缺失')
+          }
+          const buf = Buffer.from(input.base64, 'base64')
+          if (buf.byteLength > 2 * 1024 * 1024) {
+            throw new DomainError('INVALID', '缩略图数据超过 2MiB 上限')
+          }
+          const dir = join(app.getPath('userData'), 'thumbnails')
+          mkdirSync(dir, { recursive: true })
+          const previewUri = join(dir, `${input.contentHash}.jpg`)
+          writeFileSync(previewUri, buf)
+          await recordThumbnail(services, {
+            contentHash: input.contentHash,
+            previewUri,
+            width: input.width,
+            height: input.height,
+          })
+          return { previewUri }
+        })()
       )
-    }
   )
 
   // ---- 工作区 ----

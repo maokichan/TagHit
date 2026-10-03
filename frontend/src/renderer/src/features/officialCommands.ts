@@ -114,13 +114,15 @@ export function registerBuiltinCommands(): void {
       menu: { group: 'nav', order: 0 },
       when: { kind: 'targetIs', value: 'node' }
     },
-    (ctx) => {
+    async (ctx) => {
       const target = nodeTarget(ctx)
       if (target == null) return
       // 浏览范围是视图状态（不写库）：与面板 Focus 键同一份状态、同一语义
       useItemStore().setScope(target.dirPath)
-      void useItemStore().load(target.workspaceId)
       invalidatePathManagement()
+      // 失败不静默：load 异常经 await 传给执行通道（快捷键执行器/命令面板）的统一上报，
+      // 不吞成 unhandled rejection——那在用户眼里就是"点了没反应"
+      await useItemStore().load(target.workspaceId)
     }
   )
   official(

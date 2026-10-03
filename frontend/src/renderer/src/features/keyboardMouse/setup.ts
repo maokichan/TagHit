@@ -19,6 +19,7 @@ import { useConfigStore } from '../../stores/config'
 import { useItemStore } from '../../stores/item'
 import { useTabStore } from '../../stores/tab'
 import { evalWhen, getCommand } from '../commands'
+import { showToast } from '../services/dialog'
 import { isDetailNavMounted } from '../detailNav'
 import {
   describe,
@@ -79,7 +80,10 @@ async function runBinding(binding: ShortcutBinding): Promise<void> {
   try {
     await entry.run(ctx)
   } catch (e) {
+    // 失败不静默（D32 同款）：快捷键通道没有 DOM 目标可展示错误，经壳的轻通知上报，
+    // 而不是只写控制台——那在用户眼里就是"按了没反应"
     console.error(`[shortcuts] 命令执行失败：${binding.commandId}`, e)
+    showToast(e instanceof Error ? e.message : String(e), 'error')
   }
 }
 

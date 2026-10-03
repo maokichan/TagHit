@@ -11,7 +11,7 @@
  * 幂等：修复后不再有反斜杠行，重跑为空操作。
  */
 
-import type { FileItem, Id } from '../domain/index.ts'
+import type { FileItem } from '../domain/index.ts'
 import { normalizePath } from '../domain/paths.ts'
 import type { AppServices } from './services.ts'
 import { deleteItemIn } from './cascade.ts'
@@ -77,10 +77,4 @@ export async function repairLegacyPaths(svc: AppServices): Promise<LegacyRepairS
     }
   })
   return { inspected: files.length, normalized, merged }
-}
-
-/** 判定标签 id 是否仍被引用（校准与调试用；迁移后旧行已删，挂载应全部落在保留行）。 */
-export async function attachmentsOf(svc: AppServices, itemId: Id): Promise<Id[]> {
-  const rows = await svc.store.listAttachments({ itemId })
-  return rows.map((r) => r.tagId)
 }

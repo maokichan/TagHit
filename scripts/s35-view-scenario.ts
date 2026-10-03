@@ -263,6 +263,18 @@ export async function runViewScenario(store: Store): Promise<void> {
     '⑨ underAnyDir：嵌套目录并集仍计 30（同一条目不重复计）'
   )
   assertEqual(await store.countItems({ underAnyDir: [] }), 0, '⑨ underAnyDir 空数组 = 恒不命中')
+  // 否定式（notUnderAnyDir）与正向式互为对偶；空集的否定式恒真——契约（ports/store.ts）
+  // 曾误写"空数组 = 恒不命中"，与两份适配器实现相反且双跑测不出（两份同错），在此钉死。
+  assertEqual(
+    await store.countItems({ notUnderAnyDir: [] }),
+    await store.countItems({ kinds: ['file'] }),
+    '⑨ notUnderAnyDir 空数组 = 全部 file 条目（空集否定式恒真：无根 = 一切有来源条目皆脱根）'
+  )
+  assertEqual(
+    await store.countItems({ notUnderAnyDir: ['R:/库'] }),
+    1,
+    '⑨ notUnderAnyDir：R:/库 之外仅另一工作区那 1 条（锚条目不命中 = file-only）'
+  )
   await store.addWorkspaceRoot(WS, 'R:/库/深')
   assertEqual(
     await visibilitySummary(svc, WS),

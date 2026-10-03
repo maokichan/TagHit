@@ -185,11 +185,8 @@ export async function itemWindow(
     // 本来就是"全部素材"序列：找不到就是真的不在序列内（如锚条目），不再重试
     return { items: [], index: -1, from: 0, total: win.total, loose: false }
   }
-  const looseScope: ItemsQuery = {
-    kinds: ['file'],
-    order: ctx.order ?? 'createdAt',
-    orderDir: ctx.orderDir ?? 'desc',
-  }
+  // 退路 = 只保留排序方向的"全部素材"序列（contextScope 不带视图条件的形状，同一份构造防漂移）
+  const looseScope = contextScope({ order: ctx.order, orderDir: ctx.orderDir })
   const looseWin = await svc.store.itemWindow({ scope: looseScope, anchorId, radius })
   return {
     items: looseWin.hits,

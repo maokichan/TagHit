@@ -17,6 +17,7 @@
 import type { Id } from '../domain/index.ts'
 import { DomainError, parentDir } from '../domain/index.ts'
 import { isUnderDir, normalizePath } from '../domain/paths.ts'
+import type { ItemsQuery } from '../ports/index.ts'
 import type { AppServices } from './services.ts'
 import { deleteItemIn } from './cascade.ts'
 
@@ -107,6 +108,8 @@ export async function listRetiredRoots(
 /**
  * 来源根视图：一次读齐面板需要的两段信息。
  * 脱根条目的判定在存储侧完成（`notUnderAnyDir`）——不把全库条目捞进内存再筛。
+ * 全库无任何来源根时 `notUnderAnyDir` 为空数组——空集的否定式恒真，**全部有来源条目
+ * 都按脱根报告**（如实口径，契约见 ports/store.ts；s35 断言钉死该语义）。
  */
 export async function rootManagement(
   svc: AppServices,
@@ -115,11 +118,16 @@ export async function rootManagement(
   const retired = await listRetiredRoots(svc, workspaceId)
   const allRetired = await svc.store.listRetiredRoots({})
   const retiredPaths = allRetired.map((r) => r.path)
-  const detached = await svc.store.queryItems({ notUnderAnyDir: await allRootPaths(svc) })
+  // kinds 显式声明（notUnderAnyDir 在契约上本就 file-only，写明防调用方误用）
+  const detached = await svc.store.queryItems({
+    notUnderAnyDir: await allRootPaths(svc),
+    kinds: ['file'],
+  })
 
   const counts = new Map<string, number>()
   let untrackedTotal = 0
   for (const { item } of detached) {
+    // 类型收窄（Item 联合）：file-only 由查询的 kinds 保证，运行时不会走到 continue
     if (item.kind !== 'file') continue
     // 已归因于某条退役记录的，报告在 retired 段；余下的是无记录残留
     if (retiredPaths.some((p) => isUnderDir(p, item.sourceUri))) continue
@@ -146,12 +154,13 @@ export async function cleanupDetachedItems(
   dirPath?: string | null
 ): Promise<{ deleted: number }> {
   const scope = dirPath == null || dirPath === '' ? null : normalizePath(dirPath)
-  const query = {
+  const query: ItemsQuery = {
     notUnderAnyDir: await allRootPaths(svc),
+    kinds: ['file'],
     ...(scope != null ? { underDirPath: scope } : {}),
   }
-  const hits = await svc.store.queryItems(query)
-  const ids = hits.filter((h) => h.item.kind === 'file').map((h) => h.item.id)
+  // 候选已由 kinds + notUnderAnyDir 限定为素材条目（file-only 契约），id 直接映射
+  const ids = (await svc.store.queryItems(query)).map((h) => h.item.id)
   if (ids.length > 0) {
     await svc.store.transaction(async (db) => {
       for (const id of ids) await deleteItemIn(db, id)
