@@ -284,7 +284,17 @@ function registerHandlers(): void {
   ipcMain.handle(
     'fs.trash',
     (_event, input: { workspaceId: Id; path: string }) =>
-      envelope(trashFsEntry(services, nodeFs, { trash: (p) => shell.trashItem(p) }, input.workspaceId, input.path).then(() => null))
+      envelope(
+        trashFsEntry(
+          services,
+          nodeFs,
+          // shell.trashItem 在 Windows 只解析反斜杠路径（正斜杠直接拒："Failed to parse path"）；
+          // 库内路径身份仍是正斜杠（D18），这里只是 OS 调用边界的形态转换
+          { trash: (p) => shell.trashItem(p.replace(/\//g, '\\')) },
+          input.workspaceId,
+          input.path
+        ).then(() => null)
+      )
   )
 
   // ---- 对话框（原生目录选择；取消 → null） ----
