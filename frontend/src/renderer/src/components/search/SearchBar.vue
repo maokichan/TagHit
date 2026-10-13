@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RefreshCw, Search, X } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
 import { useWorkspaceStore } from '../../stores/workspace'
 import { useTagStore } from '../../stores/tag'
-import type { Id } from '@shared/contract'
+import { api } from '@shared/api'
+import type { Id, Tag } from '@shared/contract'
 
 const props = defineProps<{ workspaceId: Id }>()
 const itemStore = useItemStore()
@@ -18,6 +19,51 @@ async function refreshRoots(): Promise<void> {
   rootCount.value = (await workspaceStore.listRoots(props.workspaceId)).length
 }
 
+/**
+ * 标签候选 = **本工作区已声明**的标签（筛选语义与声明投影一致）。
+ * 本地取数不经全局 tag store 的"当前工作区"游标——详情页/其他面板可能把它刷成别的库。
+ */
+const declaredTags = ref<Tag[]>([])
+async function refreshDeclared(): Promise<void> {
+  const ids = new Set(await api.workspaces.declaredTags(props.workspaceId))
+  declaredTags.value = (await api.tags.search('')).filter((t) => ids.has(t.id))
+}
+
+/** 标签候选（唯一筛选入口）：输入匹配标签名，已生效的不再出现；候选可叠加。 */
+const inputFocused = ref(false)
+const highlight = ref(0)
+const candidates = computed(() => {
+  const q = itemStore.filter.keyword.trim().toLowerCase()
+  if (q === '') return []
+  const active = new Set(itemStore.filter.tagIds)
+  return declaredTags.value.filter((t) => !active.has(t.id) && t.name.toLowerCase().includes(q)).slice(0, 8)
+})
+const showCandidates = computed(() => inputFocused.value && candidates.value.length > 0)
+
+function applyCandidate(tag: Tag): void {
+  itemStore.toggleTagFilter(tag.id)
+  itemStore.setKeyword('')
+}
+
+function onInputKeydown(e: KeyboardEvent): void {
+  if (!showCandidates.value) return
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    highlight.value = (highlight.value + 1) % candidates.value.length
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    highlight.value = (highlight.value - 1 + candidates.value.length) % candidates.value.length
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    const tag = candidates.value[highlight.value] ?? candidates.value[0]
+    if (tag != null) applyCandidate(tag)
+  }
+}
+
+watch(candidates, () => {
+  highlight.value = 0
+})
+
 /** 当前按标签筛选的标签名列表（用于展示筛选状态，可单独/全部清除） */
 const activeTagFilters = computed(() =>
   itemStore.filter.tagIds
@@ -28,7 +74,9 @@ const activeTagFilters = computed(() =>
 onMounted(() => {
   void tagStore.refreshAll()
   void refreshRoots()
+  void refreshDeclared()
 })
+watch(() => props.workspaceId, () => void refreshDeclared())
 
 function onScan(): void {
   if (itemStore.scanning || !hasPaths.value) return
@@ -44,10 +92,31 @@ function onScan(): void {
         <input
           v-model="itemStore.filter.keyword"
           class="input pl-8 w-full"
-          placeholder="过滤文件名（关键词）…"
+          placeholder="搜索文件名或标签…"
           data-shortcut="search"
           @input="itemStore.setKeyword(($event.target as HTMLInputElement).value)"
+          @focus="inputFocused = true"
+          @blur="inputFocused = false"
+          @keydown="onInputKeydown"
         />
+        <!-- 标签候选：输入即浮出，点选/回车加为标签筛选（可叠加；↑↓ 选择） -->
+        <div
+          v-if="showCandidates"
+          class="absolute top-full left-0 right-0 mt-1 z-20 bg-[var(--bg-elev)] border border-[var(--border)] rounded-md shadow-lg overflow-hidden"
+        >
+          <button
+            v-for="(tag, i) in candidates"
+            :key="tag.id"
+            type="button"
+            class="w-full text-left px-3 py-1.5 text-[12px] cursor-pointer"
+            :class="i === highlight ? 'bg-[var(--bg-hover)]' : ''"
+            :title="tag.description ?? ''"
+            @mousedown.prevent="applyCandidate(tag)"
+            @mouseenter="highlight = i"
+          >
+            {{ tag.name }}
+          </button>
+        </div>
       </div>
 
       <!-- 间隔区：把扫描按钮推到搜索栏最右侧 -->
