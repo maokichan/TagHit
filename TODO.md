@@ -65,7 +65,7 @@
 ## 工程化
 
 - **LICENSE**：未定未加。
-- **frontend/package.json 双身份收敛**：frontend/ 仍是 0.1.x 的完整 Electron 应用骨架（`main: out/main/index.js`、electron-builder、release 脚本、license 标 MIT、版本 0.1.2），与根 package.json（0.2.14，esbuild bundle:host 为唯一装配线）并存，且根目录 bundle:host 借道 `frontend/node_modules/esbuild`——"哪个是应用、版本/LICENSE 归谁"已有两处口径（LICENSE 条与 frontend 的 MIT 字段矛盾）。翻新时瘦身成 renderer-only 包（或在文件头注明其"渲染层 + 工具链宿主"角色），版本号与 LICENSE 归口到根；动前先确认 release 脚本是否还有消费方。
+- **frontend/package.json 双身份收敛**：frontend/ 仍是 0.1.x 的完整 Electron 应用骨架（`main: out/main/index.js`、electron-builder、release 脚本、license 标 MIT、版本 0.1.2），与根 package.json（0.2.15，esbuild bundle:host 为唯一装配线）并存，且根目录 bundle:host 借道 `frontend/node_modules/esbuild`——"哪个是应用、版本/LICENSE 归谁"已有两处口径（LICENSE 条与 frontend 的 MIT 字段矛盾）。翻新时瘦身成 renderer-only 包（或在文件头注明其"渲染层 + 工具链宿主"角色），版本号与 LICENSE 归口到根；动前先确认 release 脚本是否还有消费方。
 - **CI**：八份校准（`calibrate` / `calibrate:sqlite` / `scan` / `boundary` / `view` / `roots` / `window` / `fileops`）+ 五层 typecheck + 前端 `check:templates` 与 `test`（Vitest）+ `doctor` 可直接脚本化。
 - **测试三件套**（方案裁决：成熟工具为主，自研只留场景；渲染层断言归 Vitest，见 D30）：
   - **Vitest ✅ 已落地**：`npm --prefix frontend run test` 跑渲染层纯逻辑与边界行为（桥包装不变式、入参纯化、顺序上下文解析、路由命中、缺桥报错）；剩余——**校准脚本可选迁入**（裁决原文"承接校准脚本可选"）与组件级断言（需 happy-dom）；
