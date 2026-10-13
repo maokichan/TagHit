@@ -11,6 +11,7 @@ import { useTagStore } from '../stores/tag'
 import { itemRoute, resolveItemContext } from '../features/tabs'
 import { windowNav } from '../features/windowNav'
 import { registerDetailNav } from '../features/detailNav'
+import { anchorZoom, pan as panZoom, FIT, wheelFactor, type ZoomState } from '../features/imageZoom'
 import { showToast } from '../features/services/dialog'
 import { formatSize } from '../lib/format'
 import TagChip from '../components/common/TagChip.vue'
@@ -125,6 +126,52 @@ watch([prev, next], () => {
   }
 })
 
+// ---- 图片缩放（视图状态，不落库）：Ctrl+滚轮光标锚点缩放 + 拖拽平移 + 双击复位 ----
+// 纯几何在 features/imageZoom.ts（有断言）；这里只做 DOM 量测与事件转发。
+const mediaImg = ref<HTMLImageElement | null>(null)
+const zoom = ref<ZoomState>({ ...FIT })
+const zoomed = computed(() => zoom.value.scale !== 1)
+const panning = ref(false)
+const zoomStyle = computed(() => ({
+  transform: `translate(${zoom.value.tx}px, ${zoom.value.ty}px) scale(${zoom.value.scale})`,
+  transformOrigin: '0 0'
+}))
+
+function resetZoom(): void {
+  zoom.value = { ...FIT }
+  panning.value = false
+}
+
+/** 只在图片态响应 Ctrl+滚轮（含 trackpad 捏合）；preventDefault 拦下浏览器整页缩放。 */
+function onMediaWheel(e: WheelEvent): void {
+  if (previewKind.value !== 'image' || !e.ctrlKey) return
+  e.preventDefault()
+  const rect = mediaImg.value?.getBoundingClientRect()
+  if (rect == null) return
+  zoom.value = anchorZoom(zoom.value, e.clientX - rect.left, e.clientY - rect.top, wheelFactor(e.deltaY))
+}
+
+function onImagePointerDown(e: PointerEvent): void {
+  if (!zoomed.value || e.button !== 0) return
+  panning.value = true
+  mediaImg.value?.setPointerCapture(e.pointerId)
+}
+
+function onImagePointerMove(e: PointerEvent): void {
+  if (!panning.value) return
+  zoom.value = panZoom(zoom.value, e.movementX, e.movementY)
+}
+
+function onImagePointerUp(e: PointerEvent): void {
+  if (!panning.value) return
+  panning.value = false
+  try {
+    mediaImg.value?.releasePointerCapture(e.pointerId)
+  } catch {
+    // 指针已隐式释放（pointercancel 等）
+  }
+}
+
 // ---- 字节闸门：内嵌预览 -----------------------------------------------------
 const previewKind = computed<PreviewKind>(() =>
   item.value ? previewKindOf(item.value.mediaType, item.value.extension) : 'none'
@@ -203,6 +250,7 @@ watch(
   () => props.id,
   async () => {
     winSeq++ // 作废进行中的窗口请求（快速连翻时只认最后一次）
+    resetZoom() // 新一张不继承上一张的缩放
     await load()
     await loadWindow()
   }
@@ -289,10 +337,10 @@ const rows = computed(() => {
           </span>
         </div>
 
-        <!-- 中：媒体内容（字节闸门：媒体经 taghit-file 协议，文本经窄桥 readText） -->
-        <div class="flex-1 min-h-0 relative flex items-center justify-center p-4 overflow-hidden">
+        <!-- 中：媒体内容（字节闸门：媒体经 taghit-file 协议，文本经窄桥 readText；图片态接管 Ctrl+滚轮） -->
+        <div class="flex-1 min-h-0 relative flex items-center justify-center p-4 overflow-hidden" @wheel="onMediaWheel">
           <button
-            class="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[var(--bg-elev)] border border-[var(--border)] hover:border-[var(--fg-dim)] disabled:opacity-30 disabled:cursor-default"
+            class="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-[var(--bg-elev)] border border-[var(--border)] hover:border-[var(--fg-dim)] disabled:opacity-30 disabled:cursor-default"
             :disabled="prev == null"
             :title="prev != null ? `上一张：${prev.title}（← / PgUp）` : '已是第一张'"
             @click="go(prev)"
@@ -303,11 +351,20 @@ const rows = computed(() => {
           <!-- 图片 -->
           <img
             v-if="previewKind === 'image' && mediaUrl"
+            ref="mediaImg"
             :key="item.id"
             :src="mediaUrl"
             :alt="item.title"
-            class="max-w-full max-h-full object-contain rounded-md shadow-lg"
+            class="max-w-full max-h-full object-contain rounded-md shadow-lg select-none"
+            :class="zoomed ? (panning ? 'cursor-grabbing' : 'cursor-grab') : ''"
+            :style="zoomStyle"
+            draggable="false"
             @error="previewFailed = true"
+            @dblclick="resetZoom"
+            @pointerdown="onImagePointerDown"
+            @pointermove="onImagePointerMove"
+            @pointerup="onImagePointerUp"
+            @pointercancel="onImagePointerUp"
           />
           <!-- 视频 -->
           <video
@@ -346,7 +403,7 @@ const rows = computed(() => {
           </div>
 
           <button
-            class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-[var(--bg-elev)] border border-[var(--border)] hover:border-[var(--fg-dim)] disabled:opacity-30 disabled:cursor-default"
+            class="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-[var(--bg-elev)] border border-[var(--border)] hover:border-[var(--fg-dim)] disabled:opacity-30 disabled:cursor-default"
             :disabled="next == null"
             :title="next != null ? `下一张：${next.title}（→ / PgDn）` : '已是最后一张'"
             @click="go(next)"
