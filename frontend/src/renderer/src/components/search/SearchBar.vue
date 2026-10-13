@@ -21,12 +21,13 @@ async function refreshRoots(): Promise<void> {
 
 /**
  * 标签候选 = **本工作区已声明**的标签（筛选语义与声明投影一致）。
- * 本地取数不经全局 tag store 的"当前工作区"游标——详情页/其他面板可能把它刷成别的库。
+ * 不经全局 tag store 的"当前工作区"游标——详情页/其他面板可能把它刷成别的库；
+ * 声明/新建发生在同视图的面板侧，故**聚焦即重取**（两次轻读，保证候选不陈旧）。
  */
-const declaredTags = ref<Tag[]>([])
+const declaredIds = ref<Set<string>>(new Set())
 async function refreshDeclared(): Promise<void> {
-  const ids = new Set(await api.workspaces.declaredTags(props.workspaceId))
-  declaredTags.value = (await api.tags.search('')).filter((t) => ids.has(t.id))
+  await tagStore.refreshAll()
+  declaredIds.value = new Set(await api.workspaces.declaredTags(props.workspaceId))
 }
 
 /** 标签候选（唯一筛选入口）：输入匹配标签名，已生效的不再出现；候选可叠加。 */
@@ -36,7 +37,11 @@ const candidates = computed(() => {
   const q = itemStore.filter.keyword.trim().toLowerCase()
   if (q === '') return []
   const active = new Set(itemStore.filter.tagIds)
-  return declaredTags.value.filter((t) => !active.has(t.id) && t.name.toLowerCase().includes(q)).slice(0, 8)
+  return tagStore.allTags
+    .filter(
+      (t) => declaredIds.value.has(t.id) && !active.has(t.id) && t.name.toLowerCase().includes(q)
+    )
+    .slice(0, 8)
 })
 const showCandidates = computed(() => inputFocused.value && candidates.value.length > 0)
 
@@ -63,6 +68,11 @@ function onInputKeydown(e: KeyboardEvent): void {
 watch(candidates, () => {
   highlight.value = 0
 })
+
+function onInputFocus(): void {
+  inputFocused.value = true
+  void refreshDeclared()
+}
 
 /** 当前按标签筛选的标签名列表（用于展示筛选状态，可单独/全部清除） */
 const activeTagFilters = computed(() =>
@@ -95,7 +105,7 @@ function onScan(): void {
           placeholder="搜索文件名或标签…"
           data-shortcut="search"
           @input="itemStore.setKeyword(($event.target as HTMLInputElement).value)"
-          @focus="inputFocused = true"
+          @focus="onInputFocus"
           @blur="inputFocused = false"
           @keydown="onInputKeydown"
         />
@@ -109,7 +119,7 @@ function onScan(): void {
             :key="tag.id"
             type="button"
             class="w-full text-left px-3 py-1.5 text-[12px] cursor-pointer"
-            :class="i === highlight ? 'bg-[var(--bg-hover)]' : ''"
+            :class="i === highlight ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : ''"
             :title="tag.description ?? ''"
             @mousedown.prevent="applyCandidate(tag)"
             @mouseenter="highlight = i"
