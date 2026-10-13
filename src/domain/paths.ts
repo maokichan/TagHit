@@ -28,6 +28,14 @@ export function joinPath(dir: string, name: string): string {
 }
 
 /**
+ * 重定基：把 fromDir 之下（含等于）的路径改挂到 toDir 之下。调用方保证
+ * isUnderDir(fromDir, path)——应用内移动/改名按它直改条目来源与节点行（D18）。
+ */
+export function rebasePath(path: string, fromDir: string, toDir: string): string {
+  return path === fromDir ? toDir : `${toDir}${path.slice(fromDir.length)}`
+}
+
+/**
  * 目录范围判定：path 等于 dir，或紧随分隔符之下。
  * **路径段匹配**（非文本前缀）——防同前缀兄弟目录越权/误命中（D15 字节闸门同规则）。
  */

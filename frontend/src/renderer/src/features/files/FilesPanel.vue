@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { FileCog, FolderInput, PenLine, Trash2 } from 'lucide-vue-next'
+import { FolderInput, PenLine, Trash2 } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
 import { api } from '@shared/api'
 import { confirmDialog } from '../../features/services/dialog'
 
 /**
  * 文件管理功能组件 v1：对**多选集**做真实文件操作（改名 / 移动 / 删除进回收站）。
- * 磁盘操作经窄桥 fs.move / fs.trash（路径闸门 = 来源根）；操作后自动重扫——
- * 条目与标签的随动由扫描的 contentHash 认领收敛（移动保 id，删除进 missing/回收站）。
+ * 磁盘操作经窄桥 fs.move / fs.trash（路径闸门 = 来源根）；**应用内操作直改库**
+ * （用例内同事务改写条目与节点行，保 id 保标签；删除连条目记录一并清除）——
+ * 不重扫，只有应用外的改动才需要扫描收敛。
  */
 const props = defineProps<{ workspaceId: string; side?: 'left' | 'right' }>()
 const itemStore = useItemStore()
@@ -32,8 +33,8 @@ async function run(action: () => Promise<void>): Promise<void> {
   try {
     await action()
     reset()
-    // 磁盘已变 → 重扫收敛（认领保标签）
-    await itemStore.scan(props.workspaceId)
+    // 库已在用例内直改，这里只需刷新当前视图（不重扫）
+    await itemStore.load(props.workspaceId)
     itemStore.clearSelection()
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
@@ -65,14 +66,14 @@ function moveAll(): void {
   })
 }
 
-/** 删除（进系统回收站，可多选）。 */
+/** 删除（进系统回收站，可多选）：删除即删除——条目记录级联清除，不标缺失。 */
 function trashAll(): void {
   const paths = selected.value.map((i) => i.sourceUri).filter((p): p is string => p != null)
   if (paths.length === 0) return
   void (async () => {
     const ok = await confirmDialog({
       title: '删除文件',
-      message: `把 ${paths.length} 个文件移入系统回收站？\n条目将随下次扫描标为 missing（标签保留）。`,
+      message: `把 ${paths.length} 个文件移入系统回收站？\n对应条目及标签将一并删除；文件本身可在系统回收站找回。`,
       confirmText: '删除',
       danger: true
     })
@@ -168,11 +169,6 @@ function trashAll(): void {
     >
       {{ error }}
       <button class="ml-1 cursor-pointer opacity-70 hover:opacity-100" @click="error = ''">✕</button>
-    </div>
-
-    <div class="text-[11px] text-[var(--fg-dim)] opacity-70 flex items-start gap-1">
-      <FileCog :size="11" class="shrink-0 mt-px" />
-      <span>操作只改磁盘；重扫按内容签名认领，移动后条目与标签原样保留。</span>
     </div>
   </div>
 </template>

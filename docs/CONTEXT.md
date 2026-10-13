@@ -30,14 +30,14 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{d
 3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / 本文件 + README + TODO.md；不留轮次记录；**进度只记本文件 §三（只列名下能力，不复述细节）**，待办只记 TODO.md；文档不写可推断的内部标识符与文件清单；**文档不带历史内容**——演进与回溯由版本管理承担，文档只陈述现状与规则，不写"此前/曾/已修"式叙事，不写日期。
 4. **界面文案纪律**：优秀的交互不需要引导赘文——交互自身可理解的，不加说明文字；说明性文案（教学式段落、括号内的"怎么用"解说）取最少必要，能删则删。
 5. **不预建模**：parked 项不进代码（清单见 DECISIONS 末尾），待办细化进 TODO.md。
-6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**七份校准**（s32 用例 · s33 扫描 · s34 边界 · s35 浏览窗口 · s36 来源根 · s37 顺序窗口；除 s32 分两个入口外均 memory/sqlite 双跑）；动过模板结构跑前端**模板解析检查**（vue-tsc 会漏报标签不闭合）；语义变更即同步文档。
+6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**（s32 用例 · s33 扫描 · s34 边界 · s35 浏览窗口 · s36 来源根 · s37 顺序窗口 · s38 文件操作；除 s32 分两个入口外均 memory/sqlite 双跑）；动过模板结构跑前端**模板解析检查**（vue-tsc 会漏报标签不闭合）；语义变更即同步文档。
 7. **git**：本地提交积极做；**版本号只在开发者明示时升（AI 不得自升）**，**升版本必打 tag**（随升随打，不必再确认）；非版本类 tag 打前确认；push（含 tag）由真人执行；纯文档变更不打版本。
 
 ## 五、环境与运行
 
 - **层 typecheck**：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；freeze 路径已失效）；node v24 可直跑 TS。
 - **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）；**渲染层断言** = `npm --prefix frontend run test`（Vitest：标签↔路由映射、顺序上下文解析、窄桥包装与入参纯化——不需要 DOM，跑一次几百毫秒）。
-- **校准**：`npm run calibrate | calibrate:sqlite`（s32 契约，memory / sqlite 各一个入口）· `calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots | calibrate:window`（各自跑同一场景于 memory 与 sqlite）——scene 定义在 `scripts/s3x-*-scenario.ts`，入口是 `*-calibrate.ts`。
+- **校准**：`npm run calibrate | calibrate:sqlite`（s32 契约，memory / sqlite 各一个入口）· `calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots | calibrate:window | calibrate:fileops`（各自跑同一场景于 memory 与 sqlite）——scene 定义在 `scripts/s3x-*-scenario.ts`，入口是 `*-calibrate.ts`。
 - **真机运行**：`npm run dev`（一键：打包宿主 → vite dev（端口自适应回退）→ Electron；开发库 `build/taghit-dev.db`）；手动分步见 README。开发态 userData 按库隔离，同库双开由单实例锁拒绝。
 - **宿主产物**：esbuild 打包 `src/host` → `build/main.cjs` + `preload.cjs`（宿主代码改动必须重新打包并重启应用；渲染层改动只需刷新窗口）。
 - 根 node_modules 仅 better-sqlite3/bindings/file-uri-to-path（Electron ABI，**勿让 node v24 直接加载**）。
@@ -57,7 +57,7 @@ src/adapters    memory（校准替身：Store + 假 FS）· sqlite（驱动注�
 src/application 用例编排（打标/浏览与投影/检索/扫描/来源根生命周期/内容读取/级联删除/数据修复）
 src/host        主进程装配 · typed IPC 契约（单一事实源）· taghit-file 字节闸门 · 窗口壳
 frontend/       渲染层：shared（契约 type-only 桥 + api 门面）· renderer（features / components / stores / views）
-scripts/        校准场景与入口（s32 用例 · s33 扫描 · s34 边界 · s35 浏览窗口 · s36 来源根 · s37 顺序窗口）· dev 一键脚本
+scripts/        校准场景与入口（s32 用例 · s33 扫描 · s34 边界 · s35 浏览窗口 · s36 来源根 · s37 顺序窗口 · s38 文件操作）· dev 一键脚本
 docs/           GLOSSARY · DECISIONS · ARCHITECTURE · 本文件；根目录 README.md 与 TODO.md
 build/          esbuild 产物 + 真机开发库（gitignore）
 ```

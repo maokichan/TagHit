@@ -14,7 +14,7 @@ import type { Id } from '../domain/index.ts'
 import { isUnderRoot, normalizePath } from '../domain/paths.ts'
 import type { AppServices } from './services.ts'
 
-export { basename, isUnderDir, isUnderRoot, joinPath, normalizePath, parentDir } from '../domain/paths.ts'
+export { basename, isUnderDir, isUnderRoot, joinPath, normalizePath, parentDir, rebasePath } from '../domain/paths.ts'
 
 /**
  * 断言 path 位于工作区某来源根之下（路径段匹配，D15/D18 同规则）；越界 → NOT_FOUND。
