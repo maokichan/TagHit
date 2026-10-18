@@ -71,6 +71,8 @@
 
 - **LICENSE**：未定未加。
 - **frontend/package.json 双身份收敛**：frontend/ 仍是 0.1.x 的完整 Electron 应用骨架（`main: out/main/index.js`、electron-builder、release 脚本、license 标 MIT、版本 0.1.2），与根 package.json（0.2.15，esbuild bundle:host 为唯一装配线）并存，且根目录 bundle:host 借道 `frontend/node_modules/esbuild`——"哪个是应用、版本/LICENSE 归谁"已有两处口径（LICENSE 条与 frontend 的 MIT 字段矛盾）。翻新时瘦身成 renderer-only 包（或在文件头注明其"渲染层 + 工具链宿主"角色），版本号与 LICENSE 归口到根；动前先确认 release 脚本是否还有消费方。
+- **启动失败可见性**（黑屏事件暴露的两处静默失败）：① 单实例锁拒绝新启动时只在**新进程的终端**里说话——用户看到的旧窗口照旧黑着、新启动像没发生；应在宿主拒退出前 `dialog.showMessageBox` 说清"已有实例在运行"。② 渲染进程崩溃自恢复的 3 次上限用尽后**停在黑屏**——应用尽时渲染一张错误页（"渲染进程反复崩溃，请重启应用"），黑屏不是可接受的终态。
+
 - **打包分发（便携 zip）**：目标 = 朋友们可自取的绿色包——electron-builder `--dir`/portable 产物打 zip；**不上**安装器与自动更新体系（electron-updater + feed + 签名等用户群扩大后增量加，不推翻便携形态）。要点：
   ① 先清「frontend 双身份」账（打包入口与版本号归一，见上条）；
   ② `files` 只收编译产物（`build/main.cjs` + `preload.cjs` + 渲染层 dist）与 better-sqlite3 三件套——纯 JS 依赖已被 esbuild 揉进 bundle；**asarUnpack 原生模块**（从 asar 里 load 不了 .node）；
