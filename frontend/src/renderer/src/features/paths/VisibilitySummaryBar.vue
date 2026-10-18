@@ -27,7 +27,11 @@ const { summary, scopeDirPath } = pm
         <span v-if="summary.hiddenByExcluded" class="text-[var(--danger)]">
           已排除隐藏 <b class="tabular-nums">{{ summary.hiddenByExcluded }}</b>
         </span>
-        <span v-if="summary.nodeMissing" class="text-[var(--fg-dim)]">
+        <span
+          v-if="summary.nodeMissing"
+          class="text-[var(--fg-dim)]"
+          title="条目仍在库中（文件可能还在磁盘上），只是其所在目录已消失或未被扫描到；重新挂载对应来源根并扫描即可恢复"
+        >
           无归属 <b class="tabular-nums">{{ summary.nodeMissing }}</b>
         </span>
         <button
@@ -38,13 +42,6 @@ const { summary, scopeDirPath } = pm
         >
           恢复全部
         </button>
-      </div>
-      <div
-        v-if="summary.nodeMissing"
-        class="mt-1 text-[var(--fg-dim)] opacity-80"
-        title="条目仍在库中（文件可能还在磁盘上），只是其所在目录已消失或未被扫描到；重新挂载对应来源根并扫描即可恢复"
-      >
-        无归属：所在目录已消失或未被扫描到
       </div>
     </div>
 

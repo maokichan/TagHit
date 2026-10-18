@@ -154,9 +154,8 @@ function onScan(): void {
       </button>
     </div>
 
-    <!-- 标签筛选状态：打标后在左侧"标签"面板点击标签即可筛选，此处展示并支持清除 -->
+    <!-- 标签筛选状态：chip 本身即筛选态（点 X 取消） -->
     <div v-if="activeTagFilters.length" class="flex items-center gap-1.5 flex-wrap">
-      <span class="text-[11px] text-[var(--fg-dim)] shrink-0">筛选：</span>
       <button
         v-for="tag in activeTagFilters"
         :key="tag.id"

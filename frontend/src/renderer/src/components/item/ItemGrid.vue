@@ -318,7 +318,7 @@ watch(
     >
       <Inbox :size="36" class="opacity-40" />
       <p class="text-sm">这里还没有内容</p>
-      <p class="text-xs opacity-70">先在左侧活动栏配置扫描路径，然后执行扫描</p>
+      <p class="text-xs opacity-70">在左侧「来源根」添加目录并扫描</p>
     </div>
 
     <!-- 滚动容器（虚拟化宿主） -->

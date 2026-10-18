@@ -75,10 +75,6 @@ void onMounted(() => {
     <section>
       <h2 class="text-[13px] font-medium mb-2">可见性</h2>
       <VisibilitySummaryBar allow-bulk />
-      <p class="mt-2 text-[11px] text-[var(--fg-dim)] leading-relaxed">
-        可见性 = 当前工作区浏览/排序的成员前提（excluded 只隐藏该目录的**直接**条目，不级联）；
-        「只看此节点」是视图范围，不改可见性。
-      </p>
     </section>
 
     <!-- ③ 目录树：逐节点可见性与只看某节点 -->
@@ -101,7 +97,7 @@ void onMounted(() => {
       <h2 class="text-[13px] font-medium mb-2">已卸载的来源根与脱根条目</h2>
       <RelocationPanel v-if="mgmt && (mgmt.retired.length || mgmt.untrackedTotal)" />
       <p v-else-if="summary" class="text-[11px] text-[var(--fg-dim)] leading-relaxed">
-        没有脱离来源根的条目。卸载来源根会在此留下记录，供你决定条目去留。
+        没有已卸载的来源根。
       </p>
     </section>
   </div>

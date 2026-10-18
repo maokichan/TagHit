@@ -19,10 +19,5 @@ const blocks = listFeatures('displayPanel')
 
     <!-- 功能组件区块（壳只渲染声明；统一经 SurfaceHost：惰性解析 + 错误隔离 + 上下文注入） -->
     <SurfaceHost v-for="f in blocks" :key="f.manifest.id" :feature="f" surface="displayPanel" />
-
-    <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">
-      瀑布流模式下，图片卡片按真实比例渲染（比例上限
-      <span class="kbd">2.2:1</span>，避免极端横幅/竖幅撑开）。视频、音频与文档保持固定比例。
-    </p>
   </div>
 </template>

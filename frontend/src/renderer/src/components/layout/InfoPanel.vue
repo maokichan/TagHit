@@ -83,8 +83,6 @@ function openDetail(): void {
       </dl>
     </template>
 
-    <p v-else class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
-      点击网格中的条目，在此查看媒体信息。<br />双击条目可打开详情页。
-    </p>
+    <p v-else class="text-[12px] text-[var(--fg-dim)]">选中条目后显示信息。</p>
   </div>
 </template>

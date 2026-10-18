@@ -13,7 +13,7 @@ import { windowNav } from '../features/windowNav'
 import { registerDetailNav } from '../features/detailNav'
 import { anchorZoom, pan as panZoom, FIT, wheelFactor, type ZoomState } from '../features/imageZoom'
 import { showToast } from '../features/services/dialog'
-import { formatSize } from '../lib/format'
+import { formatDate, formatSize } from '../lib/format'
 import TagChip from '../components/common/TagChip.vue'
 import ItemFilmstrip from '../components/item/ItemFilmstrip.vue'
 
@@ -290,7 +290,7 @@ async function applyFirstMatch(): Promise<void> {
 const rows = computed(() => {
   if (!item.value) return []
   return [
-    ['类型', item.value.mediaType],
+    ['类型', MEDIA_LABEL[item.value.mediaType] ?? item.value.mediaType],
     ['扩展名', item.value.extension ?? '-'],
     [
       '尺寸',
@@ -299,12 +299,21 @@ const rows = computed(() => {
         : '-'
     ],
     ['大小', formatSize(item.value.size)],
-    ['状态', item.value.status ?? '-'],
-    ['修改时间', item.value.fileModifiedAt ?? '-'],
+    ['状态', item.value.status == null ? '-' : STATUS_LABEL[item.value.status]],
+    ['修改时间', formatDate(item.value.fileModifiedAt)],
     ['路径', item.value.sourceUri ?? '-'],
-    ['收录时间', item.value.createdAt]
+    ['收录时间', formatDate(item.value.createdAt)]
   ] as Array<[string, string]>
 })
+
+const MEDIA_LABEL: Record<string, string> = {
+  image: '图片',
+  video: '视频',
+  audio: '音频',
+  document: '文档',
+  other: '其他'
+}
+const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺失' }
 </script>
 
 <template>
@@ -432,10 +441,7 @@ const rows = computed(() => {
             </div>
           </dl>
 
-          <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">
-            标签
-            <span v-if="workspaceId != null" class="normal-case tracking-normal">（标签池：当前工作区已声明的）</span>
-          </div>
+          <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">标签</div>
           <div class="flex flex-wrap gap-1.5">
             <template v-if="workspaceId != null">
               <TagChip
@@ -471,15 +477,12 @@ const rows = computed(() => {
             <input
               v-model="tagQuery"
               class="input w-full pl-7 py-1 text-[12px]"
-              placeholder="搜标签，Enter 打上"
+              placeholder="搜标签"
               @keydown.enter.prevent="applyFirstMatch"
             />
           </div>
-          <p v-if="item.tags.length === 0 && workspaceId != null" class="text-[11px] text-[var(--fg-dim)] mt-2">
-            点击上方「+标签名」或搜标签后回车即可打标（标签池 = 打开详情页时那个工作区已声明的标签）。
-          </p>
           <p v-if="workspaceId == null" class="text-[11px] text-[var(--fg-dim)] mt-2">
-            该条目未带工作区上下文（从全局搜索进入）——打标请从工作区进入。
+            从工作区打开可打标
           </p>
         </div>
       </div>

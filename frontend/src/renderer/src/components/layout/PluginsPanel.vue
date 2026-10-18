@@ -37,10 +37,6 @@ function open(featureId: string, title: string): void {
       </button>
     </div>
 
-    <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">
-      官方功能组件经贡献点注册（活动栏/显示面板/设置/内容标签页）。三方插件的动态装载
-      （声明 + 惰性加载 + 权限门 + HostApi 冻结面）机制已就绪、发现/分发未接入——
-      见 docs/ARCHITECTURE §3。
-    </p>
+    <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">三方插件尚未开放安装。</p>
   </div>
 </template>

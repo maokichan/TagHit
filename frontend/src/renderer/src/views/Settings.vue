@@ -116,9 +116,7 @@ async function deleteTag(id: string): Promise<void> {
             </button>
           </div>
         </div>
-        <p class="text-[11px] text-[var(--fg-dim)] mt-3">
-          设置持久化（config）不在宿主契约 v0：当前为会话内生效。
-        </p>
+        <p class="text-[11px] text-[var(--fg-dim)] mt-3">设置仅当前会话内生效。</p>
       </section>
 
       <!-- 功能组件设置分区：由注册表按组件分组渲染（每个组件一个分区，标题 = 组件 title） -->
@@ -141,7 +139,7 @@ async function deleteTag(id: string): Promise<void> {
       <section class="panel p-4">
         <div class="text-sm font-medium mb-3">工作区管理</div>
         <div v-if="workspaceStore.workspaces.length === 0" class="text-[12px] text-[var(--fg-dim)]">
-          暂无工作区（新建请在开始界面进行）
+          暂无工作区
         </div>
         <div class="space-y-3">
           <div v-for="ws in workspaceStore.workspaces" :key="ws.id" class="border border-[var(--border)] rounded-lg p-3">
@@ -149,19 +147,16 @@ async function deleteTag(id: string): Promise<void> {
               <span class="font-medium flex-1 truncate">{{ ws.name }}</span>
               <button class="btn text-[var(--danger)]" @click="deleteWorkspace(ws.id)"><Trash2 :size="13" /></button>
             </div>
-            <p class="text-[11px] text-[var(--fg-dim)] mt-1.5">
-              来源根与标签声明请在工作区页左侧活动栏管理；改名/封面不在契约 v0。
-            </p>
           </div>
         </div>
       </section>
 
       <!-- 统一标签管理 -->
       <section class="panel p-4">
-        <div class="text-sm font-medium mb-3">统一标签管理（全局标签池）</div>
+        <div class="text-sm font-medium mb-3">标签</div>
 
         <div class="flex gap-2 mb-3">
-          <input v-model="newTagName" class="input flex-1" placeholder="新全局标签名" @keyup.enter="createTag" />
+          <input v-model="newTagName" class="input flex-1" placeholder="新标签名" @keyup.enter="createTag" />
           <input v-model="newTagDesc" class="input flex-1" placeholder="描述（可选）" />
           <button class="btn btn-primary" @click="createTag"><Plus :size="14" /> 创建</button>
         </div>
@@ -178,9 +173,7 @@ async function deleteTag(id: string): Promise<void> {
           </div>
           <p v-if="tagStore.allTags.length === 0" class="text-[12px] text-[var(--fg-dim)]">暂无标签</p>
         </div>
-        <p class="text-[11px] text-[var(--fg-dim)] mt-3">
-          标签声明（工作区可见性）在工作区页左侧「标签」面板管理；标签层级/关联不在契约 v0。
-        </p>
+        <p class="text-[11px] text-[var(--fg-dim)] mt-3">在各工作区的「标签」面板中声明使用。</p>
       </section>
     </div>
   </div>

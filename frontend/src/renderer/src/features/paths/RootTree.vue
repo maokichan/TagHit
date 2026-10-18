@@ -122,7 +122,7 @@ const { roots, expanded, scopeDirPath } = pm
             </button>
           </div>
           <div v-if="!pm.rowsFor(r.path).length" class="pl-6 pr-2 py-1 text-[11px] text-[var(--fg-dim)] opacity-70">
-            无子目录（重新扫描后出现）
+            无子目录
           </div>
         </div>
       </div>

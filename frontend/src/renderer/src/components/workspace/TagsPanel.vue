@@ -36,9 +36,7 @@ async function createTag(): Promise<void> {
 
 <template>
   <div class="px-3 py-3">
-    <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">
-      标签（本工作区已声明）
-    </div>
+    <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">标签</div>
     <!-- 本面板只管声明；按标签筛选的入口在搜索框（输入即出候选） -->
     <div class="flex flex-wrap gap-1 mb-3">
       <span
@@ -77,7 +75,7 @@ async function createTag(): Promise<void> {
 
     <!-- 从全局池声明 -->
     <template v-if="undeclared.length">
-      <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">从全局标签声明…</div>
+      <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">可声明</div>
       <div class="flex flex-wrap gap-1">
         <button
           v-for="tag in undeclared"

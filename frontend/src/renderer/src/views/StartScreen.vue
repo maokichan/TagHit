@@ -216,9 +216,7 @@ function openGlobalItem(item: ItemView): void {
             </div>
           </button>
         </div>
-        <p v-else class="text-[12px] text-[var(--fg-dim)] mt-1">
-          还没有工作区，点击上方"新建"创建第一个
-        </p>
+        <p v-else class="text-[12px] text-[var(--fg-dim)] mt-1">还没有工作区</p>
       </template>
     </div>
   </div>

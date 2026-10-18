@@ -40,23 +40,19 @@ watch(() => tabStore.activeWorkspaceId, (ws) => void refresh(ws))
 </script>
 
 <template>
-  <div>
+  <!-- 未打开工作区：没有信息可显示，整块不渲染（不渲染死块与说明） -->
+  <div v-if="tabStore.activeWorkspaceId != null">
     <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">工作区信息</div>
-    <template v-if="tabStore.activeWorkspaceId != null">
-      <div class="space-y-1 text-[12px]">
-        <div class="flex justify-between">
-          <span class="text-[var(--fg-dim)]">来源根</span>
-          <span class="tabular-nums">{{ rootCount }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-[var(--fg-dim)]">已声明标签</span>
-          <span class="tabular-nums">{{ declaredCount }}</span>
-        </div>
+    <div class="space-y-1 text-[12px]">
+      <div class="flex justify-between">
+        <span class="text-[var(--fg-dim)]">来源根</span>
+        <span class="tabular-nums">{{ rootCount }}</span>
       </div>
-      <p v-if="error" class="text-[11px] text-[var(--danger)] mt-1.5">{{ error }}</p>
-    </template>
-    <p v-else class="text-[11px] text-[var(--fg-dim)] leading-relaxed">
-      当前未在工作区标签页内，打开一个工作区后显示其概况。
-    </p>
+      <div class="flex justify-between">
+        <span class="text-[var(--fg-dim)]">已声明标签</span>
+        <span class="tabular-nums">{{ declaredCount }}</span>
+      </div>
+    </div>
+    <p v-if="error" class="text-[11px] text-[var(--danger)] mt-1.5">{{ error }}</p>
   </div>
 </template>

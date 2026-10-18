@@ -90,7 +90,7 @@ function trashAll(): void {
     <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)]">文件管理</div>
 
     <div v-if="selected.length === 0" class="text-[var(--fg-dim)]">
-      先在网格中选中条目（Ctrl/Cmd+单击），此处对其真实文件执行改名 / 移动 / 删除。
+      选中条目后，在此改名、移动或删除文件。
     </div>
 
     <template v-else>
@@ -114,7 +114,7 @@ function trashAll(): void {
       <div class="space-y-1">
         <div class="flex items-center gap-1.5 text-[var(--fg-dim)]">
           <PenLine :size="12" />
-          <span>重命名（单选）</span>
+          <span>重命名</span>
         </div>
         <div class="flex gap-1.5">
           <input
@@ -125,7 +125,7 @@ function trashAll(): void {
             @keyup.enter="rename"
           />
           <button class="btn text-[11px]" :disabled="single == null || busy || !newName.trim()" title="重命名" @click="rename">
-            应用
+            改名
           </button>
         </div>
       </div>
@@ -134,7 +134,7 @@ function trashAll(): void {
       <div class="space-y-1">
         <div class="flex items-center gap-1.5 text-[var(--fg-dim)]">
           <FolderInput :size="12" />
-          <span>移动到目录（绝对路径）</span>
+          <span>移动到</span>
         </div>
         <div class="flex gap-1.5">
           <input
@@ -158,7 +158,7 @@ function trashAll(): void {
         @click="trashAll"
       >
         <Trash2 :size="12" />
-        删除（进回收站）
+        删除
       </button>
     </template>
 

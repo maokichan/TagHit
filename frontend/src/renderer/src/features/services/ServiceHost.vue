@@ -121,7 +121,7 @@ const batchTitle = (): string => {
       <div class="text-sm font-medium mb-3">{{ batchTitle() }}</div>
 
       <div v-if="tagStore.tags.length === 0" class="text-[12px] text-[var(--fg-dim)] mb-3">
-        当前工作区尚未声明标签，请先在左侧「标签」面板声明。
+        本工作区还没有标签，先在「标签」面板声明。
       </div>
       <div
         v-else
