@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import { useUiStore } from './stores/ui'
 import { registerBuiltinFeatures, setupFeatureBehaviors } from './features/registry'
+import { registerBuiltinDetailPreviews } from './features/detailPreview'
 import { registerBuiltinCommands } from './features/officialCommands'
 import './styles/globals.css'
 
@@ -16,6 +17,8 @@ async function bootstrap(): Promise<void> {
   registerBuiltinFeatures()
   // 官方命令（右键菜单/未来命令面板的贡献者）与功能组件同表机制
   registerBuiltinCommands()
+  // 内置详情页预览提供方（detailPreview 槽的默认提供者，D37）
+  registerBuiltinDetailPreviews()
   app.mount('#app')
 
   // 执行功能组件的行为钩子（键鼠交互快捷键等）

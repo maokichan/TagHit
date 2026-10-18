@@ -27,6 +27,11 @@ const TEXT_EXTS = new Set([
 
 export type PreviewKind = 'image' | 'video' | 'audio' | 'text' | 'none'
 
+/** 文本可读扩展名判定（与宿主 content.ts 白名单同名单）——文本预览提供方的认领依据。 */
+export function isTextExtension(ext: string | null): boolean {
+  return ext != null && TEXT_EXTS.has(ext)
+}
+
 /** 详情页内嵌预览类别：text 判定以宿主白名单为准，其余按媒体类别（不可解码时组件 @error 兜底） */
 export function previewKindOf(mediaType: MediaType, ext: string | null): PreviewKind {
   if (ext != null && TEXT_EXTS.has(ext)) return 'text'

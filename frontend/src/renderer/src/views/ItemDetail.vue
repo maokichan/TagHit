@@ -5,14 +5,14 @@ import { ChevronLeft, ChevronRight, File, Film, Image as ImageIcon, Music, FileT
 import { api } from '@shared/api'
 import type { Id, ItemContext, ItemWindowResult } from '@shared/contract'
 import { toItemView, type ItemView } from '../lib/viewModel'
-import { previewKindOf, taghitFileUrl, type PreviewKind } from '../lib/media'
+import { taghitFileUrl } from '../lib/media'
 import { useTabStore, type ItemTab } from '../stores/tab'
 import { useConfigStore } from '../stores/config'
 import { useTagStore } from '../stores/tag'
 import { itemRoute, resolveItemContext } from '../features/tabs'
+import { resolveDetailPreview } from '../features/detailPreview'
 import { windowNav } from '../features/windowNav'
 import { registerDetailNav } from '../features/detailNav'
-import { anchorZoom, pan as panZoom, FIT, wheelFactor, type ZoomState } from '../features/imageZoom'
 import { showToast } from '../features/services/dialog'
 import { formatDate, formatSize } from '../lib/format'
 import { suggestTags } from '../lib/tagSuggest'
@@ -131,99 +131,12 @@ watch([prev, next], () => {
   }
 })
 
-// ---- 图片缩放（视图状态，不落库）：Ctrl+滚轮光标锚点缩放 + 拖拽平移 + 双击复位 ----
-// 纯几何在 features/imageZoom.ts（有断言）；这里只做 DOM 量测与事件转发。
-const mediaImg = ref<HTMLImageElement | null>(null)
-const zoom = ref<ZoomState>({ ...FIT })
-const zoomed = computed(() => zoom.value.scale !== 1)
-const panning = ref(false)
-const zoomStyle = computed(() => ({
-  transform: `translate(${zoom.value.tx}px, ${zoom.value.ty}px) scale(${zoom.value.scale})`,
-  transformOrigin: '0 0'
-}))
+// ---- 内嵌预览（detailPreview 贡献点，D37）-----------------------------------
+// 预览区是槽：内置四类为默认提供方，功能组件可按媒体形态认领替换（音频播放器是首个消费方）。
+// 加载/失败/缩放等渲染内状态归提供方自治；详情页只管"谁来渲染"与翻页导航。
+const preview = computed(() => (item.value ? resolveDetailPreview(item.value) : null))
 
-function resetZoom(): void {
-  zoom.value = { ...FIT }
-  panning.value = false
-}
-
-/** 只在图片态响应 Ctrl+滚轮（含 trackpad 捏合）；preventDefault 拦下浏览器整页缩放。 */
-function onMediaWheel(e: WheelEvent): void {
-  if (previewKind.value !== 'image' || !e.ctrlKey) return
-  e.preventDefault()
-  const rect = mediaImg.value?.getBoundingClientRect()
-  if (rect == null) return
-  zoom.value = anchorZoom(zoom.value, e.clientX - rect.left, e.clientY - rect.top, wheelFactor(e.deltaY))
-}
-
-function onImagePointerDown(e: PointerEvent): void {
-  if (!zoomed.value || e.button !== 0) return
-  panning.value = true
-  mediaImg.value?.setPointerCapture(e.pointerId)
-}
-
-function onImagePointerMove(e: PointerEvent): void {
-  if (!panning.value) return
-  zoom.value = panZoom(zoom.value, e.movementX, e.movementY)
-}
-
-function onImagePointerUp(e: PointerEvent): void {
-  if (!panning.value) return
-  panning.value = false
-  try {
-    mediaImg.value?.releasePointerCapture(e.pointerId)
-  } catch {
-    // 指针已隐式释放（pointercancel 等）
-  }
-}
-
-// ---- 字节闸门：内嵌预览 -----------------------------------------------------
-const previewKind = computed<PreviewKind>(() =>
-  item.value ? previewKindOf(item.value.mediaType, item.value.extension) : 'none'
-)
-const mediaUrl = computed(() =>
-  item.value?.sourceUri ? taghitFileUrl(item.value.sourceUri) : null
-)
-
-/**
- * 图片翻页不闪空白：**解码就绪才换源**。
- * 翻页直接换 src（或带 :key 重建元素）时，新图未解码前是一块空白，快速连翻表现为整页闪烁；
- * 这里让画面留在旧图上，直到新图解码完成再换。图→图翻页保留旧画面等解码（预取已焐热，
- * 通常一两帧）；从其他预览形态进入图片态时不留上一张的画面——那是别的内容，不放错图。
- */
-const shownUrl = ref<string | null>(null)
-let shownSeq = 0
-let prevKind: PreviewKind | null = null
-watch(
-  () => [item.value?.id ?? null, previewKind.value, mediaUrl.value] as const,
-  async ([id, kind, url]) => {
-    const fromImage = prevKind === 'image' && kind === 'image'
-    prevKind = kind
-    if (kind !== 'image' || id == null || url == null) {
-      shownSeq += 1
-      shownUrl.value = null
-      return
-    }
-    const seq = ++shownSeq
-    if (!fromImage) shownUrl.value = null
-    const probe = new Image()
-    probe.src = url
-    try {
-      await probe.decode()
-    } catch {
-      // 解码失败也照常换源：真元素自会走 @error，占位由媒体类型兜底
-    }
-    if (seq !== shownSeq) return // 快速连翻：只认最后一次
-    shownUrl.value = url
-  },
-  { immediate: true }
-)
-const textContent = ref<{ text: string; truncated: boolean } | null>(null)
-const textLoading = ref(false)
-const textUnavailable = ref(false)
-const previewFailed = ref(false)
-
-// 兜底占位图标（音频兜底也要用）
+// 兜底占位图标（无人认领的条目形态）
 const iconMap: Record<string, Component> = {
   image: ImageIcon,
   video: Film,
@@ -232,25 +145,6 @@ const iconMap: Record<string, Component> = {
   other: File
 }
 const TypeIcon = computed(() => iconMap[item.value?.mediaType ?? 'other'] ?? File)
-
-async function loadText(): Promise<void> {
-  textContent.value = null
-  textUnavailable.value = false
-  if (!item.value || previewKind.value !== 'text') return
-  textLoading.value = true
-  try {
-    textContent.value = await api.items.readText(item.value.id)
-    if (textContent.value === null) textUnavailable.value = true
-  } catch {
-    textUnavailable.value = true
-  } finally {
-    textLoading.value = false
-  }
-}
-watch(() => item.value?.id, () => {
-  previewFailed.value = false
-  void loadText()
-})
 
 /**
  * 标签池：**打开瞬间固化的顺序上下文里的工作区**（不是"当前活动工作区"——
@@ -296,7 +190,6 @@ watch(
   () => props.id,
   async () => {
     winSeq++ // 作废进行中的窗口请求（快速连翻时只认最后一次）
-    resetZoom() // 新一张不继承上一张的缩放
     await Promise.all([load(), loadWindow()])
   }
 )
@@ -425,8 +318,8 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
           </span>
         </div>
 
-        <!-- 中：媒体内容（字节闸门：媒体经 taghit-file 协议，文本经窄桥 readText；图片态接管 Ctrl+滚轮） -->
-        <div class="flex-1 min-h-0 relative flex items-center justify-center p-4 overflow-hidden" @wheel="onMediaWheel">
+        <!-- 中：媒体内容（detailPreview 贡献点：提供方认领渲染、状态自持；翻页导航仍是详情页的职责） -->
+        <div class="flex-1 min-h-0 relative flex items-center justify-center p-4 overflow-hidden">
           <button
             class="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-[var(--bg-elev)] border border-[var(--border)] hover:border-[var(--fg-dim)] disabled:opacity-30 disabled:cursor-default"
             :disabled="prev == null"
@@ -436,56 +329,11 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
             <ChevronLeft :size="18" />
           </button>
 
-          <!-- 图片（shownUrl 解码就绪才换源——翻页不闪空白；不带 :key，元素复用） -->
-          <img
-            v-if="previewKind === 'image' && shownUrl"
-            ref="mediaImg"
-            :src="shownUrl"
-            :alt="item.title"
-            class="max-w-full max-h-full object-contain rounded-md shadow-lg select-none"
-            :class="zoomed ? (panning ? 'cursor-grabbing' : 'cursor-grab') : ''"
-            :style="zoomStyle"
-            draggable="false"
-            @error="previewFailed = true"
-            @dblclick="resetZoom"
-            @pointerdown="onImagePointerDown"
-            @pointermove="onImagePointerMove"
-            @pointerup="onImagePointerUp"
-            @pointercancel="onImagePointerUp"
-          />
-          <!-- 视频 -->
-          <video
-            v-else-if="previewKind === 'video' && mediaUrl && !previewFailed"
-            :key="item.id"
-            :src="mediaUrl"
-            controls
-            class="max-w-full max-h-full rounded-md shadow-lg bg-black"
-            @error="previewFailed = true"
-          ></video>
-          <!-- 音频 -->
-          <div v-else-if="previewKind === 'audio' && mediaUrl && !previewFailed" class="w-full max-w-md flex flex-col items-center gap-4">
-            <component :is="TypeIcon" :size="72" class="text-[var(--fg-dim)]" />
-            <audio :key="item.id" :src="mediaUrl" controls class="w-full" @error="previewFailed = true"></audio>
-          </div>
-          <!-- 文本 -->
-          <div v-else-if="previewKind === 'text'" class="w-full h-full flex flex-col min-h-0">
-            <div v-if="textLoading" class="flex-1 flex items-center justify-center text-[var(--fg-dim)] text-sm">读取中…</div>
-            <template v-else-if="textContent">
-              <div v-if="textContent.truncated" class="text-[11px] text-[var(--warn)] px-2 py-1">
-                文件超过 2 MiB，仅显示前段内容
-              </div>
-              <pre class="flex-1 min-h-0 overflow-auto text-[12px] leading-relaxed whitespace-pre-wrap break-all bg-[var(--bg)] rounded-md border border-[var(--border)] p-3">{{ textContent.text }}</pre>
-            </template>
-            <div v-else class="flex-1 flex items-center justify-center text-[var(--fg-dim)] text-sm">
-              {{ textUnavailable ? '文本读取失败（文件可能已移动或被占用）' : '读取中…' }}
-            </div>
-          </div>
-          <!-- 兜底占位：无预览形态 / 媒体解码失败 -->
+          <!-- 提供方渲染（认领制；无人认领 → 占位）。item 变化由提供方自watch（缩放复位/换源各自治理） -->
+          <component :is="preview.component" v-if="preview" :item="item" />
           <div v-else class="flex flex-col items-center gap-3 text-[var(--fg-dim)]">
             <component :is="TypeIcon" :size="56" />
-            <span class="text-sm">
-              {{ previewFailed ? '该格式无法内嵌预览' : '此类型暂无内嵌预览' }}
-            </span>
+            <span class="text-sm">此类型暂无内嵌预览</span>
             <span v-if="item.sourceUri" class="text-[11px] kbd max-w-full truncate">{{ item.sourceUri }}</span>
           </div>
 
