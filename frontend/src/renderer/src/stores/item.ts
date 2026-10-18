@@ -337,26 +337,36 @@ export const useItemStore = defineStore('item', () => {
     filter.value.untaggedOnly = !filter.value.untaggedOnly
   }
 
-  function toggleTagFilter(tagId: Id): void {
-    const list = filter.value.tagIds
-    filter.value.tagIds = list.includes(tagId) ? list.filter((id) => id !== tagId) : [...list, tagId]
+  /**
+   * 搜索框原文（**标签筛选的唯一书写处**）：词元住在栏里，改字即改筛选。
+   * 原文入库而不是留在组件里——卡片标签点击要翻转词元（跨组件写同一份文本），
+   * 切标签页回来文本也还在。解析（词元 → 标签/关键字）在 SearchBar（它持声明集）。
+   */
+  const searchRaw = ref('')
+
+  function setSearchRaw(text: string): void {
+    searchRaw.value = text
   }
 
-  /** 清空全部标签筛选 */
-  function clearTagFilters(): void {
-    filter.value.tagIds = []
-  }
-
-  function setKeyword(kw: string): void {
-    filter.value.keyword = kw
+  /** 翻转一个标签词元（卡片标签点击与搜索框同一份状态）：在栏里 = 移除，不在 = 追加。 */
+  function toggleSearchTagToken(name: string): void {
+    const tokens = searchRaw.value.trim().split(/\s+/).filter((t) => t !== '')
+    const idx = tokens.findIndex((t) => t === name)
+    if (idx >= 0) {
+      tokens.splice(idx, 1)
+    } else {
+      tokens.push(name)
+    }
+    searchRaw.value = tokens.join(' ')
   }
 
   /**
-   * 搜索词法的落点：关键字与排除标签**成对**设置（SearchBar 解析 `-标签` 后一次性交入）。
-   * 排除标签的书写处只有搜索框词元，成对设置避免"字变了筛选没变"的半拍状态。
+   * 搜索词法的落点：解析结果**三元组一次写入**（SearchBar 交入）——
+   * 原文是唯一书写处，这里只收解析产物；整体写入避免"字变了筛选没变"的半拍状态。
    */
-  function setSearch(keyword: string, excludedTagIds: Id[]): void {
+  function setSearch(keyword: string, requiredTagIds: Id[], excludedTagIds: Id[]): void {
     filter.value.keyword = keyword
+    filter.value.tagIds = [...requiredTagIds]
     filter.value.excludedTagIds = [...excludedTagIds]
   }
 
@@ -411,12 +421,12 @@ export const useItemStore = defineStore('item', () => {
     patchItemThumbnail,
     tagSelected,
     untagSelected,
-    toggleTagFilter,
+    searchRaw,
+    setSearchRaw,
+    toggleSearchTagToken,
     toggleUntaggedOnly,
     toggleMediaType,
     categoryCounts,
-    clearTagFilters,
-    setKeyword,
     setSearch,
     setScope,
     orderContext,

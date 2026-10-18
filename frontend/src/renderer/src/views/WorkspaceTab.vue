@@ -5,6 +5,7 @@ import SearchBar from '../components/search/SearchBar.vue'
 import ItemGrid from '../components/item/ItemGrid.vue'
 import { useItemStore } from '../stores/item'
 import { useTabStore } from '../stores/tab'
+import { useTagStore } from '../stores/tag'
 import { useWorkspaceStore } from '../stores/workspace'
 import { itemRoute } from '../features/tabs'
 import { type SelectIntent } from '../features/selection'
@@ -16,8 +17,15 @@ const router = useRouter()
 const itemStore = useItemStore()
 const workspaceStore = useWorkspaceStore()
 const tabStore = useTabStore()
+const tagStore = useTagStore()
 
 const workspaceId = props.id
+
+/** 卡片标签点击 = 翻转搜索框里的该标签词元（筛选的唯一书写处在搜索框，词元留在栏里随时可改）。 */
+function onTagClick(tagId: string): void {
+  const tag = tagStore.allTags.find((t) => t.id === tagId)
+  if (tag != null) itemStore.toggleSearchTagToken(tag.name)
+}
 
 /** 滚动记忆键：工作区 + 视图签名——条件变了不还原旧位置。 */
 const memKey = computed(() => `${workspaceId}|${itemStore.viewSignature()}`)
@@ -115,7 +123,7 @@ function selectItem(item: ItemView, intent: SelectIntent): void {
         @pick="selectItem"
         @blank="itemStore.clearSelection()"
         @marquee="(ids, intent) => itemStore.setSelection(ids, intent)"
-        @tag-click="itemStore.toggleTagFilter"
+        @tag-click="onTagClick"
         @load-more="itemStore.loadMore(workspaceId)"
       />
     </div>
