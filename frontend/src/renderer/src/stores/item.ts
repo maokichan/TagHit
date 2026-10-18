@@ -53,6 +53,23 @@ export const useItemStore = defineStore('item', () => {
   const sortBy = ref<SortOrder>('createdAt')
   const sortDir = ref<'asc' | 'desc'>('desc')
 
+  /** 最近一次视图加载的签名（就地刷新只在签名未变时可用：条件变了必须整页重查）。 */
+  const viewSig = ref<string | null>(null)
+
+  /** 当前视图条件的签名（滚动记忆与免重查判断的键）。 */
+  function viewSignature(): string {
+    const f = filter.value
+    return JSON.stringify([
+      f.tagIds,
+      f.keyword,
+      f.mediaTypes,
+      f.untaggedOnly,
+      scopeDirPath.value,
+      sortBy.value,
+      sortDir.value
+    ])
+  }
+
   function buildQuery(offset: number): ItemsQuery {
     const query: ItemsQuery = { limit: PAGE_SIZE, offset }
     if (filter.value.tagIds.length) query.withAllTags = [...filter.value.tagIds]
@@ -79,14 +96,37 @@ export const useItemStore = defineStore('item', () => {
         clearSelection()
         viewWorkspaceId.value = workspaceId
       }
+      const sig = viewSignature() // 签名在查询前取：描述"这批数据是什么条件下取的"
       const res = await api.workspaces.browse(workspaceId, buildQuery(0))
       items.value = res.items.map(toItemView)
       total.value = res.total
       page.value = 0
       hasMore.value = items.value.length < res.total
+      viewSig.value = sig
     } finally {
       loading.value = false
     }
+  }
+
+  /**
+   * 就地刷新（回到工作区标签时）：视图条件未变 → 不回第一页、不亮"加载中"——
+   * 按已加载的量重取一遍（吃进打标等带外操作的数据变化），滚动位置与分页深度都保住。
+   * 工作区对不上或视图为空 → 退回整页 load（首次进入的常态路径）。
+   */
+  async function refreshInPlace(workspaceId: Id): Promise<void> {
+    if (viewWorkspaceId.value !== workspaceId || items.value.length === 0) {
+      await load(workspaceId)
+      return
+    }
+    const sig = viewSignature()
+    const query = buildQuery(0)
+    query.limit = Math.max(items.value.length, PAGE_SIZE)
+    const res = await api.workspaces.browse(workspaceId, query)
+    items.value = res.items.map(toItemView)
+    total.value = res.total
+    page.value = Math.max(0, Math.ceil(items.value.length / PAGE_SIZE) - 1)
+    hasMore.value = items.value.length < res.total
+    viewSig.value = sig
   }
 
   /** 加载下一页（追加到网格尾部）。成员条件已在宿主侧下推，故分页直接作用在成员集上。 */
@@ -152,7 +192,6 @@ export const useItemStore = defineStore('item', () => {
     select(item)
     anchorIndex.value = index
   }
-
   /** Ctrl/Cmd+单击：切换条目进入/退出多选集；selected 跟随最后一次点击。 */
   function toggleSelect(item: ItemView): void {
     const has = selectedIds.value.includes(item.id)
@@ -170,26 +209,35 @@ export const useItemStore = defineStore('item', () => {
 
   /**
    * 框选（拖拽多选）的结果落库——与点击同一条纪律：**意图在壳，状态变更在这里**（D23/D35）。
-   * - 命中集按**当前视图顺序**排列（后续 Shift 区间据此铺开），离屏 id 顺带被剔除；
-   * - `add` 与已有选择**求并**（不动未命中的既有选择）；`replace` 整体替换；
+   * - 命中集按**当前视图顺序**处理（后续 Shift 区间据此铺开），离屏 id 顺带被剔除；
+   * - `replace` 整体替换为命中集；`toggle` 翻转命中条目的选中状态（文件管理器手感：
+   *   第二框可撤误框），未命中的条目不动；
    * - 锚点与"选中条目"取命中集在视图里的**第一项**：随后 Shift+点击从框选起点扩展，
-   *   与"从哪儿开始框的"直觉一致；`replace` 且框空（等于点空白）时清空选中。
+   *   与"从哪儿开始框的"直觉一致；toggle 把起点翻出集合时锚点仍指它（区间起点不变）。
+   * - 框空：replace = 清空选择（等于点空白）；toggle = 无操作。
    */
-  function setSelection(hitIds: Id[], mode: 'replace' | 'add'): void {
+  function setSelection(hitIds: Id[], mode: 'replace' | 'toggle'): void {
     const order = items.value.map((it) => it.id)
     const hits = new Set(hitIds)
     const orderedHits = order.filter((id) => hits.has(id))
-    selectedIds.value =
-      mode === 'add'
-        ? order.filter((id) => hits.has(id) || selectedIds.value.includes(id))
-        : orderedHits
-
-    const anchorIndexInView = orderedHits.length > 0 ? order.indexOf(orderedHits[0]!) : -1
-    if (anchorIndexInView >= 0) {
-      anchorIndex.value = anchorIndexInView
-      selected.value = items.value[anchorIndexInView] ?? selected.value
-    } else if (mode === 'replace') {
-      clearSelection()
+    if (orderedHits.length === 0) {
+      if (mode === 'replace') clearSelection()
+      return
+    }
+    const anchorIdx = order.indexOf(orderedHits[0]!)
+    if (anchorIdx >= 0) anchorIndex.value = anchorIdx
+    if (mode === 'replace') {
+      selectedIds.value = orderedHits
+      selected.value = items.value[anchorIdx] ?? selected.value
+      return
+    }
+    const prev = new Set(selectedIds.value)
+    selectedIds.value = order.filter((id) => (hits.has(id) ? !prev.has(id) : prev.has(id)))
+    // "选中条目"跟随：仍在集合里就保持；被翻出去则落到首个翻进来的；全部翻出去 = 无
+    const cur = selected.value?.id
+    if (cur == null || !selectedIds.value.includes(cur)) {
+      const fallback = orderedHits.find((id) => selectedIds.value.includes(id))
+      selected.value = fallback != null ? (items.value.find((it) => it.id === fallback) ?? null) : null
     }
   }
 
@@ -328,8 +376,10 @@ export const useItemStore = defineStore('item', () => {
     hasMore,
     total,
     viewWorkspaceId,
+    viewSig,
     load,
     loadMore,
+    refreshInPlace,
     scan,
     select,
     applySelection,
@@ -350,6 +400,7 @@ export const useItemStore = defineStore('item', () => {
     setKeyword,
     setScope,
     orderContext,
+    viewSignature,
     toggleSortDir
   }
 })

@@ -203,6 +203,18 @@ export const useTabStore = defineStore('tab', () => {
     if (tabs.value.some((t) => t.key === key)) activeKey.value = key
   }
 
+  /**
+   * 循环切换活动标签（Ctrl+Tab / Ctrl+Shift+Tab）：沿标签栏顺序（反向可绕回）。
+   * 返回新活动标签；只有一个标签时无事可做，返回 null。
+   */
+  function cycleActive(delta: 1 | -1): Tab | null {
+    if (tabs.value.length < 2) return null
+    const idx = tabs.value.findIndex((t) => t.key === activeKey.value)
+    const next = tabs.value[((idx < 0 ? 0 : idx) + delta + tabs.value.length) % tabs.value.length]
+    if (next != null) activeKey.value = next.key
+    return next ?? null
+  }
+
   function close(key: string): void {
     const idx = tabs.value.findIndex((t) => t.key === key)
     if (idx === -1) return
@@ -247,6 +259,7 @@ export const useTabStore = defineStore('tab', () => {
     openFeature,
     openSettings,
     setActive,
+    cycleActive,
     close,
     move
   }

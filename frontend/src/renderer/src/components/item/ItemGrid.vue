@@ -6,6 +6,7 @@ import { masonryRatioOf } from '../../lib/media'
 import { useConfigStore } from '../../stores/config'
 import { isBlankClick, marqueeIntentOf, type MarqueeIntent, type SelectIntent } from '../../features/selection'
 import { collectCardRects, hitIds, isDragGesture, rectBetween, type Rect } from '../../features/marquee'
+import { recallScroll, rememberScroll } from '../../lib/scrollMemory'
 import type { LayoutMode } from '@shared/types/config'
 import ItemCard from './ItemCard.vue'
 
@@ -17,12 +18,16 @@ const props = defineProps<{
   /** 多选集（Ctrl/Cmd+单击聚合；勾选角标依据） */
   selectedIds?: string[]
   hasMore?: boolean
+  /** 视图滚动记忆键（缺省不记忆）：离开时存、内容就绪时还原一次——返回不丢浏览位置。 */
+  memKey?: string
 }>()
 const emit = defineEmits<{
   (e: 'open', item: ItemView): void
   (e: 'pick', item: ItemView, intent: SelectIntent): void
   (e: 'blank'): void
-  /** 框选结果：命中 id 集 + 意图（replace/add 由壳的选择模型解释）。 */
+  /**
+   * 框选结果：命中 id 集 + 意图（replace/toggle 由壳的选择模型解释）。
+   */
   (e: 'marquee', ids: string[], intent: MarqueeIntent): void
   (e: 'tag-click', tagId: string): void
   (e: 'load-more'): void
@@ -156,7 +161,26 @@ watch(
   { flush: 'post' }
 )
 
+/* ── 滚动位置记忆（memKey）：离开存、内容就绪还原一次 ──
+ * 还原等三件事齐：容器渲染（scrollEl）、条目就位（非加载中）、有内容可滚。
+ * immediate：挂载即有数据的场景（就地刷新回来）当场还原，不等下一次变更。 */
+let pendingRestore: number | null = null
+watch(
+  () => [scrollEl.value, props.items.length, props.loading] as const,
+  () => {
+    if (pendingRestore == null) return
+    const el = scrollEl.value
+    if (el == null || props.loading || props.items.length === 0) return
+    el.scrollTop = pendingRestore
+    pendingRestore = null
+  },
+  { flush: 'post', immediate: true }
+)
+
 onUnmounted(() => {
+  if (props.memKey != null && scrollEl.value != null) {
+    rememberScroll(props.memKey, scrollEl.value.scrollTop)
+  }
   scrollEl.value?.removeEventListener('scroll', onScroll)
   resizeObs?.disconnect()
   if (rafId) cancelAnimationFrame(rafId)
@@ -281,6 +305,8 @@ function observeSentinel(): void {
 }
 watch(() => props.hasMore, observeSentinel)
 onMounted(() => {
+  // 滚动记忆：挂载时取出待还原位置（watch immediate 会在容器/数据就绪时消费它）
+  pendingRestore = props.memKey != null ? (recallScroll(props.memKey) ?? null) : null
   // scrollEl 就绪后挂载 sentinel 观察（nextTick 等 DOM 更新）
   watch(
     () => [props.hasMore, scrollEl.value] as const,

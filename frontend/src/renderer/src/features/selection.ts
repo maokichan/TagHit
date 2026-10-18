@@ -22,16 +22,16 @@ export function selectIntentOf(e: MouseEvent): SelectIntent {
 
 /**
  * 框选（空白处按下拖出选择框）的意图：只有两态——
- * 裸拖 = **替换**选择；Ctrl/Cmd+拖 = **并入**已有选择。
+ * 裸拖 = **替换**选择；Ctrl/Cmd+拖 = **翻转**命中条目的选中状态（文件管理器手感）。
  *
- * 为什么不是"Ctrl+拖 = 切换（命中即反选）"：一次框选常命中几十张，反选几乎总是误操作，
- * 而"追加"才是拖第二框时的真实意图（与文件管理器惯例一致）。Shift 在框选里不另立语义——
+ * 翻转而非追加的理由：Ctrl 在点击里已是"出入多选集"（toggle），框选沿用同一语义——
+ * 第二框可以撤掉误框，与点击的手感一致；追加做不到"减"。Shift 在框选里不另立语义——
  * 它已经是"区间"的修饰键（见上），而框选本身就是一个连续区间，叠加只会含混。
  */
-export type MarqueeIntent = 'replace' | 'add'
+export type MarqueeIntent = 'replace' | 'toggle'
 
 export function marqueeIntentOf(e: MouseEvent): MarqueeIntent {
-  return e.ctrlKey || e.metaKey ? 'add' : 'replace'
+  return e.ctrlKey || e.metaKey ? 'toggle' : 'replace'
 }
 
 /**

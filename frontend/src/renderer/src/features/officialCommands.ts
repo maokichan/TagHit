@@ -6,7 +6,7 @@ import { registerShortcut } from './keyboardMouse/shortcuts'
 import { openBatchTagDialog } from './services/batchTag'
 import { showToast } from './services/dialog'
 import { detailNext, detailPrev, detailQuickTag } from './detailNav'
-import { itemRoute } from './tabs'
+import { itemRoute, routeOfTab } from './tabs'
 import { openPalette } from './palette'
 import { invalidatePathManagement } from './paths/usePathManagement'
 import { api } from '@shared/api'
@@ -205,6 +205,23 @@ export function registerBuiltinCommands(): void {
     }
   )
 
+  // 循环切换标签页（Ctrl+Tab / Ctrl+Shift+Tab）：浏览器同款。
+  // 切换 = replace（不写历史，导航语义见 features/tabs.ts）；单标签时无事可做。
+  official(
+    { id: 'shell.tabNext', title: '下一个标签页', when: { kind: 'targetIs', value: 'shell' } },
+    () => {
+      const t = useTabStore().cycleActive(1)
+      if (t != null) void router.replace(routeOfTab(t))
+    }
+  )
+  official(
+    { id: 'shell.tabPrev', title: '上一个标签页', when: { kind: 'targetIs', value: 'shell' } },
+    () => {
+      const t = useTabStore().cycleActive(-1)
+      if (t != null) void router.replace(routeOfTab(t))
+    }
+  )
+
   // 条目详情页翻页（相册式浏览）：命令在注册表里，快捷键与页面上的两侧按钮**同源**——
   // 实现在详情页（挂载期登记到 detailNav 桥）。when 里带上"详情页是否可用"（壳现场填充的事实，
   // 见 detailNav.isDetailNavMounted）：这样命令面板会如实标不可用，而不是执行成静默空操作。
@@ -264,6 +281,23 @@ export function registerBuiltinCommands(): void {
     shift: true,
     allowInEditable: true,
     label: '显示所有命令'
+  })
+  // Ctrl+Tab / Ctrl+Shift+Tab：循环切换标签页；输入态也允许（打字中切标签是常态）。
+  // Electron 渲染层能收到 Tab 的 keydown（无浏览器标签条抢占）。
+  registerShortcut({
+    commandId: 'shell.tabNext',
+    key: 'tab',
+    mod: true,
+    allowInEditable: true,
+    label: '下一个标签页'
+  })
+  registerShortcut({
+    commandId: 'shell.tabPrev',
+    key: 'tab',
+    mod: true,
+    shift: true,
+    allowInEditable: true,
+    label: '上一个标签页'
   })
 }
 

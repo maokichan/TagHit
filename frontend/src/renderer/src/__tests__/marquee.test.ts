@@ -4,7 +4,8 @@
  * 守两条：
  * ① **命中判定是纯规则**（D30）：坐标一律视口坐标，与三种布局算法的内边距/滚动无关——
  *    这正是不去重算布局的原因，所以这里逐条钉住矩形语义（反向拖、贴边、阈值）；
- * ② **意图在壳**：裸拖替换、Ctrl/Cmd+拖并入（D35），组件不自己解释修饰键。
+ * ② **意图在壳**：裸拖替换、Ctrl/Cmd+拖翻转命中条目的选中状态（文件管理器手感），
+ *    组件不自己解释修饰键。
  */
 
 import { describe, expect, it } from 'vitest'
@@ -71,13 +72,13 @@ describe('框选几何', () => {
 })
 
 describe('框选意图（壳级：修饰键 → 意图）', () => {
-  it('裸拖 = 替换选择', () => {
+  it('裸拖 = 替换选择（Shift 不另立语义）', () => {
     expect(marqueeIntentOf(mouse())).toBe('replace')
     expect(marqueeIntentOf(mouse({ shiftKey: true }))).toBe('replace')
   })
 
-  it('Ctrl/Cmd+拖 = 并入已有选择（跨平台同一语义）', () => {
-    expect(marqueeIntentOf(mouse({ ctrlKey: true }))).toBe('add')
-    expect(marqueeIntentOf(mouse({ metaKey: true }))).toBe('add')
+  it('Ctrl/Cmd+拖 = 翻转命中条目的选中状态（跨平台同一语义）', () => {
+    expect(marqueeIntentOf(mouse({ ctrlKey: true }))).toBe('toggle')
+    expect(marqueeIntentOf(mouse({ metaKey: true }))).toBe('toggle')
   })
 })

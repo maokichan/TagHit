@@ -124,6 +124,8 @@ watch([prev, next], () => {
     if (v != null && v.mediaType === 'image' && v.sourceUri != null) {
       const img = new Image()
       img.src = taghitFileUrl(v.sourceUri)
+      // 连解码缓存一起焐热：翻页时 decode() 近乎即时，画面不用等
+      void img.decode().catch(() => {})
     }
   }
 })
@@ -181,6 +183,40 @@ const previewKind = computed<PreviewKind>(() =>
 const mediaUrl = computed(() =>
   item.value?.sourceUri ? taghitFileUrl(item.value.sourceUri) : null
 )
+
+/**
+ * 图片翻页不闪空白：**解码就绪才换源**。
+ * 翻页直接换 src（或带 :key 重建元素）时，新图未解码前是一块空白，快速连翻表现为整页闪烁；
+ * 这里让画面留在旧图上，直到新图解码完成再换。图→图翻页保留旧画面等解码（预取已焐热，
+ * 通常一两帧）；从其他预览形态进入图片态时不留上一张的画面——那是别的内容，不放错图。
+ */
+const shownUrl = ref<string | null>(null)
+let shownSeq = 0
+let prevKind: PreviewKind | null = null
+watch(
+  () => [item.value?.id ?? null, previewKind.value, mediaUrl.value] as const,
+  async ([id, kind, url]) => {
+    const fromImage = prevKind === 'image' && kind === 'image'
+    prevKind = kind
+    if (kind !== 'image' || id == null || url == null) {
+      shownSeq += 1
+      shownUrl.value = null
+      return
+    }
+    const seq = ++shownSeq
+    if (!fromImage) shownUrl.value = null
+    const probe = new Image()
+    probe.src = url
+    try {
+      await probe.decode()
+    } catch {
+      // 解码失败也照常换源：真元素自会走 @error，占位由媒体类型兜底
+    }
+    if (seq !== shownSeq) return // 快速连翻：只认最后一次
+    shownUrl.value = url
+  },
+  { immediate: true }
+)
 const textContent = ref<{ text: string; truncated: boolean } | null>(null)
 const textLoading = ref(false)
 const textUnavailable = ref(false)
@@ -236,8 +272,8 @@ async function load(): Promise<void> {
 let disposeNav: (() => void) | null = null
 
 onMounted(async () => {
-  await load()
-  await loadWindow()
+  // 条目与顺序窗口并行取（翻页路径同理）：串行要过两趟 IPC，白等一截
+  await Promise.all([load(), loadWindow()])
   if (workspaceId.value != null) await tagStore.refreshForWorkspace(workspaceId.value)
   // 翻页是命令（快捷键 = 命令注册表的视图）：实现在这里，登记到桥供命令调用
   disposeNav = registerDetailNav({
@@ -258,8 +294,7 @@ watch(
   async () => {
     winSeq++ // 作废进行中的窗口请求（快速连翻时只认最后一次）
     resetZoom() // 新一张不继承上一张的缩放
-    await load()
-    await loadWindow()
+    await Promise.all([load(), loadWindow()])
   }
 )
 
@@ -379,12 +414,11 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
             <ChevronLeft :size="18" />
           </button>
 
-          <!-- 图片 -->
+          <!-- 图片（shownUrl 解码就绪才换源——翻页不闪空白；不带 :key，元素复用） -->
           <img
-            v-if="previewKind === 'image' && mediaUrl"
+            v-if="previewKind === 'image' && shownUrl"
             ref="mediaImg"
-            :key="item.id"
-            :src="mediaUrl"
+            :src="shownUrl"
             :alt="item.title"
             class="max-w-full max-h-full object-contain rounded-md shadow-lg select-none"
             :class="zoomed ? (panning ? 'cursor-grabbing' : 'cursor-grab') : ''"

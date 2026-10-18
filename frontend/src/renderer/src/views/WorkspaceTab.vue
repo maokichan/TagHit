@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '../components/search/SearchBar.vue'
 import ItemGrid from '../components/item/ItemGrid.vue'
@@ -18,6 +18,9 @@ const workspaceStore = useWorkspaceStore()
 const tabStore = useTabStore()
 
 const workspaceId = props.id
+
+/** 滚动记忆键：工作区 + 视图签名——条件变了不还原旧位置。 */
+const memKey = computed(() => `${workspaceId}|${itemStore.viewSignature()}`)
 
 let debounce: number | undefined
 function reload(): void {
@@ -55,7 +58,17 @@ watch(
 
 onMounted(async () => {
   await workspaceStore.refresh()
-  reload()
+  // 视图条件没变（从详情页等处切回来）→ 就地刷新：不闪"加载中"、不回第一页；
+  // 滚动位置由 ItemGrid 按 memKey（工作区|视图签名）还原——浏览位置跨"打开-返回"保持
+  if (
+    itemStore.viewWorkspaceId === workspaceId &&
+    itemStore.viewSig === itemStore.viewSignature() &&
+    itemStore.items.length > 0
+  ) {
+    await itemStore.refreshInPlace(workspaceId)
+  } else {
+    reload()
+  }
 })
 
 function openItem(item: ItemView): void {
@@ -96,6 +109,7 @@ function selectItem(item: ItemView, intent: SelectIntent): void {
         :selected-id="itemStore.selected?.id ?? null"
         :selected-ids="itemStore.selectedIds"
         :has-more="itemStore.hasMore"
+        :mem-key="memKey"
         @open="openItem"
         @pick="selectItem"
         @blank="itemStore.clearSelection()"
