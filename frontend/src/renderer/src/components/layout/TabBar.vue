@@ -106,7 +106,7 @@ function showIndicator(i: number): boolean {
                flex-1 basis-0 min-w-20 max-w-56"
         :class="[
           tabStore.activeKey === tab.key
-            ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium border-[var(--accent)]/40 shadow-sm'
+            ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium border-[var(--accent-border)] shadow-sm'
             : 'text-[var(--fg-dim)] border-transparent hover:bg-[var(--bg-hover)]',
           dragIndex === i ? 'opacity-40' : '',
           showIndicator(i) ? 'border-l-2 border-l-[var(--accent)]' : ''

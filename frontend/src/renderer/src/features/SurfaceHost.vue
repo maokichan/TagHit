@@ -87,7 +87,7 @@ function openFullPage(): void {
       v-if="canOpenFullPage"
       class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5 rounded
              bg-[var(--bg)] border border-[var(--border)] text-[var(--fg-dim)]
-             hover:text-[var(--accent)] hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
+             hover:text-[var(--accent)] hover:border-[var(--accent-border)] transition-colors cursor-pointer"
       :title="`打开「${feature.manifest.title}」全页`"
       @click="openFullPage"
     >

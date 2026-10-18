@@ -99,7 +99,7 @@ const batchTitle = (): string => {
         </button>
         <button
           class="btn text-[12px]"
-          :class="pending.danger ? 'text-[var(--danger)] border-[var(--danger)]/50' : 'btn-primary'"
+          :class="pending.danger ? 'text-[var(--danger)] border-[var(--danger-border)]' : 'btn-primary'"
           @click="answerConfirm(true)"
         >
           {{ pending.confirmText ?? '确认' }}
@@ -170,7 +170,7 @@ const batchTitle = (): string => {
       v-for="t in toasts"
       :key="t.id"
       class="px-3 py-2 rounded-md border text-[12px] shadow-lg bg-[var(--bg-elev)]"
-      :class="t.kind === 'error' ? 'border-[var(--danger)]/50 text-[var(--danger)]' : 'border-[var(--border)] text-[var(--fg)]'"
+      :class="t.kind === 'error' ? 'border-[var(--danger-border)] text-[var(--danger)]' : 'border-[var(--border)] text-[var(--fg)]'"
     >
       {{ t.text }}
     </div>

@@ -196,7 +196,7 @@ function openGlobalItem(item: ItemView): void {
           <button
             v-for="ws in workspaceStore.workspaces"
             :key="ws.id"
-            class="panel overflow-hidden text-left hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
+            class="panel overflow-hidden text-left hover:border-[var(--accent-border)] transition-colors cursor-pointer"
             @click="openWorkspace(ws.id, ws.name)"
           >
             <div class="aspect-video bg-[var(--bg)] flex items-center justify-center relative">

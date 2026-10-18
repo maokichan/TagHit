@@ -17,6 +17,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "check:templates": "node scripts/check-templates.mjs",
     "check:style": "node scripts/check-style.mjs",
+    "check:build": "vite build --config vite.renderer.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "electron-builder install-app-deps",

@@ -26,6 +26,11 @@
   --danger: #ef4444;
   --warn: #e5a23c;
   --ok: #34d399;
+  /* 语义着色边框（选中/危险描边）：color-mix 派生、自动跟随主题。
+     ⚠ Tailwind v3 的 `var(--x)/40` 透明度修饰符不生效（任意值加 /NN 只支持通道三元组），
+     着色边框必须走这两个 token——模板里那种写法是静默无效的（check:style 之外的手工纪律）。 */
+  --accent-border: color-mix(in srgb, var(--accent) 40%, transparent);
+  --danger-border: color-mix(in srgb, var(--danger) 40%, transparent);
   /* 浮层压暗遮罩（弹层/命令面板/图上角标）：黑度不随主题变 → 单点定义一份。
      （此前四处组件各写一个 bg-black/NN，三个不同黑度，收敛到这里。） */
   --overlay-dim: rgb(0 0 0 / 0.45);
@@ -139,7 +144,7 @@ body {
     @apply border border-[var(--border)] cursor-pointer select-none transition-colors hover:text-[var(--fg)];
   }
   .chip--on {
-    @apply bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 cursor-pointer select-none;
+    @apply bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-border)] cursor-pointer select-none;
   }
   /* 实心 chip：筛选激活态（当前视图被什么切着，必须一眼可见）——与挂载态（soft）两种强度都是词汇表成员 */
   .chip--solid {
