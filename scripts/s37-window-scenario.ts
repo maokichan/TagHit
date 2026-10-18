@@ -14,7 +14,7 @@
 
 import type { FileItem, Id } from '../src/domain/index.ts'
 import type { ItemOrderField, Store } from '../src/ports/index.ts'
-import { itemWindow, tagItem } from '../src/application/index.ts'
+import { itemWindow, tagItem, untagItem } from '../src/application/index.ts'
 import type { AppServices } from '../src/application/index.ts'
 
 const T0 = '2026-09-30T00:00:00.000Z'
@@ -190,6 +190,47 @@ export async function runWindowScenario(store: Store): Promise<void> {
     '⑤ 回落按"全部素材 + 原排序"给出窗口'
   )
   assertEqual(outOfFilter.index, 0, '⑤ 回落后的位置同样可信')
+
+  // 排除条件（withoutAnyTag）参与序列：挂任一给定标签的条目退出序列
+  await tagItem(svc, 'w-02', ['tag-hot'])
+  const minusHot = await itemWindow(svc, 'w-03', {
+    workspaceId: WS,
+    order: 'createdAt',
+    orderDir: 'asc',
+    withAllTags: ['tag-hot'],
+    withoutAnyTag: ['tag-hot'],
+    radius: RADIUS,
+  })
+  assertEqual(minusHot.loose, true, '排除：同一标签既要又排 = 空集，锚条目不在内 → 如实回落')
+  // 锚条目自身挂了被排除标签 → 不在序列内，如实回落（loose）
+  const excludedAnchor = await itemWindow(svc, 'w-02', {
+    workspaceId: WS,
+    order: 'createdAt',
+    orderDir: 'asc',
+    withoutAnyTag: ['tag-hot'],
+    radius: RADIUS,
+  })
+  assertEqual(excludedAnchor.loose, true, '排除：锚条目挂被排除标签 → 退出序列，触发回落')
+  assertEqual(excludedAnchor.index, 1, '排除：回落窗口的位置按全部素材序列计')
+  assertEqual(
+    excludedAnchor.items.map((h) => h.item.id),
+    ['w-01', 'w-02', 'w-03', 'w-04'],
+    '排除：回落按"全部素材 + 原排序"给出窗口'
+  )
+  await untagItem(svc, 'w-02', ['tag-hot'])
+  const minusOk = await itemWindow(svc, 'w-02', {
+    workspaceId: WS,
+    order: 'createdAt',
+    orderDir: 'asc',
+    withoutAnyTag: ['tag-hot'],
+    radius: RADIUS,
+  })
+  assertEqual(minusOk.loose, false, '排除：卸标后锚条目回到序列内（不回落）')
+  assertEqual(
+    minusOk.items.map((h) => h.item.id),
+    ['w-01', 'w-02', 'w-04', 'w-05'],
+    '排除：序列跳过仍挂被排除标签的条目（w-03/w-07 退出）'
+  )
 
   // ---- ⑥ 跨工作区序列（无成员前提）：素材条目全在内，锚条目仍不进序列 --------
   const cross = await itemWindow(svc, 'x-other', { order: 'createdAt', orderDir: 'asc', radius: RADIUS })

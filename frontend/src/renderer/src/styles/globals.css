@@ -150,6 +150,11 @@ body {
   .chip--solid {
     @apply bg-[var(--accent)] text-white cursor-pointer hover:brightness-110 transition-[filter];
   }
+  /* 排除 chip（`-标签` 筛选激活态）：强度对标 solid，danger 色系表达"剔除"语义 */
+  .chip--excluded {
+    @apply text-[var(--danger)] border border-[var(--danger-border)] cursor-pointer hover:brightness-110 transition-[filter];
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+  }
   /* 失败提示条（面板内/页内的错误横幅）：唯一形态，✕ 关闭钮由组件自带。 */
   .error-note {
     @apply px-2.5 py-1.5 rounded text-[11px] flex items-center gap-1;

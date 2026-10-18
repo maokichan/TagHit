@@ -231,6 +231,37 @@ export async function runScenario(store: Store): Promise<void> {
     '浏览：交付的红色调来自声明集合'
   )
 
+  // 排除条件（withoutAnyTag，`-` 排除语法的落点）：挂任一给定标签的条目不出现
+  const wsCollectNotRed = (await browseWorkspace(svc, 'ws-collect', { withoutAnyTag: [tagIds.red] }))
+    .items
+  assertEqual(
+    wsCollectNotRed.map((h) => h.item.id).sort(),
+    [it.doc, it.portrait],
+    '排除：挂「红色调」的夜景/日落不出现，论文与人物肖像仍在'
+  )
+  assertEqual(
+    (
+      await browseWorkspace(svc, 'ws-collect', {
+        withAnyTag: [tagIds.scene],
+        withoutAnyTag: [tagIds.red],
+      })
+    ).items.map((h) => h.item.id),
+    [],
+    '排除：与其他标签条件叠加（日落同时挂风景+红色调 → 命中又被排除 = 空集）'
+  )
+  assertEqual(
+    (await browseWorkspace(svc, 'ws-collect', { withoutAnyTag: [] })).items.length,
+    4,
+    '排除：空数组 = 不排除（空集否定式恒真，与 notUnderAnyDir 同款语义）'
+  )
+  assertEqual(
+    (
+      await browseWorkspace(svc, 'ws-collect', { withoutAnyTag: ['tag-ghost'] })
+    ).items.length,
+    4,
+    '排除：不存在的标签 id 排除不了任何条目（挂载必须存在，幽灵 id 无从挂起）'
+  )
+
   // ---- ③ 检索 ------------------------------------------------------------
   assertEqual(
     (await searchItems(svc, { text: '日落' })).map((h) => h.item.id),

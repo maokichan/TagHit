@@ -277,6 +277,7 @@ export class MemoryStore implements Store {
     const hash = q.contentHash
     const anyTags = q.withAnyTag ? new Set(q.withAnyTag) : null
     const allTags = q.withAllTags ? new Set(q.withAllTags) : null
+    const notAnyTags = q.withoutAnyTag ? new Set(q.withoutAnyTag) : null
     const extensionSet = q.extensions ? new Set(q.extensions.map((e) => e.toLowerCase())) : null
 
     const hits: ItemHit[] = []
@@ -307,6 +308,7 @@ export class MemoryStore implements Store {
       const tags = this.tagsOf(item.id)
       if (anyTags && !tags.some((t) => anyTags.has(t.id))) continue
       if (allTags && ![...allTags].every((tid) => tags.some((t) => t.id === tid))) continue
+      if (notAnyTags && tags.some((t) => notAnyTags.has(t.id))) continue
       if (q.withoutTags && tags.length > 0) continue
 
       hits.push({ item, tags })

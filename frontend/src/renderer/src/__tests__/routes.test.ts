@@ -22,6 +22,7 @@ const CTX: ItemContext = {
   order: 'createdAt',
   orderDir: 'desc',
   withAllTags: ['t1', 't2'],
+  withoutAnyTag: ['t3'],
   titleContains: '猫 图',
   underDirPath: 'D:/库/子 目录',
 }

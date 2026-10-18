@@ -593,6 +593,14 @@ export class SqliteStore implements Store {
       )
       params.push(...q.withAllTags)
     }
+    if (q.withoutAnyTag?.length) {
+      where.push(
+        `NOT EXISTS (SELECT 1 FROM attachments a WHERE a.itemId = i.id AND a.tagId IN (${q.withoutAnyTag
+          .map(() => '?')
+          .join(',')}))`
+      )
+      params.push(...q.withoutAnyTag)
+    }
     if (q.withoutTags) {
       where.push('NOT EXISTS (SELECT 1 FROM attachments a WHERE a.itemId = i.id)')
     }

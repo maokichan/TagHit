@@ -162,6 +162,11 @@ export interface ItemsQuery {
   withAnyTag?: Id[]
   /** 命中全部挂载标签。 */
   withAllTags?: Id[]
+  /**
+   * 挂任一给定标签即排除（渲染层 `-` 排除语法的落点：检索词 `-标签名`）。
+   * 空数组/缺省 = 不排除（空集的否定式恒真，与 `notUnderAnyDir` 同款语义）。
+   */
+  withoutAnyTag?: Id[]
   /** 未挂任何标签。 */
   withoutTags?: boolean
   order?: ItemOrderField

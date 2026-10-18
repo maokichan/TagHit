@@ -21,6 +21,7 @@ export function itemRoute(itemId: string, context: ItemContext): string {
   if (context.order != null) q.set('order', context.order)
   if (context.orderDir != null) q.set('dir', context.orderDir)
   if (context.withAllTags?.length) q.set('tags', context.withAllTags.join(','))
+  if (context.withoutAnyTag?.length) q.set('without', context.withoutAnyTag.join(','))
   if (context.titleContains) q.set('q', context.titleContains)
   if (context.underDirPath != null && context.underDirPath !== '') q.set('scope', context.underDirPath)
   if (context.extensions?.length) q.set('ext', context.extensions.join(','))
@@ -42,6 +43,8 @@ export function itemContextFromQuery(query: Record<string, unknown>): ItemContex
   }
   const tags = str('tags')
   if (tags != null) ctx.withAllTags = tags.split(',').filter((x) => x !== '')
+  const without = str('without')
+  if (without != null) ctx.withoutAnyTag = without.split(',').filter((x) => x !== '')
   const keyword = str('q')
   if (keyword != null) ctx.titleContains = keyword
   const scope = str('scope')

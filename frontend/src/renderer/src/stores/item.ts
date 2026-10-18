@@ -30,9 +30,16 @@ export const useItemStore = defineStore('item', () => {
   /** 区间选择锚点（上次 replace/toggle 落在视图中的下标）；清空选择即复位。 */
   const anchorIndex = ref<number | null>(null)
 
-  /** 视图筛选：标签（并集）、关键字、格式（类别折叠成扩展名集合下推，D36）。 */
-  const filter = ref<{ tagIds: Id[]; keyword: string; mediaTypes: FilterableMediaType[]; untaggedOnly: boolean }>({
+  /** 视图筛选：标签（必须含有，与语义）、排除标签（`-` 语法，挂任一即排除）、关键字、格式（类别折叠成扩展名集合下推，D36）、无标签。 */
+  const filter = ref<{
+    tagIds: Id[]
+    excludedTagIds: Id[]
+    keyword: string
+    mediaTypes: FilterableMediaType[]
+    untaggedOnly: boolean
+  }>({
     tagIds: [],
+    excludedTagIds: [],
     keyword: '',
     mediaTypes: [],
     untaggedOnly: false
@@ -61,6 +68,7 @@ export const useItemStore = defineStore('item', () => {
     const f = filter.value
     return JSON.stringify([
       f.tagIds,
+      f.excludedTagIds,
       f.keyword,
       f.mediaTypes,
       f.untaggedOnly,
@@ -73,6 +81,7 @@ export const useItemStore = defineStore('item', () => {
   function buildQuery(offset: number): ItemsQuery {
     const query: ItemsQuery = { limit: PAGE_SIZE, offset }
     if (filter.value.tagIds.length) query.withAllTags = [...filter.value.tagIds]
+    if (filter.value.excludedTagIds.length) query.withoutAnyTag = [...filter.value.excludedTagIds]
     if (filter.value.keyword) query.titleContains = filter.value.keyword
     if (scopeDirPath.value != null) query.underDirPath = scopeDirPath.value
     if (filter.value.mediaTypes.length) query.extensions = extensionsFor(filter.value.mediaTypes)
@@ -343,6 +352,15 @@ export const useItemStore = defineStore('item', () => {
   }
 
   /**
+   * 搜索词法的落点：关键字与排除标签**成对**设置（SearchBar 解析 `-标签` 后一次性交入）。
+   * 排除标签的书写处只有搜索框词元，成对设置避免"字变了筛选没变"的半拍状态。
+   */
+  function setSearch(keyword: string, excludedTagIds: Id[]): void {
+    filter.value.keyword = keyword
+    filter.value.excludedTagIds = [...excludedTagIds]
+  }
+
+  /**
    * 当前视图的**顺序上下文**（打开详情页时固化到标签项）：详情页的"上一张 / 下一张"沿它走。
    * 与 buildQuery 同源——少的只有工作区（由调用方给）与分页（分页不进上下文：
    * 序列是全量、翻页自己会跨页取）。
@@ -353,6 +371,7 @@ export const useItemStore = defineStore('item', () => {
       orderDir: sortDir.value
     }
     if (filter.value.tagIds.length) ctx.withAllTags = [...filter.value.tagIds]
+    if (filter.value.excludedTagIds.length) ctx.withoutAnyTag = [...filter.value.excludedTagIds]
     if (filter.value.keyword) ctx.titleContains = filter.value.keyword
     if (scopeDirPath.value != null) ctx.underDirPath = scopeDirPath.value
     if (filter.value.mediaTypes.length) ctx.extensions = extensionsFor(filter.value.mediaTypes)
@@ -398,6 +417,7 @@ export const useItemStore = defineStore('item', () => {
     categoryCounts,
     clearTagFilters,
     setKeyword,
+    setSearch,
     setScope,
     orderContext,
     viewSignature,

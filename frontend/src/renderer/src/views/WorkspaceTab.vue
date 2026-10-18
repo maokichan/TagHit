@@ -40,6 +40,7 @@ watch(
   () =>
     [
       itemStore.filter.tagIds.length,
+      itemStore.filter.excludedTagIds.length,
       itemStore.filter.mediaTypes.length,
       itemStore.filter.untaggedOnly,
       itemStore.sortBy,

@@ -109,6 +109,8 @@ export interface ItemContext {
   orderDir?: 'asc' | 'desc'
   /** 视图筛选（与工作区视图同款下推条件）。 */
   withAllTags?: Id[]
+  /** 挂任一即排除（渲染层 `-` 排除语法的落点，见 ItemsQuery.withoutAnyTag）。 */
+  withoutAnyTag?: Id[]
   titleContains?: string
   /** 「只看某节点」的目录范围。 */
   underDirPath?: string | null
@@ -147,6 +149,7 @@ function contextScope(ctx: ItemContext): ItemsQuery {
     scope.directNodeStateIn = { workspaceId: ctx.workspaceId, state: 'included' }
   }
   if (ctx.withAllTags?.length) scope.withAllTags = ctx.withAllTags
+  if (ctx.withoutAnyTag?.length) scope.withoutAnyTag = ctx.withoutAnyTag
   if (ctx.titleContains) scope.titleContains = ctx.titleContains
   if (ctx.underDirPath != null && ctx.underDirPath !== '') scope.underDirPath = ctx.underDirPath
   if (ctx.extensions?.length) scope.extensions = ctx.extensions
@@ -159,6 +162,7 @@ function hasViewConditions(ctx: ItemContext): boolean {
   return (
     ctx.workspaceId != null ||
     (ctx.withAllTags?.length ?? 0) > 0 ||
+    (ctx.withoutAnyTag?.length ?? 0) > 0 ||
     ctx.titleContains != null ||
     (ctx.underDirPath != null && ctx.underDirPath !== '') ||
     (ctx.extensions?.length ?? 0) > 0 ||
