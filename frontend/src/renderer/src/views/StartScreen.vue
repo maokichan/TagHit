@@ -196,21 +196,21 @@ function openGlobalItem(item: ItemView): void {
           <button
             v-for="ws in workspaceStore.workspaces"
             :key="ws.id"
-            class="panel overflow-hidden text-left hover:border-[var(--accent)]/50 hover:shadow-lg transition-colors cursor-pointer"
+            class="panel overflow-hidden text-left hover:border-[var(--accent)]/50 transition-colors cursor-pointer"
             @click="openWorkspace(ws.id, ws.name)"
           >
             <div class="aspect-video bg-[var(--bg)] flex items-center justify-center relative">
               <FolderPlus :size="24" class="text-[var(--fg-dim)] opacity-40" />
               <span
                 v-if="rootCountByWs[ws.id] !== undefined"
-                class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/50 text-white text-[10px]"
+                class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/50 text-white text-[11px]"
               >
                 {{ rootCountByWs[ws.id] }} 来源根
               </span>
             </div>
             <div class="p-2">
               <div class="font-medium text-[13px] truncate">{{ ws.name }}</div>
-              <div class="text-[10px] text-[var(--fg-dim)] mt-0.5">
+              <div class="text-[11px] text-[var(--fg-dim)] mt-0.5">
                 创建于 {{ new Date(ws.createdAt).toLocaleDateString() }}
               </div>
             </div>

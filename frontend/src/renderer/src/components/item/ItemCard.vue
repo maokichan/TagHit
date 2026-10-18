@@ -84,7 +84,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
   <!-- 列表布局：文件管理器行样式 -->
   <div
     v-if="isList"
-    class="group relative panel overflow-hidden cursor-pointer hover:border-[var(--accent)]/50 hover:shadow-lg transition-all"
+    class="group relative panel overflow-hidden cursor-pointer hover:border-[var(--border-hover)] transition-colors"
     :class="{
       'opacity-50': item.status === 'missing',
       'border-[var(--accent)]': selected
@@ -116,7 +116,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           v-if="selected"
           class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full flex items-center justify-center bg-[var(--accent)] text-white"
         >
-          <Check :size="12" stroke-width={3} />
+          <Check :size="12" :stroke-width="2.5" />
         </span>
         <span
           v-if="item.status === 'missing'"
@@ -148,11 +148,11 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
                 {{ tag.name }}
               </span>
             </template>
-            <span v-if="item.tags.length > 3" class="text-[10px] text-[var(--fg-dim)] shrink-0">
+            <span v-if="item.tags.length > 3" class="text-[11px] text-[var(--fg-dim)] shrink-0">
               +{{ item.tags.length - 3 }}
             </span>
           </template>
-          <span v-else class="text-[10px] text-[var(--fg-dim)]">未打标签</span>
+          <span v-else class="text-[11px] text-[var(--fg-dim)]">未打标签</span>
         </div>
       </div>
 
@@ -168,10 +168,10 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
   <!-- 卡片布局：瀑布流 / 网格 -->
   <div
     v-else
-    class="group relative panel overflow-hidden cursor-pointer hover:border-[var(--accent)]/50 hover:shadow-lg transition-all"
+    class="group relative panel overflow-hidden cursor-pointer hover:border-[var(--border-hover)] transition-colors"
     :class="{
       'opacity-50': item.status === 'missing',
-      'border-[var(--accent)] shadow-lg': selected
+      'border-[var(--accent)]': selected
     }"
     :title="item.title"
     data-ctx-target="item"
@@ -199,17 +199,17 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       />
       <div v-else class="flex flex-col items-center gap-1 text-[var(--fg-dim)] py-6">
         <component :is="TypeIcon" :size="28" />
-        <span class="text-[10px] uppercase">{{ item.extension ?? item.mediaType }}</span>
+        <span class="text-[11px] uppercase">{{ item.extension ?? item.mediaType }}</span>
       </div>
       <span
         v-if="selected"
         class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-[var(--accent)] text-white shadow"
       >
-        <Check :size="14" stroke-width={3} />
+        <Check :size="14" :stroke-width="2.5" />
       </span>
       <span
         v-if="item.status === 'missing'"
-        class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-[var(--danger)] text-white text-[10px]"
+        class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-[var(--danger)] text-white text-[11px]"
       >
         缺失
       </span>
@@ -240,7 +240,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           </span>
         </template>
       </div>
-      <div v-else class="text-[10px] text-[var(--fg-dim)]">未打标签</div>
+      <div v-else class="text-[11px] text-[var(--fg-dim)]">未打标签</div>
     </div>
   </div>
 </template>

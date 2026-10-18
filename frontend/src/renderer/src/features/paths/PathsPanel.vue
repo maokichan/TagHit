@@ -21,7 +21,7 @@ void onMounted(() => pm.refresh())
 
 <template>
   <div class="px-3 py-3">
-    <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">来源根</div>
+    <div class="panel-label mb-2">来源根</div>
 
     <VisibilitySummaryBar />
 

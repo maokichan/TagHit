@@ -17,7 +17,7 @@ const showUntracked = ref(false)
 
 <template>
   <div v-if="mgmt && (mgmt.retired.length || mgmt.untrackedTotal)" class="space-y-1">
-    <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)]">已卸载的来源根</div>
+    <div class="panel-label">已卸载的来源根</div>
 
     <!-- 退役根（有记录）：条目仍在库中，去留在此决定 -->
     <div

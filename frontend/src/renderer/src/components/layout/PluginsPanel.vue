@@ -20,7 +20,7 @@ function open(featureId: string, title: string): void {
 <template>
   <div class="px-3 py-3">
     <div
-      class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2 flex items-center gap-1.5"
+      class="panel-label mb-2 flex items-center gap-1.5"
     >
       <Puzzle :size="12" /> 插件
     </div>

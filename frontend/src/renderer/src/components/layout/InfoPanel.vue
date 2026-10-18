@@ -47,7 +47,7 @@ function openDetail(): void {
 <template>
   <div class="px-3 py-3">
     <div
-      class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2 flex items-center gap-1.5"
+      class="panel-label mb-2 flex items-center gap-1.5"
     >
       <Info :size="12" /> 媒体信息
     </div>
@@ -71,7 +71,7 @@ function openDetail(): void {
           {{ tag.name }}
         </span>
       </div>
-      <p v-if="item.hiddenCount > 0" class="text-[10px] text-[var(--fg-dim)] mb-2">
+      <p v-if="item.hiddenCount > 0" class="text-[11px] text-[var(--fg-dim)] mb-2">
         另有 {{ item.hiddenCount }} 个未声明标签未显示
       </p>
 

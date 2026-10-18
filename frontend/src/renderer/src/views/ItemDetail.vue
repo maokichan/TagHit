@@ -433,7 +433,7 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
       <!-- 右：媒体信息 + 标签（内容页内，替代右侧边栏的"媒体信息"工具） -->
       <div class="w-72 shrink-0 h-full overflow-y-auto border-l border-[var(--border)] bg-[var(--bg-elev)]">
         <div class="px-3 py-3">
-          <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">媒体信息</div>
+          <div class="panel-label mb-2">媒体信息</div>
           <dl class="space-y-1 text-[12px] mb-5">
             <div v-for="[k, v] in rows" :key="k" class="flex gap-2">
               <dt class="w-16 shrink-0 text-[var(--fg-dim)] truncate" :title="k">{{ k }}</dt>
@@ -441,7 +441,7 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
             </div>
           </dl>
 
-          <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">标签</div>
+          <div class="panel-label mb-2">标签</div>
           <div class="flex flex-wrap gap-1.5">
             <template v-if="workspaceId != null">
               <TagChip

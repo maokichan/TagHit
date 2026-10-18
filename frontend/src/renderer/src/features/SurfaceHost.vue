@@ -101,7 +101,7 @@ function openFullPage(): void {
       class="shrink-0 flex items-center gap-2 h-9 px-4 border-b border-[var(--border)] bg-[var(--bg-elev)]"
     >
       <span class="text-[12px] font-medium truncate">{{ feature.manifest.title }}</span>
-      <span v-if="feature.manifest.source === 'contributed'" class="text-[10px] text-[var(--fg-dim)]">插件</span>
+      <span v-if="feature.manifest.source === 'contributed'" class="text-[11px] text-[var(--fg-dim)]">插件</span>
     </header>
     <div class="flex-1 min-h-0 overflow-y-auto">
       <div class="mx-auto w-full px-8 py-6 max-w-[var(--page-max-width)]">

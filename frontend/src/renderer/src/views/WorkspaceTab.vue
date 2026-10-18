@@ -6,7 +6,6 @@ import ItemGrid from '../components/item/ItemGrid.vue'
 import { useItemStore } from '../stores/item'
 import { useTabStore } from '../stores/tab'
 import { useWorkspaceStore } from '../stores/workspace'
-import { openBatchTagDialog } from '../features/services/batchTag'
 import { itemRoute } from '../features/tabs'
 import { type SelectIntent } from '../features/selection'
 import type { ItemContext } from '@shared/contract'
@@ -70,18 +69,6 @@ function selectItem(item: ItemView, intent: SelectIntent): void {
   // 选择意图由壳的选择模型解释（replace/toggle/range），状态变更收口在 item store
   itemStore.applySelection(item, intent)
 }
-
-function openBatchTag(mode: 'add' | 'remove'): void {
-  openBatchTagDialog({
-    mode,
-    workspaceId,
-    count: itemStore.selectedIds.length,
-    onApply: async (m, tagIds) => {
-      if (m === 'add') await itemStore.tagSelected(workspaceId, tagIds)
-      else await itemStore.untagSelected(workspaceId, tagIds)
-    }
-  })
-}
 </script>
 
 <template>
@@ -89,16 +76,7 @@ function openBatchTag(mode: 'add' | 'remove'): void {
     <!-- 搜索 + 计数 + 扫描（工作区名在标签页上已有，此处不再重复） -->
     <SearchBar :workspace-id="workspaceId" />
 
-    <!-- 多选操作条：Ctrl/Cmd+单击聚合多选后出现 -->
-    <div
-      v-if="itemStore.selectedIds.length > 0"
-      class="flex items-center gap-3 px-3 py-1.5 border-b border-[var(--border)] bg-[var(--bg-elev)] text-[12px]"
-    >
-      <span class="text-[var(--fg-dim)]">已选 {{ itemStore.selectedIds.length }} 项</span>
-      <button class="btn text-[11px]" @click="openBatchTag('add')">批量打标签…</button>
-      <button class="btn text-[11px]" @click="openBatchTag('remove')">批量移除标签…</button>
-      <button class="btn text-[11px] ml-auto" @click="itemStore.clearSelection()">取消选择</button>
-    </div>
+    <!-- 多选状态与批量动作在底边栏（StatusBar）：搜索栏下不再有随选择浮沉的操作条 -->
 
     <div
       v-if="itemStore.scanError"

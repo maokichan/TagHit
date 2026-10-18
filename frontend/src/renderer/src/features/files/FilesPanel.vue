@@ -87,7 +87,7 @@ function trashAll(): void {
 
 <template>
   <div class="px-3 py-3">
-    <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)]">文件管理</div>
+    <div class="panel-label">文件管理</div>
 
     <div v-if="selected.length === 0" class="text-[var(--fg-dim)]">
       选中条目后，在此改名、移动或删除文件。

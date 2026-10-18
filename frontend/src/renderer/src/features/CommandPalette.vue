@@ -122,7 +122,7 @@ function hoverRow(row: PaletteRow): void {
           ref="inputRef"
           v-model="query"
           type="text"
-          placeholder="输入命令名或命令 id…"
+          placeholder="输入命令…"
           class="w-full px-3 py-2.5 text-[13px] bg-transparent outline-none border-b border-[var(--border)] text-[var(--fg)] placeholder:text-[var(--fg-dim)]"
           @input="activeIndex = 0"
         />
@@ -135,7 +135,7 @@ function hoverRow(row: PaletteRow): void {
               class="w-full text-left px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors"
               :class="[
                 row.entry === activeRow?.entry ? 'bg-[var(--bg-hover)]' : '',
-                row.applicable ? 'text-[var(--fg)]' : 'text-[var(--fg-dim)] opacity-55 cursor-default'
+                row.applicable ? 'text-[var(--fg)]' : 'text-[var(--fg-dim)] opacity-60 cursor-default'
               ]"
               :disabled="!row.applicable"
               :title="row.applicable ? row.entry.manifest.id : `${row.entry.manifest.id}：当前上下文不可用`"
@@ -143,8 +143,8 @@ function hoverRow(row: PaletteRow): void {
               @mousemove="hoverRow(row)"
             >
               <span class="truncate flex-1">{{ row.entry.manifest.title }}</span>
-              <span v-if="!row.applicable" class="shrink-0 text-[10px] opacity-80">当前不可用</span>
-              <span v-if="row.shortcut" class="shrink-0 text-[10px] tabular-nums text-[var(--fg-dim)]">
+              <span v-if="!row.applicable" class="shrink-0 text-[11px] opacity-80">当前不可用</span>
+              <span v-if="row.shortcut" class="shrink-0 text-[11px] tabular-nums text-[var(--fg-dim)]">
                 {{ row.shortcut }}
               </span>
             </button>

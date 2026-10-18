@@ -2,18 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── 主题变量：暗色默认，亮色可切换（CSS 变量驱动，对应 config.theme） ── */
+/* ── 主题变量：暗色默认，亮色可切换（CSS 变量驱动，对应 config.theme） ──
+   层级约定（全项目收敛口径）：
+   - 字号：11 = 说明与次要 · 12 = 正文与控件 · 13 = 输入与强调 · 14+ 仅空态主句/页题；
+   - 圆角三级制：4px（chip/badge）· 6px（按钮/输入/行内卡）· 8px（面板/弹层）；
+   - 反馈靠边框亮度（--border-hover），阴影只留给浮层（弹层/拖拽预览）——暗色下卡片
+     hover 阴影不可见还引发重绘，边框变亮是唯一稳定的悬浮反馈。 */
 :root {
   color-scheme: dark;
   --bg: #0f1115;
   --bg-elev: #171a21;
   --bg-hover: #1f2430;
   --border: #262b36;
+  --border-hover: #3d4454;
   --fg: #e6e9ef;
   --fg-dim: #9aa3b2;
   --accent: #f59e0b;
   --accent-soft: rgba(245, 158, 11, 0.15);
   --danger: #ef4444;
+  --ok: #34d399;
   /* 停靠面板（活动栏功能组件）统一宽度：壳级单点——此前各面板 w-64/w-72 不一，
      功能组件不得自定宽度；将来做拖拽调宽也只改这一个变量。 */
   --panel-width: 18rem;
@@ -27,11 +34,13 @@
   --bg-elev: #ffffff;
   --bg-hover: #eef0f4;
   --border: #e3e6ec;
+  --border-hover: #c3c9d6;
   --fg: #1c2330;
   --fg-dim: #5c6675;
   --accent: #d97706;
   --accent-soft: rgba(217, 119, 6, 0.12);
   --danger: #dc2626;
+  --ok: #059669;
 }
 
 html,
@@ -89,10 +98,16 @@ body {
   .panel {
     @apply bg-[var(--bg-elev)] border border-[var(--border)] rounded-lg;
   }
+  /* 面板小节标签（停靠面板/详情页右栏共用）：中文标签用正常字距，
+     不做 uppercase（中文无大小写，拉开的字距只会显得松散）。 */
+  .panel-label {
+    @apply text-[11px] text-[var(--fg-dim)];
+  }
   .btn {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--fg-dim)]
       hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer
-      disabled:opacity-40 disabled:cursor-not-allowed;
+      disabled:opacity-40 disabled:cursor-not-allowed
+      focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--accent)];
   }
   .btn-primary {
     @apply bg-[var(--accent)] text-white hover:bg-[var(--accent)] hover:text-white hover:opacity-90;

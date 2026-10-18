@@ -1,11 +1,31 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { X } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
+import { openBatchTagDialog } from '../../features/services/batchTag'
 
-/** 状态栏：扫描状态 + 插件占位（插件面板不在契约 v0，恒为 0）。 */
+/**
+ * 状态栏：多选状态与批量动作（选中即出现在这里，Esc 或 ✕ 退出）· 扫描状态 · 插件占位。
+ * 选择状态放底边栏是壳级决定：搜索栏下不再出现随选择浮沉的操作条。
+ */
 const itemStore = useItemStore()
 
 const PLUGIN_COUNT = 0
+const count = computed(() => itemStore.selectedIds.length)
+
+function batch(mode: 'add' | 'remove'): void {
+  const ws = itemStore.viewWorkspaceId
+  if (ws == null || count.value === 0) return
+  openBatchTagDialog({
+    mode,
+    workspaceId: ws,
+    count: count.value,
+    onApply: async (m, tagIds) => {
+      if (m === 'add') await itemStore.tagSelected(ws, tagIds)
+      else await itemStore.untagSelected(ws, tagIds)
+    }
+  })
+}
 
 const statusText = computed(() => {
   if (itemStore.scanning) return '正在扫描…'
@@ -22,13 +42,28 @@ const statusText = computed(() => {
 </script>
 
 <template>
-  <footer class="flex items-center gap-3 px-3 h-7 text-[11px] text-[var(--fg-dim)] border-t border-[var(--border)] bg-[var(--bg-elev)]">
-    <span v-if="statusText" class="flex-1 truncate">{{ statusText }}</span>
+  <footer class="flex items-center gap-2 px-3 h-7 text-[11px] text-[var(--fg-dim)] border-t border-[var(--border)] bg-[var(--bg-elev)]">
+    <!-- 多选：状态 + 批量动作（原搜索栏下的操作条并入此处） -->
+    <template v-if="count > 0">
+      <span class="text-[var(--fg)] shrink-0">已选 {{ count }} 项</span>
+      <button class="btn px-1.5 py-0.5 text-[11px]" @click="batch('add')">批量打标签…</button>
+      <button class="btn px-1.5 py-0.5 text-[11px]" @click="batch('remove')">批量移除标签…</button>
+      <button
+        class="shrink-0 cursor-pointer hover:text-[var(--fg)] inline-flex"
+        title="清空选择（Esc）"
+        @click="itemStore.clearSelection()"
+      >
+        <X :size="12" />
+      </button>
+    </template>
+
+    <!-- 扫描状态：占满剩余空间， hover 可见全文 -->
+    <span v-if="statusText" class="flex-1 truncate min-w-0" :title="statusText">{{ statusText }}</span>
     <span v-else class="flex-1" />
 
-    <span class="flex items-center gap-1">
+    <span class="flex items-center gap-1 shrink-0">
       <span class="inline-block w-1.5 h-1.5 rounded-full"
-        :class="PLUGIN_COUNT > 0 ? 'bg-emerald-500' : 'bg-[var(--border)]'"
+        :class="PLUGIN_COUNT > 0 ? 'bg-[var(--ok)]' : 'bg-[var(--border)]'"
       />
       {{ PLUGIN_COUNT }} 插件
     </span>

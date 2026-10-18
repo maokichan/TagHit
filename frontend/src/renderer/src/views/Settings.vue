@@ -160,7 +160,7 @@ async function deleteTag(id: string): Promise<void> {
           <input v-model="newTagDesc" class="input flex-1" placeholder="描述（可选）" />
           <button class="btn btn-primary" @click="createTag"><Plus :size="14" /> 创建</button>
         </div>
-        <p v-if="tagError" class="text-xs text-[var(--danger)] mb-2">{{ tagError }}</p>
+        <p v-if="tagError" class="text-[11px] text-[var(--danger)] mb-2">{{ tagError }}</p>
 
         <div class="space-y-2">
           <div v-for="tag in tagStore.allTags" :key="tag.id" class="border border-[var(--border)] rounded-lg p-3">

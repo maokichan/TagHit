@@ -6,7 +6,8 @@ import { registerShortcut } from './keyboardMouse/shortcuts'
 import { openBatchTagDialog } from './services/batchTag'
 import { showToast } from './services/dialog'
 import { detailNext, detailPrev } from './detailNav'
-import { itemRoute } from './tabs'
+import { itemRoute, openFeatureTab } from './tabs'
+import { useConfigStore } from '../stores/config'
 import { openPalette } from './palette'
 import { invalidatePathManagement } from './paths/usePathManagement'
 import { api } from '@shared/api'
@@ -165,6 +166,39 @@ export function registerBuiltinCommands(): void {
     { id: 'selection.clear', title: '清空选择', when: { kind: 'targetIs', value: 'shell' } },
     () => {
       useItemStore().clearSelection()
+    }
+  )
+
+  // ── 壳导航与视图命令（D33 的事实面：应用能去哪、能切什么，都在这张表里）──
+  // 这些命令没有右键菜单项（无 DOM 目标语义），只经命令面板与快捷键通道暴露。
+  official(
+    { id: 'shell.home', title: '打开主页', when: { kind: 'targetIs', value: 'shell' } },
+    () => void router.push('/')
+  )
+  official(
+    { id: 'shell.settings', title: '打开设置', when: { kind: 'targetIs', value: 'shell' } },
+    () => void router.push('/settings')
+  )
+  official(
+    { id: 'shell.globalSearch', title: '打开全局搜索', when: { kind: 'targetIs', value: 'shell' } },
+    () => openFeatureTab('globalSearch', '全局搜索', useTabStore().activeWorkspaceId)
+  )
+  official(
+    { id: 'shell.pathsPage', title: '打开来源根页', when: { kind: 'targetIs', value: 'shell' } },
+    () => openFeatureTab('paths', '来源根', useTabStore().activeWorkspaceId)
+  )
+  const setLayout = (mode: 'masonry' | 'grid' | 'list', title: string) =>
+    official({ id: `view.layout.${mode}`, title, when: { kind: 'targetIs', value: 'shell' } }, () => {
+      useConfigStore().setValue('layout', 'layoutMode', mode)
+    })
+  setLayout('masonry', '切换到瀑布流布局')
+  setLayout('grid', '切换到网格布局')
+  setLayout('list', '切换到列表布局')
+  official(
+    { id: 'view.titles.toggle', title: '切换卡片标题显示', when: { kind: 'targetIs', value: 'shell' } },
+    () => {
+      const config = useConfigStore()
+      config.setValue('showTitles', 'showTitles', !config.value('showTitles', 'showTitles', true))
     }
   )
 

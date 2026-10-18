@@ -36,7 +36,7 @@ async function createTag(): Promise<void> {
 
 <template>
   <div class="px-3 py-3">
-    <div class="text-[11px] uppercase tracking-wider text-[var(--fg-dim)] mb-2">标签</div>
+    <div class="panel-label mb-2">标签</div>
     <!-- 本面板只管声明；按标签筛选的入口在搜索框（输入即出候选） -->
     <div class="flex flex-wrap gap-1 mb-3">
       <span
