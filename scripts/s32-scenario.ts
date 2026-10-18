@@ -32,6 +32,9 @@ import {
   untagItem,
   untagItems,
   recordThumbnail,
+  tagPairStats,
+  tagStats,
+  updateTagDescription,
 } from '../src/application/index.ts'
 import type { AppServices } from '../src/application/index.ts'
 
@@ -434,6 +437,103 @@ export async function runScenario(store: Store): Promise<void> {
     ],
     '缩略图回写：尺寸一并落库'
   )
+  // ---- 标签描述 / 池统计 / 标签对统计（共现·互斥） -------------------------
+  // 独立工作区，成员集 = 直接节点 included（挂根 + 节点），标签集手工布点：
+  //   i1{t1,t2}  i2{t1,t2,t3}  i3{t3,t4}  i4{t4}  i5{t5}
+  // 共现：(t1,t2)=2 (t3,t4)=2 (t1,t3)=1；互斥对 = 出现过但 together=0 的对。
+  const tagWs = 'ws-tagstat'
+  await store.createWorkspace({ id: tagWs, name: '统计库', createdAt: T0 })
+  await store.addWorkspaceRoot(tagWs, 'R:/统计')
+  await store.ensurePathNode(tagWs, 'R:/统计', 'included')
+
+  const statTagIds = ['t1', 't2', 't3', 't4', 't5']
+  for (const [i, tid] of statTagIds.entries()) {
+    await store.createTag({ id: tid, name: `标签${i + 1}`, description: null, createdAt: T0 })
+  }
+  const itemTags: Array<[string, string[]]> = [
+    ['s1', ['t1', 't2']],
+    ['s2', ['t1', 't2', 't3']],
+    ['s3', ['t3', 't4']],
+    ['s4', ['t4']],
+    ['s5', ['t5']],
+  ]
+  for (const [iid, tids] of itemTags) {
+    await store.createItem(fileItem(iid, `${iid}.jpg`, `R:/统计/${iid}.jpg`))
+    await tagItem(svc, iid, tids)
+  }
+  await store.declareTag(tagWs, 't1')
+  await store.declareTag(tagWs, 't2')
+
+  // 描述更新：写入 / 清空 / NOT_FOUND
+  await updateTagDescription(svc, 't3', '夜景城市')
+  assertEqual(
+    (await store.queryTags({ ids: ['t3'] }))[0]?.description ?? null,
+    '夜景城市',
+    '标签描述：更新落库'
+  )
+  await updateTagDescription(svc, 't3', null)
+  assertEqual(
+    (await store.queryTags({ ids: ['t3'] }))[0]?.description ?? null,
+    null,
+    '标签描述：null 清空'
+  )
+  try {
+    await updateTagDescription(svc, 't-ghost', 'x')
+    assert(false, '标签描述：NOT_FOUND 应抛')
+  } catch (e) {
+    assert(e instanceof DomainError && e.code === 'NOT_FOUND', '标签描述：NOT_FOUND 码值')
+  }
+
+  // 池统计：挂载数（全局）× 声明数
+  const stats = await tagStats(svc)
+  const statOf = (tid: string) => stats.find((s) => s.tagId === tid)
+  assertEqual(statOf('t1'), { tagId: 't1', itemCount: 2, workspaceCount: 1 }, '池统计：t1 = 2 挂载 / 1 声明')
+  assertEqual(statOf('t3'), { tagId: 't3', itemCount: 2, workspaceCount: 0 }, '池统计：t3 = 2 挂载 / 0 声明')
+  assertEqual(statOf('t5'), { tagId: 't5', itemCount: 1, workspaceCount: 0 }, '池统计：t5 = 1 挂载 / 0 声明')
+
+  // 共现：降序 + limit；有序对口径 a < b
+  const cooccur = await tagPairStats(svc, { workspaceId: tagWs, kind: 'cooccur', limit: 2 })
+  assertEqual(
+    cooccur.map((r) => [r.a, r.b, r.together]),
+    [
+      ['t1', 't2', 2],
+      ['t1', 't3', 1],
+    ],
+    '共现：前 2 名 = (t1,t2)=2 (t1,t3)=1（together 降序，tie 按 a 升序）'
+  )
+  const cooccurAll = await tagPairStats(svc, { workspaceId: tagWs, kind: 'cooccur', limit: 100 })
+  assertEqual(cooccurAll.length, 4, '共现：全集恰 4 对')
+  const t1t3 = cooccurAll.find((r) => (r.a === 't1' && r.b === 't3') || (r.a === 't3' && r.b === 't1'))
+  assertEqual(
+    t1t3 != null && t1t3.a < t1t3.b && t1t3.together === 1 && t1t3.aCount === 2 && t1t3.bCount === 2,
+    true,
+    '共现：对有序（a < b）且附各自挂载数'
+  )
+
+  // 互斥：都在成员集出现、together = 0；按 min(aCount,bCount) 降序
+  // 各标签挂载：t1=2 t2=2 t3=2 t4=2 t5=1；min=2 的互斥对 = (t1,t4) (t2,t4)（(t2,t3) 共现故不在列；tie 按 a 升序）
+  const mutex = await tagPairStats(svc, { workspaceId: tagWs, kind: 'mutex', limit: 2 })
+  assertEqual(
+    mutex.map((r) => [r.a, r.b, r.together, r.aCount, r.bCount]),
+    [
+      ['t1', 't4', 0, 2, 2],
+      ['t2', 't4', 0, 2, 2],
+    ],
+    '互斥：min 计数降序 + tie 按 a 升序 + together 恒 0'
+  )
+  const mutexAll = await tagPairStats(svc, { workspaceId: tagWs, kind: 'mutex', limit: 100 })
+  assert(
+    mutexAll.every((r) => r.a < r.b && r.together === 0),
+    '互斥：全集中每对有序且从未同时出现'
+  )
+
+  // 互斥集合与共现集合互斥完备：任一对不同时出现在两份结果里
+  const coKey = new Set(cooccurAll.map((r) => `${r.a}|${r.b}`))
+  assert(
+    mutexAll.every((r) => !coKey.has(`${r.a}|${r.b}`)),
+    '完备：共现集 ∩ 互斥集 = 空（together > 0 与 together = 0 的划分）'
+  )
+
 
   console.log(`\nALL CHECKS PASSED（断言执行 ${executedAsserts} 个）`)
 }

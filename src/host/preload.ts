@@ -21,6 +21,9 @@ const api: TaghitRendererApi = {
   deleteTag: (tagId) => invoke('tags.delete', tagId),
   declareTag: (input) => invoke('tags.declare', input),
   undeclareTag: (input) => invoke('tags.undeclare', input),
+  updateTag: (tagId, patch) => invoke('tags.update', tagId, patch),
+  tagStats: () => invoke('tags.stats'),
+  tagPairStats: (q) => invoke('tags.pairStats', q),
 
   queryItems: (query) => invoke('items.query', query),
   itemWindow: (input) => invoke('item.window', input),

@@ -132,6 +132,16 @@ function onScan(): void {
       <!-- 间隔区：把扫描按钮推到搜索栏最右侧 -->
       <div class="flex-1" />
 
+      <!-- 只看未挂标签的条目（打标工作流：先找到没打过的） -->
+      <button
+        class="chip"
+        :class="itemStore.filter.untaggedOnly ? 'chip--solid' : 'chip--action'"
+        :title="itemStore.filter.untaggedOnly ? '取消：显示全部条目' : '只看未挂标签的条目'"
+        @click="itemStore.toggleUntaggedOnly()"
+      >
+        未打标签
+      </button>
+
       <!-- 计数：total 为成员总数（不受排序/分页影响），已显示 = 当前已渲染条数 -->
       <span
         class="text-[11px] text-[var(--fg-dim)] shrink-0 tabular-nums"

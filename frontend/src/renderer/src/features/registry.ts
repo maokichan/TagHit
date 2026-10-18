@@ -20,7 +20,8 @@ import LayoutFeature from './display/layout/LayoutFeature.vue'
 import GlobalSearchFeature from './content/globalSearch/GlobalSearchFeature.vue'
 import PathsPanel from './paths/PathsPanel.vue'
 import PathsFullPage from './paths/PathsFullPage.vue'
-import TagsPanel from '../components/workspace/TagsPanel.vue'
+import TagsPanel from './tags/TagsPanel.vue'
+import TagsFullPage from './tags/TagsFullPage.vue'
 import DisplayPanel from '../components/workspace/DisplayPanel.vue'
 import FilesPanel from './files/FilesPanel.vue'
 import InfoPanel from '../components/layout/InfoPanel.vue'
@@ -215,8 +216,8 @@ export function registerBuiltinFeatures(): void {
     { icon: FolderOpen, component: PathsPanel, fullPage: PathsFullPage }
   )
   official(
-    { id: 'tags', title: '标签', mounts: ['activityBar:left'] },
-    { icon: Tags, component: TagsPanel }
+    { id: 'tags', title: '标签', mounts: ['activityBar:left', 'contentTab'] },
+    { icon: Tags, component: TagsPanel, fullPage: TagsFullPage }
   )
   official(
     { id: 'display', title: '显示', mounts: ['activityBar:left'] },

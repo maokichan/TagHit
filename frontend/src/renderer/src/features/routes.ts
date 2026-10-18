@@ -24,6 +24,7 @@ export function itemRoute(itemId: string, context: ItemContext): string {
   if (context.titleContains) q.set('q', context.titleContains)
   if (context.underDirPath != null && context.underDirPath !== '') q.set('scope', context.underDirPath)
   if (context.extensions?.length) q.set('ext', context.extensions.join(','))
+  if (context.withoutTags === true) q.set('untagged', '1')
   const s = q.toString()
   return `/item/${itemId}${s !== '' ? `?${s}` : ''}`
 }
@@ -47,6 +48,7 @@ export function itemContextFromQuery(query: Record<string, unknown>): ItemContex
   if (scope != null) ctx.underDirPath = scope
   const ext = str('ext')
   if (ext != null) ctx.extensions = ext.split(',').filter((x) => x !== '')
+  if (str('untagged') === '1') ctx.withoutTags = true
   return ctx
 }
 

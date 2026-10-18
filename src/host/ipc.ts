@@ -34,7 +34,7 @@ import type {
   WorkspaceRoot,
 } from '../domain/index.ts'
 
-import type { ItemHit, ItemsQuery } from '../ports/index.ts'
+import type { ItemHit, ItemsQuery, TagPairStat, TagStat } from '../ports/index.ts'
 import type {
   BrowseResult,
   ItemContext,
@@ -66,6 +66,8 @@ export type {
   ScanOptions,
   ScanSummary,
   Tag,
+  TagPairStat,
+  TagStat,
   VisibilitySummary,
   Workspace,
   WorkspaceRoot,
@@ -96,6 +98,12 @@ export interface IpcContracts {
   'tags.delete': { args: [tagId: Id]; result: null }
   'tags.declare': { args: [{ workspaceId: Id; tagId: Id }]; result: null }
   'tags.undeclare': { args: [{ workspaceId: Id; tagId: Id }]; result: null }
+  'tags.update': { args: [tagId: Id, patch: { description?: string | null }]; result: null }
+  'tags.stats': { args: []; result: TagStat[] }
+  'tags.pairStats': {
+    args: [q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }]
+    result: TagPairStat[]
+  }
 
   // ---- 条目 item：查 / 打标 / 删 ------------------------------------------
   'items.query': { args: [query: ItemsQuery]; result: ItemHit[] }
@@ -204,6 +212,13 @@ export interface TaghitRendererApi {
   deleteTag(tagId: Id): Promise<IpcResult<'tags.delete'>>
   declareTag(input: { workspaceId: Id; tagId: Id }): Promise<IpcResult<'tags.declare'>>
   undeclareTag(input: { workspaceId: Id; tagId: Id }): Promise<IpcResult<'tags.undeclare'>>
+  updateTag(tagId: Id, patch: { description?: string | null }): Promise<IpcResult<'tags.update'>>
+  tagStats(): Promise<IpcResult<'tags.stats'>>
+  tagPairStats(q: {
+    workspaceId: Id
+    kind: 'cooccur' | 'mutex'
+    limit: number
+  }): Promise<IpcResult<'tags.pairStats'>>
 
   queryItems(query: ItemsQuery): Promise<IpcResult<'items.query'>>
   itemWindow(input: { anchorId: Id; context: ItemContext }): Promise<IpcResult<'item.window'>>

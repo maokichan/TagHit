@@ -53,6 +53,8 @@ import type {
   NewTag,
   NewWorkspace,
   Store,
+  TagPairStat,
+  TagStat,
   TagsQuery,
 } from '../../ports/store.ts'
 
@@ -432,6 +434,73 @@ export class MemoryStore implements Store {
       out.push(row)
     }
     return out
+  }
+
+  async tagStats(): Promise<TagStat[]> {
+    const itemCount = new Map<Id, number>()
+    for (const row of this.state.attachments.values()) {
+      itemCount.set(row.tagId, (itemCount.get(row.tagId) ?? 0) + 1)
+    }
+    const wsCount = new Map<Id, number>()
+    for (const row of this.state.declarations.values()) {
+      wsCount.set(row.tagId, (wsCount.get(row.tagId) ?? 0) + 1)
+    }
+    const out: TagStat[] = []
+    for (const tagId of this.state.tags.keys()) {
+      out.push({ tagId, itemCount: itemCount.get(tagId) ?? 0, workspaceCount: wsCount.get(tagId) ?? 0 })
+    }
+    return out
+  }
+
+  /** 成员集 = 直接节点 included 的 file 条目（与 sqlite 的 member CTE 同解）。 */
+  private memberItemIds(workspaceId: Id): Id[] {
+    const out: Id[] = []
+    for (const item of this.state.items.values()) {
+      if (item.kind !== 'file') continue
+      if (this.directNodeHasState({ workspaceId, state: 'included' }, item)) out.push(item.id)
+    }
+    return out
+  }
+
+  async tagPairStats(q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }): Promise<TagPairStat[]> {
+    const present = new Map<Id, number>()
+    const pairCount = new Map<string, number>()
+    for (const itemId of this.memberItemIds(q.workspaceId)) {
+      const set = new Set(this.tagsOf(itemId).map((t) => t.id))
+      for (const t of set) present.set(t, (present.get(t) ?? 0) + 1)
+      const arr = [...set].sort()
+      for (let i = 0; i < arr.length; i++) {
+        for (let k = i + 1; k < arr.length; k++) {
+          const key = `${arr[i]} ${arr[k]}`
+          pairCount.set(key, (pairCount.get(key) ?? 0) + 1)
+        }
+      }
+    }
+    const ids = [...present.keys()].sort()
+    if (q.kind === 'mutex') {
+      const rows: TagPairStat[] = []
+      for (let i = 0; i < ids.length; i++) {
+        for (let k = i + 1; k < ids.length; k++) {
+          const a = ids[i]!
+          const b = ids[k]!
+          if ((pairCount.get(`${a} ${b}`) ?? 0) === 0) {
+            rows.push({ a, b, together: 0, aCount: present.get(a) ?? 0, bCount: present.get(b) ?? 0 })
+          }
+        }
+      }
+      rows.sort(
+        (x, y) =>
+          Math.min(y.aCount, y.bCount) - Math.min(x.aCount, x.bCount) || (x.a < y.a ? -1 : 1)
+      )
+      return rows.slice(0, q.limit)
+    }
+    const rows: TagPairStat[] = []
+    for (const [key, together] of pairCount) {
+      const [a, b] = key.split(' ')
+      rows.push({ a: a!, b: b!, together, aCount: present.get(a!) ?? 0, bCount: present.get(b!) ?? 0 })
+    }
+    rows.sort((x, y) => y.together - x.together || (x.a < y.a ? -1 : 1))
+    return rows.slice(0, q.limit)
   }
 
   // ---- 工作区 -------------------------------------------------------------

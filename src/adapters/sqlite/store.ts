@@ -41,6 +41,8 @@ import type {
   NewTag,
   NewWorkspace,
   Store,
+  TagPairStat,
+  TagStat,
   TagsQuery,
 } from '../../ports/store.ts'
 
@@ -339,6 +341,71 @@ export class SqliteStore implements Store {
     if (patch.description !== undefined) {
       this.run('UPDATE tags SET description = ? WHERE id = ?', [patch.description, id])
     }
+  }
+
+  async tagStats(): Promise<TagStat[]> {
+    const rows = this.all(
+      `SELECT t.id AS tagId,
+              (SELECT COUNT(*) FROM attachments a WHERE a.tagId = t.id) AS itemCount,
+              (SELECT COUNT(*) FROM declarations d WHERE d.tagId = t.id) AS workspaceCount
+       FROM tags t`,
+      []
+    )
+    return rows.map((r) => ({ tagId: String(r.tagId), itemCount: Number(r.itemCount), workspaceCount: Number(r.workspaceCount) }))
+  }
+
+  /** 成员集 CTE：直接节点 included 的 file 条目（与 memory.memberItemIds 同解，s32 双跑比对）。 */
+
+  async tagPairStats(q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }): Promise<TagPairStat[]> {
+    const member = `member AS (
+      SELECT i.id FROM items i
+      WHERE i.kind = 'file' AND EXISTS (
+        SELECT 1 FROM pathNodes n WHERE n.workspaceId = ? AND n.state = 'included'
+          AND n.dirPath = ${SqliteStore.parentDirExpr('i.sourceUri')})
+    )`
+    if (q.kind === 'cooccur') {
+      const rows = this.all(
+        `WITH ${member},
+         cnt AS (SELECT a.tagId AS tagId, COUNT(*) AS c FROM attachments a JOIN member m ON m.id = a.itemId GROUP BY a.tagId)
+         SELECT a1.tagId AS a, a2.tagId AS b, COUNT(DISTINCT a1.itemId) AS together, c1.c AS aCount, c2.c AS bCount
+         FROM attachments a1
+         JOIN attachments a2 ON a2.itemId = a1.itemId AND a2.tagId > a1.tagId
+         JOIN member m ON m.id = a1.itemId
+         JOIN cnt c1 ON c1.tagId = a1.tagId
+         JOIN cnt c2 ON c2.tagId = a2.tagId
+         GROUP BY a1.tagId, a2.tagId
+         ORDER BY together DESC, a ASC, b ASC
+         LIMIT ?`,
+        [q.workspaceId, q.limit]
+      )
+      return rows.map((r) => ({
+        a: String(r.a), b: String(r.b), together: Number(r.together),
+        aCount: Number(r.aCount), bCount: Number(r.bCount),
+      }))
+    }
+    const rows = this.all(
+      `WITH ${member},
+       present AS (SELECT DISTINCT a.tagId AS tagId FROM attachments a JOIN member m ON m.id = a.itemId),
+       cnt AS (SELECT a.tagId AS tagId, COUNT(*) AS c FROM attachments a JOIN member m ON m.id = a.itemId GROUP BY a.tagId)
+       SELECT p1.tagId AS a, p2.tagId AS b, 0 AS together, c1.c AS aCount, c2.c AS bCount
+       FROM present p1
+       JOIN present p2 ON p2.tagId > p1.tagId
+       JOIN cnt c1 ON c1.tagId = p1.tagId
+       JOIN cnt c2 ON c2.tagId = p2.tagId
+       WHERE NOT EXISTS (
+         SELECT 1 FROM attachments a1
+         JOIN attachments a2 ON a2.itemId = a1.itemId AND a2.tagId = p2.tagId
+         JOIN member m ON m.id = a1.itemId
+         WHERE a1.tagId = p1.tagId
+       )
+       ORDER BY MIN(c1.c, c2.c) DESC, a ASC, b ASC
+       LIMIT ?`,
+      [q.workspaceId, q.limit]
+    )
+    return rows.map((r) => ({
+      a: String(r.a), b: String(r.b), together: Number(r.together),
+      aCount: Number(r.aCount), bCount: Number(r.bCount),
+    }))
   }
 
   async deleteTag(id: Id): Promise<void> {

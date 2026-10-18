@@ -22,6 +22,31 @@ export async function createTag(
   })
 }
 
+/** 改标签描述（标签全页；NOT_FOUND 透传）。 */
+export async function updateTagDescription(
+  svc: AppServices,
+  tagId: Id,
+  description: string | null
+): Promise<void> {
+  await svc.store.updateTag(tagId, { description })
+}
+
+/** 标签池统计（全局口径；标签全页总表）。 */
+export async function tagStats(svc: AppServices) {
+  return svc.store.tagStats()
+}
+
+/**
+ * 标签对统计（共现 / 互斥）。成员口径 = 工作区浏览成员（直接节点 included），
+ * 与浏览同一份派生——"这个库里实际一起看的内容"才配谈关系。limit 在此钳制。
+ */
+export async function tagPairStats(
+  svc: AppServices,
+  q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }
+) {
+  return svc.store.tagPairStats({ ...q, limit: Math.max(1, Math.min(100, q.limit)) })
+}
+
 /** 打标：给条目挂一组标签（整体原子）。 */
 export async function tagItem(svc: AppServices, itemId: Id, tagIds: Id[]): Promise<void> {
   await svc.store.transaction(async (tx) => {

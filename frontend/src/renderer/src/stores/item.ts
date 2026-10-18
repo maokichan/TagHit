@@ -31,10 +31,11 @@ export const useItemStore = defineStore('item', () => {
   const anchorIndex = ref<number | null>(null)
 
   /** 视图筛选：标签（并集）、关键字、格式（类别折叠成扩展名集合下推，D36）。 */
-  const filter = ref<{ tagIds: Id[]; keyword: string; mediaTypes: FilterableMediaType[] }>({
+  const filter = ref<{ tagIds: Id[]; keyword: string; mediaTypes: FilterableMediaType[]; untaggedOnly: boolean }>({
     tagIds: [],
     keyword: '',
-    mediaTypes: []
+    mediaTypes: [],
+    untaggedOnly: false
   })
 
   /** 目录范围（视图状态）：只看该目录子树；null = 不限。下推为查询的 underDirPath。 */
@@ -58,6 +59,7 @@ export const useItemStore = defineStore('item', () => {
     if (filter.value.keyword) query.titleContains = filter.value.keyword
     if (scopeDirPath.value != null) query.underDirPath = scopeDirPath.value
     if (filter.value.mediaTypes.length) query.extensions = extensionsFor(filter.value.mediaTypes)
+    if (filter.value.untaggedOnly) query.withoutTags = true
     query.order = sortBy.value
     query.orderDir = sortDir.value
     return query
@@ -261,6 +263,11 @@ export const useItemStore = defineStore('item', () => {
     return Object.fromEntries(entries)
   }
 
+  /** 只看未挂标签的条目（补全打标工作流：先找到没打过的，再打）。 */
+  function toggleUntaggedOnly(): void {
+    filter.value.untaggedOnly = !filter.value.untaggedOnly
+  }
+
   function toggleTagFilter(tagId: Id): void {
     const list = filter.value.tagIds
     filter.value.tagIds = list.includes(tagId) ? list.filter((id) => id !== tagId) : [...list, tagId]
@@ -289,6 +296,7 @@ export const useItemStore = defineStore('item', () => {
     if (filter.value.keyword) ctx.titleContains = filter.value.keyword
     if (scopeDirPath.value != null) ctx.underDirPath = scopeDirPath.value
     if (filter.value.mediaTypes.length) ctx.extensions = extensionsFor(filter.value.mediaTypes)
+    if (filter.value.untaggedOnly) ctx.withoutTags = true
     return ctx
   }
 
@@ -322,6 +330,7 @@ export const useItemStore = defineStore('item', () => {
     tagSelected,
     untagSelected,
     toggleTagFilter,
+    toggleUntaggedOnly,
     toggleMediaType,
     categoryCounts,
     clearTagFilters,

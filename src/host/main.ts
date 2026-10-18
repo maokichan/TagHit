@@ -30,6 +30,9 @@ import {
   createWorkspace,
   declareTag,
   declaredTagIds,
+  tagPairStats,
+  tagStats,
+  updateTagDescription,
   deleteCollectionCascade,
   deleteGroupCascade,
   deleteItemCascade,
@@ -145,6 +148,13 @@ function registerHandlers(): void {
   )
   ipcMain.handle('tags.undeclare', (_event, input: { workspaceId: Id; tagId: Id }) =>
     envelope(undeclareTag(services, input.workspaceId, input.tagId).then(() => null))
+  )
+  ipcMain.handle('tags.update', (_event, tagId: Id, patch: { description?: string | null }) =>
+    envelope(updateTagDescription(services, tagId, patch.description ?? null).then(() => null))
+  )
+  ipcMain.handle('tags.stats', () => envelope(tagStats(services)))
+  ipcMain.handle('tags.pairStats', (_event, q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }) =>
+    envelope(tagPairStats(services, q))
   )
 
   // ---- 条目 ----

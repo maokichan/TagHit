@@ -81,6 +81,32 @@ export interface TagsQuery {
   nameContains?: string
 }
 
+/** 标签池统计（全局口径；标签全页总表的"挂载 / 声明"两列）。 */
+export interface TagStat {
+  tagId: Id
+  /** 全库挂载该标签的条目数。 */
+  itemCount: number
+  /** 声明该标签的工作区数。 */
+  workspaceCount: number
+}
+
+/**
+ * 标签对统计（工作区成员口径 = 直接节点 included 的 file 条目，与浏览同一份派生）：
+ * - kind `cooccur`：成员集内两标签**同时挂载**的条目数（together），按 together 降序——
+ *   共现高的对是"这批内容的一体两面"，也是关联建议的数据来源；
+ * - kind `mutex`：两标签都在成员集内出现、但**从不同时**挂载的对（together = 0），
+ *   按 min(aCount, bCount) 降序——"最该同时出现却从不同时"排最前（互斥嫌疑 / 冗余标签线索）。
+ */
+export interface TagPairStat {
+  /** 有序对：a < b（id 字节序），memory 与 sqlite 同一口径。 */
+  a: Id
+  b: Id
+  together: number
+  /** 两标签各自在成员集内的挂载条目数。 */
+  aCount: number
+  bCount: number
+}
+
 export type ItemOrderField = 'createdAt' | 'title' | 'sourceUri'
 
 export interface ItemsQuery {
@@ -213,6 +239,10 @@ export interface Store {
 
   /** 条件查标签；空条件 = 全部，按标签名口径升序（与唯一性同键，见 domain/rules.compareTagName）。 */
   queryTags(q?: TagsQuery): Promise<Tag[]>
+  /** 标签池统计（全局口径）。 */
+  tagStats(): Promise<TagStat[]>
+  /** 标签对统计（工作区成员口径；limit 钳制由应用层负责）。 */
+  tagPairStats(q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }): Promise<TagPairStat[]>
 
   // ---- 条目 item ---------------------------------------------------------
 

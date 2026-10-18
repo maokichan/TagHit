@@ -114,6 +114,8 @@ export interface ItemContext {
   underDirPath?: string | null
   /** 展示推导的扩展名筛选（媒体类别在渲染层折叠成扩展名集合，见 ItemsQuery.extensions）。 */
   extensions?: string[]
+  /** 只看未挂任何标签的条目（补全打标工作流的入口）。 */
+  withoutTags?: boolean
   /** 前后各取多少条（缺省 6，钳制 1..24）。 */
   radius?: number
 }
@@ -148,6 +150,7 @@ function contextScope(ctx: ItemContext): ItemsQuery {
   if (ctx.titleContains) scope.titleContains = ctx.titleContains
   if (ctx.underDirPath != null && ctx.underDirPath !== '') scope.underDirPath = ctx.underDirPath
   if (ctx.extensions?.length) scope.extensions = ctx.extensions
+  if (ctx.withoutTags === true) scope.withoutTags = true
   return scope
 }
 
@@ -158,7 +161,8 @@ function hasViewConditions(ctx: ItemContext): boolean {
     (ctx.withAllTags?.length ?? 0) > 0 ||
     ctx.titleContains != null ||
     (ctx.underDirPath != null && ctx.underDirPath !== '') ||
-    (ctx.extensions?.length ?? 0) > 0
+    (ctx.extensions?.length ?? 0) > 0 ||
+    ctx.withoutTags === true
   )
 }
 

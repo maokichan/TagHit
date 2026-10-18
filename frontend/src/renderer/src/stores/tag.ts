@@ -54,6 +54,12 @@ export const useTagStore = defineStore('tag', () => {
     return tag
   }
 
+  /** 改描述（标签全页；null = 清空）。 */
+  async function update(id: Id, description: string | null): Promise<void> {
+    await api.tags.update(id, description)
+    await refreshAll()
+  }
+
   async function remove(id: Id): Promise<void> {
     await api.tags.remove(id)
     await refreshAll()
@@ -82,6 +88,7 @@ export const useTagStore = defineStore('tag', () => {
     refreshAll,
     refreshForWorkspace,
     create,
+    update,
     remove,
     declare,
     undeclare,

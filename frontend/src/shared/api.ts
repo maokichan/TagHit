@@ -124,6 +124,15 @@ export const api = {
     },
     async undeclare(workspaceId: Id, tagId: Id): Promise<void> {
       unwrap(await bridge().undeclareTag({ workspaceId, tagId }))
+    },
+    async update(tagId: Id, description: string | null): Promise<void> {
+      unwrap(await bridge().updateTag(tagId, { description }))
+    },
+    async stats() {
+      return unwrap(await bridge().tagStats())
+    },
+    async pairStats(q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }) {
+      return unwrap(await bridge().tagPairStats(q))
     }
   },
   items: {

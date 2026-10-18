@@ -36,6 +36,8 @@ export type {
   ScanOptions,
   ScanSummary,
   Tag,
+  TagPairStat,
+  TagStat,
   VisibilitySummary,
   WindowAction,
   Workspace,
