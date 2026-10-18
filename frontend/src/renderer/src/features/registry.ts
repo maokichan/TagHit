@@ -1,9 +1,20 @@
 import type { Component } from 'vue'
-import { markRaw } from 'vue'
+import { markRaw, watchEffect } from 'vue'
 import { FolderOpen, Info, Puzzle, SlidersHorizontal, Tags, FileCog } from 'lucide-vue-next'
 import type { FeatureManifest, FeatureSource, MountPoint } from '@shared/types/feature'
 import type { FeatureSurface } from './context'
 import MediaTypeFeature from './display/mediaType/MediaTypeFeature.vue'
+import ShowTitlesFeature from './display/showTitles/ShowTitlesFeature.vue'
+import {
+  defaultExtText,
+  MEDIA_EXT_CONFIG_KEY,
+  MEDIA_TYPE_FEATURE_ID,
+  MEDIA_TYPE_LABEL,
+  parseExtList,
+  setMediaTypeMap,
+  FILTERABLE_MEDIA_TYPES,
+} from '../lib/mediaTypes'
+import { useConfigStore } from '../stores/config'
 import SortFeature from './display/sort/SortFeature.vue'
 import LayoutFeature from './display/layout/LayoutFeature.vue'
 import GlobalSearchFeature from './content/globalSearch/GlobalSearchFeature.vue'
@@ -174,6 +185,25 @@ function official(
   )
 }
 
+/**
+ * 类别 → 扩展名映射的运行时同步：启动时应用一次，随后跟随 config 变化（设置页改动即生效，
+ * 视图在下次查询时按新映射折叠）。映射是 viewModel 展示推导与 ItemsQuery.extensions 筛选的唯一依据。
+ */
+function setupMediaTypeMap(): () => void {
+  const config = useConfigStore()
+  const apply = (): void => {
+    setMediaTypeMap({
+      image: parseExtList(config.value(MEDIA_TYPE_FEATURE_ID, 'imageExts', defaultExtText('image')), []),
+      video: parseExtList(config.value(MEDIA_TYPE_FEATURE_ID, 'videoExts', defaultExtText('video')), []),
+      audio: parseExtList(config.value(MEDIA_TYPE_FEATURE_ID, 'audioExts', defaultExtText('audio')), []),
+      document: parseExtList(config.value(MEDIA_TYPE_FEATURE_ID, 'documentExts', defaultExtText('document')), [])
+    })
+  }
+  apply()
+  const stop = watchEffect(apply)
+  return () => stop()
+}
+
 /** 应用启动时注册全部官方功能组件（声明表先于 app.mount 装载——App.vue 挂载时读表）。 */
 export function registerBuiltinFeatures(): void {
   // ── 左活动栏工具（壳的默认顺序，用户可拖拽重排——App.vue 持久化） ──
@@ -212,10 +242,16 @@ export function registerBuiltinFeatures(): void {
     {
       id: 'mediaTypeFilter',
       title: '媒体类型',
-      mounts: ['displayPanel'],
-      dataSource: 'fileFormatMap'
+      mounts: ['displayPanel', 'settings'],
+      dataSource: 'fileFormatMap',
+      settings: FILTERABLE_MEDIA_TYPES.map((t) => ({
+        key: MEDIA_EXT_CONFIG_KEY[t],
+        type: 'string' as const,
+        label: `${MEDIA_TYPE_LABEL[t]}扩展名（逗号分隔，留空回落默认）`,
+        default: defaultExtText(t)
+      }))
     },
-    { component: MediaTypeFeature }
+    { component: MediaTypeFeature, setup: setupMediaTypeMap }
   )
   official(
     {
@@ -268,11 +304,11 @@ export function registerBuiltinFeatures(): void {
     {
       id: 'showTitles',
       title: '卡片标题',
-      // 按用户决策（2026-08-23）：不出现在活动栏功能组件实例，仅设置页
-      mounts: ['settings'],
+      // 显示面板区块（2026-10-18）+ 设置页共享同一份 config；不占活动栏实例
+      mounts: ['displayPanel', 'settings'],
       settings: [{ key: 'showTitles', type: 'boolean', label: '网格卡片显示标题', default: true }]
     },
-    {}
+    { component: ShowTitlesFeature }
   )
   official(
     {

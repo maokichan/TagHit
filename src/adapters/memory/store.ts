@@ -18,6 +18,7 @@
 import {
   compareTagName,
   DomainError,
+  extensionOf,
   isPermutationOf,
   isSelfLink,
   isUnderDir,
@@ -274,6 +275,7 @@ export class MemoryStore implements Store {
     const hash = q.contentHash
     const anyTags = q.withAnyTag ? new Set(q.withAnyTag) : null
     const allTags = q.withAllTags ? new Set(q.withAllTags) : null
+    const extensionSet = q.extensions ? new Set(q.extensions.map((e) => e.toLowerCase())) : null
 
     const hits: ItemHit[] = []
     for (const item of this.state.items.values()) {
@@ -290,6 +292,12 @@ export class MemoryStore implements Store {
       if (q.notUnderAnyDir) {
         if (item.kind !== 'file') continue
         if (q.notUnderAnyDir.some((dir) => isUnderDir(dir, item.sourceUri))) continue
+      }
+      // 扩展名命中任一（rules.extensionOf 的直接调用；sqlite 用 LIKE 等价译文）
+      if (q.extensions) {
+        if (item.kind !== 'file') continue
+        const ext = extensionOf(item.title)
+        if (ext == null || !extensionSet!.has(ext)) continue
       }
       if (q.directNodeStateIn && !this.directNodeHasState(q.directNodeStateIn, item)) continue
       if (hash && (item.kind !== 'file' || item.contentHash !== hash)) continue

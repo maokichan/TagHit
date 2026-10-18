@@ -286,5 +286,43 @@ export async function runViewScenario(store: Store): Promise<void> {
     2,
     '⑨ 嵌套挂载确实生效（两个来源根）'
   )
+  // ---- ⑩ 扩展名条件（extensions）：rules.extensionOf 的 SQL 等价译文逐一致比对 ----------
+  // 后置种子（不动前面的计数断言）：直接放在 R:/库 根下（根节点 included → 皆为成员）。
+  // 覆盖：尾段命中 / 大小写 / 多值析取 / 多重点号取末段 / 点文件排除 / 空数组 / 条件组合。
+  await store.createItem(fileItem('e-upper', 'R:/库/相 机.MP4'))
+  await store.createItem(fileItem('e-dotfile', 'R:/库/.hidden'))
+  await store.createItem(fileItem('e-enddot', 'R:/库/name.'))
+  await store.createItem(fileItem('e-noext', 'R:/库/无扩展名'))
 
+  const visCount = async (q: ItemsQuery): Promise<number> =>
+    store.countItems({ directNodeStateIn: VIS, ...q })
+
+  assertEqual(await visCount({ extensions: ['jpg'] }), allMemberIds.length - 2, '⑩ jpg 命中 26 个成员（28 成员中 txt 与 tar.gz 不命中）')
+  assertEqual(
+    await visCount({ extensions: ['JPG'] }),
+    await visCount({ extensions: ['jpg'] }),
+    '⑩ 扩展名条件大小写不敏感（JPG ≡ jpg）'
+  )
+  assertEqual(await visCount({ extensions: ['jpg', 'mp4'] }), allMemberIds.length - 1, '⑩ 多值析取：jpg ∪ MP4 = 27')
+  assertEqual(await visCount({ extensions: ['gz'] }), 1, '⑩ 多重点号取末段（1.2.3.tar.gz → gz）')
+  assertEqual(await visCount({ extensions: ['tar'] }), 0, '⑩ 非末段扩展名不命中（tar ≠ tar.gz）')
+  assertEqual(await visCount({ extensions: ['hidden'] }), 0, '⑩ 点文件（.hidden）无扩展名，不命中')
+  assertEqual(await visCount({ extensions: [] }), 0, '⑩ 空数组 = 恒不命中（空集析取式，与 underAnyDir 对齐）')
+  assertEqual(
+    await visCount({ extensions: ['jpg', 'txt', 'mp4', 'gz'] }),
+    allMemberIds.length + 1,
+    '⑩ 无扩展名与末位点（name.）不命中任何集合'
+  )
+  assertEqual(
+    (await store.queryItems({ directNodeStateIn: VIS, extensions: ['jpg'], underDirPath: 'R:/库/ex' })).length,
+    0,
+    '⑩ 扩展名 ∩ 目录范围：仍受其他条件约束（ex 下 jpg 不可见）'
+  )
+  assertEqual(
+    (await store.queryItems({ extensions: ['jpg'] })).every((h) => h.item.kind === 'file'),
+    true,
+    '⑩ 扩展名条件 file-only（锚条目不命中）'
+  )
+
+  
   console.log(`\nVIEW CHECKS PASSED（断言执行 ${executedAsserts} 个）`)}

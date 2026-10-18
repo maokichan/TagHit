@@ -4,7 +4,7 @@ import type { Component } from 'vue'
 import { Check, File, Film, Image, Music, FileText } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
 import { taghitFileUrl, masonryRatioOf } from '../../lib/media'
-import { requestVideoThumbnail } from '../../lib/thumbnailer'
+import { requestThumbnail } from '../../lib/thumbnailer'
 import { useItemStore } from '../../stores/item'
 import { useConfigStore } from '../../stores/config'
 import { allowsOpen, selectIntentOf, type SelectIntent } from '../../features/selection'
@@ -40,12 +40,13 @@ const itemStore = useItemStore()
 /** 列表布局（文件管理器样式）：行式渲染，区别于卡片（瀑布流/网格） */
 const isList = computed(() => config.value<LayoutMode>('layout', 'layoutMode', 'masonry') === 'list')
 
-// 缩略图（字节闸门）：图片经 taghit-file 协议直出原图；视频有缓存缩略图（previewUri）时直取，
-// 无则触发渲染层抓帧生成（thumbnailer 按 contentHash 幂等，落盘后落库复用）
+// 缩略图（字节闸门）：有派生缓存（previewUri）直取小图——图片与视频同一条通道（D36）；
+// 尚无缓存时图片回落原图（首屏直出，不等待生成）、视频给图标占位；
+// 挂载即触发生成（thumbnailer 按 contentHash 幂等，落盘后落库复用，滚动态从此只解码小图）
 const thumbUrl = computed(() => {
   if (!props.item.sourceUri) return null
+  if (props.item.previewUri) return taghitFileUrl(props.item.previewUri)
   if (props.item.mediaType === 'image') return taghitFileUrl(props.item.sourceUri)
-  if (props.item.mediaType === 'video' && props.item.previewUri) return taghitFileUrl(props.item.previewUri)
   return null
 })
 const thumbFailed = ref(false)
@@ -53,8 +54,7 @@ watch(() => props.item.id, () => {
   thumbFailed.value = false
 })
 onMounted(() => {
-  if (props.item.mediaType !== 'video' || props.item.previewUri != null) return
-  requestVideoThumbnail(props.item, (itemId, patch) => itemStore.patchItemThumbnail(itemId, patch))
+  requestThumbnail(props.item, (itemId, patch) => itemStore.patchItemThumbnail(itemId, patch))
 })
 
 /** 瀑布流媒体宽高比（与 ItemGrid.ratioOf 同源：contentHash 派生，确定性不跳动） */
@@ -89,7 +89,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       'opacity-50': item.status === 'missing',
       'border-[var(--accent)]': selected
     }"
-    :title="`${item.title}（双击打开详情；Ctrl/Cmd+单击多选，Shift+单击区间选择；拖出可交付文件）`"
+    :title="item.title"
     data-ctx-target="item"
     :data-ctx-id="item.id"
     draggable="true"
@@ -104,6 +104,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           :alt="item.title"
           class="w-full h-full object-cover"
           loading="lazy"
+          decoding="async"
           draggable="false"
           @error="thumbFailed = true"
         />
@@ -172,7 +173,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       'opacity-50': item.status === 'missing',
       'border-[var(--accent)] shadow-lg': selected
     }"
-    :title="`${item.title}（双击打开详情；Ctrl/Cmd+单击多选，Shift+单击区间选择；拖出可交付文件）`"
+    :title="item.title"
     data-ctx-target="item"
     :data-ctx-id="item.id"
     draggable="true"
@@ -192,6 +193,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
         :alt="item.title"
         class="w-full h-full object-contain"
         loading="lazy"
+        decoding="async"
         draggable="false"
         @error="thumbFailed = true"
       />

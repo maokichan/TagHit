@@ -491,6 +491,17 @@ export class SqliteStore implements Store {
       }
       where.push(`i.kind = 'file' AND NOT (${clauses.length ? clauses.join(' OR ') : '0'})`)
     }
+    if (q.extensions) {
+      // 扩展名命中任一（domain rules.extensionOf 的等价译文，s35 逐一致比对）：
+      // 尾段点后缀、大小写不敏感；点在首位（".hidden"）不是扩展名——LIKE 的 '%' 可匹配
+      // 空首段，须显式排除首字符为 '.' 的行；末位点/无点自然不命中 `%.ext`。
+      // 空数组 = 恒不命中 → `0` 占位（与 underAnyDir 空集同款）。
+      const clauses = q.extensions.map(() => 'LOWER(i.title) LIKE ?')
+      where.push(
+        `i.kind = 'file' AND substr(i.title, 1, 1) <> '.' AND (${clauses.length ? clauses.join(' OR ') : '0'})`
+      )
+      for (const e of q.extensions) params.push(`%.${e.toLowerCase()}`)
+    }
     if (q.directNodeStateIn) {
       // 直接节点状态派生（D18）：条件下沉，LIMIT 因此只作用于结果集
       where.push(

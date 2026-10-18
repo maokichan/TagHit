@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '@shared/api'
 import { toItemView, type ItemView } from '../lib/viewModel'
+import { extensionsFor, FILTERABLE_MEDIA_TYPES, type FilterableMediaType } from '../lib/mediaTypes'
 import type { SelectIntent } from '../features/selection'
 import type { Id, ItemContext, ItemsQuery, ScanSummary } from '@shared/contract'
 
@@ -29,7 +30,12 @@ export const useItemStore = defineStore('item', () => {
   /** 区间选择锚点（上次 replace/toggle 落在视图中的下标）；清空选择即复位。 */
   const anchorIndex = ref<number | null>(null)
 
-  const filter = ref<{ tagIds: Id[]; keyword: string }>({ tagIds: [], keyword: '' })
+  /** 视图筛选：标签（并集）、关键字、格式（类别折叠成扩展名集合下推，D36）。 */
+  const filter = ref<{ tagIds: Id[]; keyword: string; mediaTypes: FilterableMediaType[] }>({
+    tagIds: [],
+    keyword: '',
+    mediaTypes: []
+  })
 
   /** 目录范围（视图状态）：只看该目录子树；null = 不限。下推为查询的 underDirPath。 */
   const scopeDirPath = ref<string | null>(null)
@@ -51,6 +57,7 @@ export const useItemStore = defineStore('item', () => {
     if (filter.value.tagIds.length) query.withAllTags = [...filter.value.tagIds]
     if (filter.value.keyword) query.titleContains = filter.value.keyword
     if (scopeDirPath.value != null) query.underDirPath = scopeDirPath.value
+    if (filter.value.mediaTypes.length) query.extensions = extensionsFor(filter.value.mediaTypes)
     query.order = sortBy.value
     query.orderDir = sortDir.value
     return query
@@ -229,6 +236,31 @@ export const useItemStore = defineStore('item', () => {
     return selectedIds.value.filter((id) => inView.has(id))
   }
 
+  /** 格式筛选（显示面板的类别块）：再点一次取消；下推为扩展名集合（D36）。 */
+  function toggleMediaType(t: FilterableMediaType): void {
+    const list = filter.value.mediaTypes
+    filter.value.mediaTypes = list.includes(t) ? list.filter((x) => x !== t) : [...list, t]
+  }
+
+  /**
+   * 当前视图条件下的类别计数（显示面板格式块的数字）：视图条件（工作区/关键字/标签/范围）
+   * 照常生效、**唯独不含格式自身**——每类别一次 limit:1 的 browse，只取 total。
+   */
+  async function categoryCounts(): Promise<Partial<Record<FilterableMediaType, number>>> {
+    const ws = viewWorkspaceId.value
+    if (ws == null) return {}
+    const base = buildQuery(0)
+    base.limit = 1
+    base.offset = 0
+    const entries = await Promise.all(
+      FILTERABLE_MEDIA_TYPES.map(async (t) => {
+        const res = await api.workspaces.browse(ws, { ...base, extensions: extensionsFor([t]) })
+        return [t, res.total] as const
+      })
+    )
+    return Object.fromEntries(entries)
+  }
+
   function toggleTagFilter(tagId: Id): void {
     const list = filter.value.tagIds
     filter.value.tagIds = list.includes(tagId) ? list.filter((id) => id !== tagId) : [...list, tagId]
@@ -256,6 +288,7 @@ export const useItemStore = defineStore('item', () => {
     if (filter.value.tagIds.length) ctx.withAllTags = [...filter.value.tagIds]
     if (filter.value.keyword) ctx.titleContains = filter.value.keyword
     if (scopeDirPath.value != null) ctx.underDirPath = scopeDirPath.value
+    if (filter.value.mediaTypes.length) ctx.extensions = extensionsFor(filter.value.mediaTypes)
     return ctx
   }
 
@@ -289,6 +322,8 @@ export const useItemStore = defineStore('item', () => {
     tagSelected,
     untagSelected,
     toggleTagFilter,
+    toggleMediaType,
+    categoryCounts,
     clearTagFilters,
     setKeyword,
     setScope,

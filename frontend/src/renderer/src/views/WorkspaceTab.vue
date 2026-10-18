@@ -38,6 +38,7 @@ watch(
   () =>
     [
       itemStore.filter.tagIds.length,
+      itemStore.filter.mediaTypes.length,
       itemStore.sortBy,
       itemStore.sortDir,
       itemStore.scopeDirPath

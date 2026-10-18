@@ -23,6 +23,7 @@ export function itemRoute(itemId: string, context: ItemContext): string {
   if (context.withAllTags?.length) q.set('tags', context.withAllTags.join(','))
   if (context.titleContains) q.set('q', context.titleContains)
   if (context.underDirPath != null && context.underDirPath !== '') q.set('scope', context.underDirPath)
+  if (context.extensions?.length) q.set('ext', context.extensions.join(','))
   const s = q.toString()
   return `/item/${itemId}${s !== '' ? `?${s}` : ''}`
 }
@@ -44,6 +45,8 @@ export function itemContextFromQuery(query: Record<string, unknown>): ItemContex
   if (keyword != null) ctx.titleContains = keyword
   const scope = str('scope')
   if (scope != null) ctx.underDirPath = scope
+  const ext = str('ext')
+  if (ext != null) ctx.extensions = ext.split(',').filter((x) => x !== '')
   return ctx
 }
 

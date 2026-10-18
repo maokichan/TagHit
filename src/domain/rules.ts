@@ -47,3 +47,15 @@ export function isPermutationOf(current: readonly Id[], next: readonly Id[]): bo
   const b = [...next].sort()
   return a.every((id, i) => id === b[i])
 }
+
+/**
+ * 文件名的扩展名（最后一个点之后的小写尾段）。
+ * 边界口径：点在首位（".hidden"）与末位（"name."）、无点，都不是扩展名 → null。
+ * 查询条件 ItemsQuery.extensions 的判定基准；sqlite 侧是
+ * `LOWER(title) LIKE '%.ext' AND 首字符 <> '.'` 的等价译文（s35 校准逐一致比对）。
+ */
+export function extensionOf(name: string): string | null {
+  const dot = name.lastIndexOf('.')
+  if (dot <= 0 || dot === name.length - 1) return null
+  return name.slice(dot + 1).toLowerCase()
+}

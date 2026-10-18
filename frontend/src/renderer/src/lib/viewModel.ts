@@ -1,33 +1,22 @@
 /**
  * 视图模型适配器：契约形状（Item/ItemHit/ProjectedHit）→ 网格/详情页可渲染的 ItemView。
  *
- * - 扩展名 / 媒体类别是**展示推导**（从标题文件名后缀），不涉及数据过滤语义；
+ * - 扩展名是**展示推导**（标题文件名后缀）；媒体类别由可配置映射推导（lib/mediaTypes.ts），
+ *   本文件透传类型与推导函数，消费方 import 不变；
  * - width/height/previewUri（派生元数据，D16 抓帧回写）在契约内、随 ItemView 透传；
  *   EAV 长尾元数据未建模（词表留位），卡片信息只到核心事实为止。
  */
 
 import type { Id, Item, ItemStatus, Tag } from '@shared/contract'
+import { mediaTypeOf, type MediaType } from './mediaTypes'
 
-export type MediaType = 'image' | 'video' | 'audio' | 'document' | 'other'
-
-const EXT_MEDIA: Record<string, MediaType> = {}
-for (const ext of [
-  'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif', 'ico', 'heic'
-]) EXT_MEDIA[ext] = 'image'
-for (const ext of ['mp4', 'mkv', 'mov', 'avi', 'webm', 'flv', 'wmv', 'm4v']) EXT_MEDIA[ext] = 'video'
-for (const ext of ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac', 'wma']) EXT_MEDIA[ext] = 'audio'
-for (const ext of [
-  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md', 'markdown', 'csv', 'rtf'
-]) EXT_MEDIA[ext] = 'document'
+export type { MediaType }
+export { mediaTypeOf }
 
 export function extensionOf(name: string): string | null {
   const dot = name.lastIndexOf('.')
   if (dot <= 0 || dot === name.length - 1) return null
   return name.slice(dot + 1).toLowerCase()
-}
-
-export function mediaTypeOf(ext: string | null): MediaType {
-  return (ext != null && EXT_MEDIA[ext]) || 'other'
 }
 
 /** 网格/详情页消费的条目视图。 */
