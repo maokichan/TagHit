@@ -287,10 +287,7 @@ const tagMatches = computed(() => {
     .slice(0, 12)
 })
 
-/**
- * pin 徽标：数字键速打的映射（配置在标签全页；config `tags:pinned:<wsId>`）。
- * chip 上如实显示键号，"3·风景"——哪根数字键打哪个标签不用记。
- */
+/** chip 显示速打键号（"3·风景"），映射配置在标签全页。 */
 const pinnedDigits = computed(() => {
   if (workspaceId.value == null) return new Map<Id, number>()
   const pins = config.value('tags', `pinned:${workspaceId.value}`, []) as Array<Id | null>

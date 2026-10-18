@@ -37,11 +37,7 @@ export function detailNext(): void {
   current?.next()
 }
 
-/**
- * 速打标签：数字键 → 本工作区 pin 的标签 → 本页 toggleTag。
- * pin 映射归标签职能（标签全页「数字键速打」配置，config `tags:pinned:<wsId>`）；
- * 未配置的键号在这里自然为空操作——配置区与键位表都可见，不算静默失败。
- */
+/** 速打标签执行：数字键 → 本工作区 pin 的标签（映射配置在标签全页）→ 本页 toggleTag。 */
 export function detailQuickTag(digit: number): void | Promise<void> {
   if (current?.toggleTag == null || current.workspaceId == null) return
   const pins = config.value('tags', `pinned:${current.workspaceId}`, []) as Array<string | null>
