@@ -39,6 +39,8 @@ import {
   deleteTagCascade,
   deleteWorkspaceCascade,
   addGroupMember,
+  listGroupMemberships,
+  listGroups,
   getWorkspace,
   itemWindow,
   listWorkspaceNodes,
@@ -348,6 +350,8 @@ function registerHandlers(): void {
   ipcMain.handle('group.delete', (_event, groupId: Id) =>
     envelope(deleteGroupCascade(services, groupId).then(() => null))
   )
+  ipcMain.handle('group.list', () => envelope(listGroups(services)))
+  ipcMain.handle('group.members', () => envelope(listGroupMemberships(services)))
 
   // ---- 窗口（壳级：无边框窗口的自绘控制键，直接操作发起方所在窗口） ----
   ipcMain.handle('window.control', (_event, action: 'minimize' | 'toggleMaximize' | 'close') => {

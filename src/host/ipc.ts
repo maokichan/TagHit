@@ -24,6 +24,7 @@ import type {
   Collection,
   DomainErrorCode,
   Group,
+  GroupMember,
   Id,
   Item,
   ItemStatus,
@@ -51,6 +52,7 @@ export type {
   BrowseResult,
   Collection,
   Group,
+  GroupMember,
   Id,
   Item,
   ItemContext,
@@ -175,6 +177,8 @@ export interface IpcContracts {
   'group.addMember': { args: [{ groupId: Id; tagId: Id }]; result: null }
   'group.removeMember': { args: [{ groupId: Id; tagId: Id }]; result: null }
   'group.delete': { args: [groupId: Id]; result: null }
+  'group.list': { args: []; result: Group[] }
+  'group.members': { args: []; result: GroupMember[] }
 
   // ---- 窗口 window：壳级控制（无边框窗口的自绘控制键；主进程能力，非业务用例） ----
   'window.control': { args: [action: WindowAction]; result: null }
@@ -280,6 +284,8 @@ export interface TaghitRendererApi {
   addGroupMember(input: { groupId: Id; tagId: Id }): Promise<IpcResult<'group.addMember'>>
   removeGroupMember(input: { groupId: Id; tagId: Id }): Promise<IpcResult<'group.removeMember'>>
   deleteGroup(groupId: Id): Promise<IpcResult<'group.delete'>>
+  listGroups(): Promise<IpcResult<'group.list'>>
+  listGroupMemberships(): Promise<IpcResult<'group.members'>>
 
   windowControl(action: WindowAction): Promise<IpcResult<'window.control'>>
   isWindowMaximized(): Promise<IpcResult<'window.isMaximized'>>

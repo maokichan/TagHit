@@ -21,6 +21,7 @@ export type {
   BrowseResult,
   Collection,
   Group,
+  GroupMember,
   Id,
   Item,
   ItemContext,

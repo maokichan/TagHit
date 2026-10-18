@@ -31,3 +31,13 @@ export async function removeGroupMember(
 ): Promise<void> {
   await svc.store.removeGroupMember(groupId, tagId)
 }
+
+/** 全部组（插入序；组管理页按名重排在渲染层做）。 */
+export async function listGroups(svc: AppServices): Promise<Group[]> {
+  return svc.store.listGroups()
+}
+
+/** 组成员关系（groupId × tagId 行）。 */
+export async function listGroupMemberships(svc: AppServices) {
+  return svc.store.listGroupMemberships()
+}

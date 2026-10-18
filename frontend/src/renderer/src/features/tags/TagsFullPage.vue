@@ -9,9 +9,9 @@
  *    口径 = 工作区浏览成员（与网格同一份成员派生）。可视化先以排行列表呈现，形态后续逐轮调。
  */
 import { computed, onMounted, ref } from 'vue'
-import { Pencil, Search, Trash2 } from 'lucide-vue-next'
+import { Pencil, Plus, Search, Trash2, X } from 'lucide-vue-next'
 import { api } from '@shared/api'
-import type { Id, TagPairStat, TagStat } from '@shared/contract'
+import type { Group, Id, Tag, TagPairStat, TagStat } from '@shared/contract'
 import { useTagStore } from '../../stores/tag'
 import { confirmDialog } from '../services/dialog'
 
@@ -33,6 +33,7 @@ const rows = computed(() => {
 async function refresh(): Promise<void> {
   await tagStore.refreshAll()
   stats.value = new Map((await api.tags.stats()).map((s) => [s.tagId, s]))
+  await refreshGroups()
 }
 onMounted(refresh)
 
@@ -97,6 +98,80 @@ async function batchDelete(): Promise<void> {
   await refresh()
 }
 
+// ── 组（组织标签的扁平容器；只用组组织，组索引/筛选另行再看） ──
+const groups = ref<Group[]>([])
+const memberships = ref<Array<{ groupId: Id; tagId: Id }>>([])
+const newGroupName = ref('')
+const groupError = ref('')
+const renamingGroupId = ref<Id | null>(null)
+const renameDraft = ref('')
+const batchGroupId = ref<Id | ''>('')
+
+const sortedGroups = computed(() => [...groups.value].sort((a, b) => a.name.localeCompare(b.name)))
+const membersOf = (gid: Id): Id[] =>
+  memberships.value.filter((m) => m.groupId === gid).map((m) => m.tagId)
+const candidatesOf = (gid: Id): Tag[] =>
+  tagStore.allTags.filter((t) => !membersOf(gid).includes(t.id))
+
+async function refreshGroups(): Promise<void> {
+  const [g, m] = await Promise.all([api.groups.list(), api.groups.memberships()])
+  groups.value = g
+  memberships.value = m
+}
+onMounted(refreshGroups)
+
+async function createGroup(): Promise<void> {
+  const name = newGroupName.value.trim()
+  if (name === '') return
+  try {
+    await api.groups.create(name)
+    newGroupName.value = ''
+    groupError.value = ''
+    await refreshGroups()
+  } catch (e) {
+    groupError.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
+async function saveRename(): Promise<void> {
+  if (renamingGroupId.value == null || renameDraft.value.trim() === '') return
+  await api.groups.rename(renamingGroupId.value, renameDraft.value)
+  renamingGroupId.value = null
+  await refreshGroups()
+}
+
+async function removeGroup(g: Group): Promise<void> {
+  const ok = await confirmDialog({
+    title: '删除组',
+    message: `删除组「${g.name}」？组内标签不受影响，只解除这份组织关系。`,
+    confirmText: '删除',
+    danger: true
+  })
+  if (!ok) return
+  await api.groups.remove(g.id)
+  await refreshGroups()
+}
+
+async function addToGroup(gid: Id, el: HTMLSelectElement): Promise<void> {
+  const tid = el.value
+  if (tid === '') return
+  await api.groups.addMember(gid, tid)
+  el.value = ''
+  await refreshGroups()
+}
+
+async function removeFromGroup(gid: Id, tid: Id): Promise<void> {
+  await api.groups.removeMember(gid, tid)
+  await refreshGroups()
+}
+
+async function batchAddToGroup(): Promise<void> {
+  if (batchGroupId.value === '' || checked.value.size === 0) return
+  for (const tid of checked.value) await api.groups.addMember(batchGroupId.value, tid)
+  batchGroupId.value = ''
+  await refreshGroups()
+}
+
 // ── ③ 对统计 ──────────────────────────────────────────────
 const cooccur = ref<TagPairStat[]>([])
 const mutex = ref<TagPairStat[]>([])
@@ -154,6 +229,21 @@ onMounted(refreshPairs)
           @click="batchDeclare(false)"
         >
           从工作区取消
+        </button>
+        <select
+          v-model="batchGroupId"
+          class="input py-0.5 text-[11px] w-40"
+          :disabled="sortedGroups.length === 0"
+        >
+          <option value="">加入组…</option>
+          <option v-for="g in sortedGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
+        </select>
+        <button
+          class="btn text-[11px]"
+          :disabled="batchGroupId === ''"
+          @click="batchAddToGroup"
+        >
+          加入
         </button>
         <button class="btn text-[11px] text-[var(--danger)]" @click="batchDelete">删除…</button>
       </div>
@@ -235,6 +325,83 @@ onMounted(refreshPairs)
             </tr>
           </tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- ② 组：组织标签的扁平容器（只用组组织；组索引/筛选待定） -->
+    <section>
+      <div class="flex items-center gap-2 mb-2">
+        <h2 class="text-[13px] font-medium flex-1">
+          组
+          <span class="ml-1 text-[11px] text-[var(--fg-dim)] tabular-nums">{{ sortedGroups.length }} 个</span>
+        </h2>
+        <input
+          v-model="newGroupName"
+          class="input py-1 text-[12px] w-48"
+          placeholder="新建组"
+          @keydown.enter.prevent="createGroup"
+        />
+        <button class="btn text-[12px]" :disabled="newGroupName.trim() === ''" title="新建组" @click="createGroup">
+          <Plus :size="13" />
+        </button>
+      </div>
+      <div v-if="groupError" class="error-note mb-2">{{ groupError }}<button class="ml-1" @click="groupError = ''">✕</button></div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div v-for="g in sortedGroups" :key="g.id" class="border border-[var(--border)] rounded-lg p-3">
+          <div class="flex items-center gap-2 mb-2">
+            <template v-if="renamingGroupId === g.id">
+              <input
+                v-model="renameDraft"
+                class="input py-0.5 text-[12px] flex-1 min-w-0"
+                @keydown.enter.prevent="saveRename"
+                @keydown.esc="renamingGroupId = null"
+              />
+              <button class="btn px-1.5 py-0.5 text-[11px]" @click="saveRename">存</button>
+              <button class="btn px-1.5 py-0.5 text-[11px]" @click="renamingGroupId = null">取消</button>
+            </template>
+            <template v-else>
+              <span class="text-[12px] font-medium truncate flex-1">{{ g.name }}</span>
+              <span class="text-[11px] text-[var(--fg-dim)] tabular-nums shrink-0">{{ membersOf(g.id).length }}</span>
+              <button
+                class="btn px-1.5 py-0.5"
+                title="重命名"
+                @click="renamingGroupId = g.id; renameDraft = g.name"
+              >
+                <Pencil :size="12" />
+              </button>
+              <button class="btn px-1.5 py-0.5 text-[var(--danger)]" title="删除组" @click="removeGroup(g)">
+                <Trash2 :size="12" />
+              </button>
+            </template>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span v-for="tid in membersOf(g.id)" :key="tid" class="chip">
+              {{ nameOf(tid) }}
+              <button
+                class="cursor-pointer hover:text-[var(--danger)] inline-flex"
+                title="移出组"
+                @click="removeFromGroup(g.id, tid)"
+              >
+                <X :size="10" />
+              </button>
+            </span>
+            <span v-if="membersOf(g.id).length === 0" class="text-[11px] text-[var(--fg-dim)]">空组</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <select
+              class="input py-0.5 text-[12px] flex-1 min-w-0"
+              :disabled="candidatesOf(g.id).length === 0"
+              @change="addToGroup(g.id, $event.target as HTMLSelectElement)"
+            >
+              <option value="">添加标签…</option>
+              <option v-for="t in candidatesOf(g.id)" :key="t.id" :value="t.id">{{ t.name }}</option>
+            </select>
+          </div>
+        </div>
+        <div v-if="sortedGroups.length === 0" class="text-[12px] text-[var(--fg-dim)]">
+          还没有组——建一个，把同类的标签放进去。
+        </div>
       </div>
     </section>
 

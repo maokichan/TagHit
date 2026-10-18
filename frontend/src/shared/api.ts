@@ -135,6 +135,29 @@ export const api = {
       return unwrap(await bridge().tagPairStats(q))
     }
   },
+  groups: {
+    async list() {
+      return unwrap(await bridge().listGroups())
+    },
+    async memberships() {
+      return unwrap(await bridge().listGroupMemberships())
+    },
+    async create(name: string) {
+      return unwrap(await bridge().createGroup(name))
+    },
+    async rename(groupId: Id, name: string): Promise<void> {
+      unwrap(await bridge().renameGroup({ groupId, name }))
+    },
+    async remove(groupId: Id): Promise<void> {
+      unwrap(await bridge().deleteGroup(groupId))
+    },
+    async addMember(groupId: Id, tagId: Id): Promise<void> {
+      unwrap(await bridge().addGroupMember({ groupId, tagId }))
+    },
+    async removeMember(groupId: Id, tagId: Id): Promise<void> {
+      unwrap(await bridge().removeGroupMember({ groupId, tagId }))
+    }
+  },
   items: {
     async query(query: ItemsQuery): Promise<ItemHit[]> {
       return unwrap(await bridge().queryItems(query))
