@@ -35,7 +35,7 @@ void onMounted(() => {
     </p>
   </div>
 
-  <div v-else class="space-y-6">
+  <div v-else class="max-w-3xl space-y-10">
     <!-- ① 概览与工具：扫描 + 上次结果 -->
     <section>
       <div class="flex items-center gap-2 mb-2">
@@ -56,7 +56,7 @@ void onMounted(() => {
 
       <div
         v-if="itemStore.lastScanResult"
-        class="px-2.5 py-1.5 rounded text-[11px] text-[var(--fg-dim)] bg-[var(--bg-elev)] border border-[var(--border)]"
+        class="px-2.5 py-1.5 rounded text-[11px] text-[var(--fg-dim)] bg-[var(--bg-elev)]"
       >
         上次扫描：+{{ itemStore.lastScanResult.itemsCreated }} 新增 /
         {{ itemStore.lastScanResult.itemsUpdated }} 更新 /

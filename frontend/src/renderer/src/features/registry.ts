@@ -4,6 +4,7 @@ import { FolderOpen, Info, Puzzle, SlidersHorizontal, Tags, FileCog } from 'luci
 import type { FeatureManifest, FeatureSource, MountPoint } from '@shared/types/feature'
 import type { FeatureSurface } from './context'
 import MediaTypeFeature from './display/mediaType/MediaTypeFeature.vue'
+import UntaggedFeature from './display/untagged/UntaggedFeature.vue'
 import ShowTitlesFeature from './display/showTitles/ShowTitlesFeature.vue'
 import {
   defaultExtText,
@@ -253,6 +254,10 @@ export function registerBuiltinFeatures(): void {
       }))
     },
     { component: MediaTypeFeature, setup: setupMediaTypeMap }
+  )
+  official(
+    { id: 'untagged', title: '无标签', mounts: ['displayPanel'] },
+    { component: UntaggedFeature }
   )
   official(
     {

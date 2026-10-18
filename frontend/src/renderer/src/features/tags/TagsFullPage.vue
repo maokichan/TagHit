@@ -197,7 +197,7 @@ onMounted(refreshPairs)
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="max-w-3xl space-y-10">
     <!-- ① 池总表 -->
     <section>
       <div class="flex items-center gap-2 mb-2">
@@ -212,7 +212,10 @@ onMounted(refreshPairs)
       </div>
 
       <!-- 批量条：勾选后出现 -->
-      <div v-if="checked.size > 0" class="flex items-center gap-2 mb-2 text-[12px]">
+      <div
+        v-if="checked.size > 0"
+        class="flex items-center gap-2 mb-2 px-2.5 py-1.5 rounded-md bg-[var(--bg-elev)] border border-[var(--border)] text-[12px]"
+      >
         <span class="text-[var(--fg-dim)]">已选 {{ checked.size }} 个</span>
         <button
           class="btn text-[11px]"
@@ -248,24 +251,23 @@ onMounted(refreshPairs)
         <button class="btn text-[11px] text-[var(--danger)]" @click="batchDelete">删除…</button>
       </div>
 
-      <div class="border border-[var(--border)] rounded-lg overflow-hidden">
-        <table class="w-full text-[12px]">
-          <thead class="bg-[var(--bg-elev)] text-[11px] text-[var(--fg-dim)]">
-            <tr>
-              <th class="w-8"></th>
-              <th class="text-left font-normal px-3 py-1.5">名称</th>
-              <th class="text-left font-normal px-3 py-1.5">描述</th>
-              <th class="text-right font-normal px-3 py-1.5 w-16">挂载</th>
-              <th class="text-right font-normal px-3 py-1.5 w-16">声明</th>
-              <th class="w-20"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="row in rows"
-              :key="row.tag.id"
-              class="border-t border-[var(--border)] hover:bg-[var(--bg-hover)]"
-            >
+      <table class="w-full text-[12px]">
+        <thead class="text-[11px] text-[var(--fg-dim)]">
+          <tr class="border-b border-[var(--border)]">
+            <th class="w-8"></th>
+            <th class="text-left font-normal px-3 py-1.5">名称</th>
+            <th class="text-left font-normal px-3 py-1.5">描述</th>
+            <th class="text-right font-normal px-3 py-1.5 w-14">挂载</th>
+            <th class="text-right font-normal px-3 py-1.5 w-14">声明</th>
+            <th class="w-20"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="row in rows"
+            :key="row.tag.id"
+            class="group border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--bg-hover)] transition-colors"
+          >
               <td class="px-3 py-1.5">
                 <input
                   type="checkbox"
@@ -285,7 +287,11 @@ onMounted(refreshPairs)
                     @keydown.esc="editingId = null"
                   />
                 </template>
-                <template v-else>{{ row.tag.description ?? '—' }}</template>
+                <template v-else>
+                  <span class="block max-w-[14rem] truncate" :title="row.tag.description ?? ''">
+                    {{ row.tag.description ?? '—' }}
+                  </span>
+                </template>
               </td>
               <td class="px-3 py-1.5 text-right tabular-nums text-[var(--fg-dim)]">
                 {{ row.stat?.itemCount ?? '…' }}
@@ -294,7 +300,10 @@ onMounted(refreshPairs)
                 {{ row.stat?.workspaceCount ?? '…' }}
               </td>
               <td class="px-3 py-1.5">
-                <div class="flex items-center gap-1.5">
+                <div
+                  class="flex items-center gap-1.5 transition-opacity"
+                  :class="editingId === row.tag.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                >
                   <template v-if="editingId === row.tag.id">
                     <button class="btn px-1.5 py-0.5 text-[11px]" @click="saveEdit">存</button>
                     <button class="btn px-1.5 py-0.5 text-[11px]" @click="editingId = null">取消</button>
@@ -323,9 +332,8 @@ onMounted(refreshPairs)
                 {{ query === '' ? '池是空的' : '没有匹配的标签' }}
               </td>
             </tr>
-          </tbody>
-        </table>
-      </div>
+        </tbody>
+      </table>
     </section>
 
     <!-- ② 组：组织标签的扁平容器（只用组组织；组索引/筛选待定） -->
@@ -416,7 +424,7 @@ onMounted(refreshPairs)
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <div class="panel-label mb-1.5">经常一起出现</div>
-            <div class="border border-[var(--border)] rounded-lg divide-y divide-[var(--border)]">
+            <div class="divide-y divide-[var(--border)]">
               <div
                 v-for="r in cooccur"
                 :key="`${r.a}-${r.b}`"
@@ -430,7 +438,7 @@ onMounted(refreshPairs)
           </div>
           <div>
             <div class="panel-label mb-1.5">从未一起出现</div>
-            <div class="border border-[var(--border)] rounded-lg divide-y divide-[var(--border)]">
+            <div class="divide-y divide-[var(--border)]">
               <div
                 v-for="r in mutex"
                 :key="`${r.a}-${r.b}`"

@@ -33,7 +33,7 @@
 | `info` | 媒体信息 | 当前选中条目的属性 | 停靠面板（右） |
 | `plugins` | 插件 | 全页入口清单；三方分发落地后的管理面 | 停靠面板（右） |
 | `globalSearch` | 全局搜索 | 跨工作区条目检索 | **全页** |
-| `mediaTypeFilter` / `sort` / `layout` / `workspaceInfo` | 显示面板块 | 显示面板内的区块（**格式筛选**（D36：类别=展示推导、扩展名下推、映射可配置）/ 排序 / 布局 / 工作区信息） | `displayPanel` 块 |
+| `mediaTypeFilter` / `untagged` / `sort` / `layout` / `workspaceInfo` | 显示面板块 | 显示面板内的区块（**格式筛选**（D36：类别=展示推导、扩展名下推、映射可配置）/ **无标签筛选** / 排序 / 布局 / 工作区信息） | `displayPanel` 块 |
 | `showTitles` / `keyboardMouse` | 设置项与行为 | 标题开关（显示面板区块 + 设置分区共享配置）；键鼠行为注册 | `displayPanel` 块 + `settings` |
 
 **呈现面分工**：窄面板只做**就地轻量操作**（浏览、逐节点切换、只看某节点）；
