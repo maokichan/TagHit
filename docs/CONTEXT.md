@@ -1,6 +1,6 @@
 # TagHit 开发交接（CONTEXT）
 
-> 面向 AI 会话的快速交接。**架构见 ARCHITECTURE · 词汇 GLOSSARY · 裁决 DECISIONS · 待办 TODO.md（唯一清单）**。
+> 面向 AI 会话的快速交接。**架构见 ARCHITECTURE · 词汇 GLOSSARY · 裁决 DECISIONS · 风格基线 STYLE · 待办 TODO.md（唯一清单）**。
 > 版本：0.2.15。
 
 ## 一、一句话
@@ -9,7 +9,7 @@
 
 ## 二、读序
 
-README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{domain,ports,application}`；`frontend/` 是渲染层。
+README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{domain,ports,application}`；`frontend/` 是渲染层（**渲染层动样式先读 docs/STYLE.md**）。
 
 ## 三、进度与下一步
 
@@ -27,7 +27,7 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{d
 
 1. **层纪律**：领域纯类型+规则；流程在应用层；存储/IO 在适配器；宿主只装配与边界；端口不做业务判定。
 2. **术语纪律**：只用 GLOSSARY（领域词）/ ARCHITECTURE（架构与渲染层词）已定义的词；**禁自造语义词**，**一词一义**；跨层含义冲突优先改词消除。组件名取领域对象名（ARCHITECTURE 名录是单点）。
-3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / 本文件 + README + TODO.md；不留轮次记录；**进度只记本文件 §三（只列名下能力，不复述细节）**，待办只记 TODO.md；文档不写可推断的内部标识符与文件清单；**文档不带历史内容**——演进与回溯由版本管理承担，文档只陈述现状与规则，不写"此前/曾/已修"式叙事，不写日期。
+3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / STYLE / 本文件 + README + TODO.md；不留轮次记录；**进度只记本文件 §三（只列名下能力，不复述细节）**，待办只记 TODO.md；文档不写可推断的内部标识符与文件清单；**文档不带历史内容**——演进与回溯由版本管理承担，文档只陈述现状与规则，不写"此前/曾/已修"式叙事，不写日期。
 4. **界面文案纪律**：优秀的交互不需要引导赘文——交互自身可理解的，不加说明文字；说明性文案（教学式段落、括号内的"怎么用"解说）取最少必要，能删则删。
 5. **不预建模**：parked 项不进代码（清单见 DECISIONS 末尾），待办细化进 TODO.md。
 6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**（s32 用例 · s33 扫描 · s34 边界 · s35 浏览窗口 · s36 来源根 · s37 顺序窗口 · s38 文件操作；除 s32 分两个入口外均 memory/sqlite 双跑）；动过模板结构跑前端**模板解析检查**（vue-tsc 会漏报标签不闭合）；语义变更即同步文档。
@@ -36,7 +36,7 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{d
 ## 五、环境与运行
 
 - **层 typecheck**：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；freeze 路径已失效）；node v24 可直跑 TS。
-- **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）；**渲染层断言** = `npm --prefix frontend run test`（Vitest：标签↔路由映射、顺序上下文解析、窄桥包装与入参纯化——不需要 DOM，跑一次几百毫秒）。
+- **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）；**渲染层断言** = `npm --prefix frontend run test`（Vitest：标签↔路由映射、顺序上下文解析、窄桥包装与入参纯化——不需要 DOM，跑一次几百毫秒）；**样式基线机检** = `npm --prefix frontend run check:style`（STYLE §6 禁区：写死颜色/10px/uppercase/内联样式等，组件里零命中才绿）。
 - **校准**：`npm run calibrate | calibrate:sqlite`（s32 契约，memory / sqlite 各一个入口）· `calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots | calibrate:window | calibrate:fileops`（各自跑同一场景于 memory 与 sqlite）——scene 定义在 `scripts/s3x-*-scenario.ts`，入口是 `*-calibrate.ts`。
 - **真机运行**：`npm run dev`（一键：打包宿主 → vite dev（端口自适应回退）→ Electron；开发库 `build/taghit-dev.db`）；手动分步见 README。开发态 userData 按库隔离，同库双开由单实例锁拒绝。
 - **宿主产物**：esbuild 打包 `src/host` → `build/main.cjs` + `preload.cjs`（宿主代码改动必须重新打包并重启应用；渲染层改动只需刷新窗口）。

@@ -393,7 +393,7 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
           <div v-else-if="previewKind === 'text'" class="w-full h-full flex flex-col min-h-0">
             <div v-if="textLoading" class="flex-1 flex items-center justify-center text-[var(--fg-dim)] text-sm">读取中…</div>
             <template v-else-if="textContent">
-              <div v-if="textContent.truncated" class="text-[11px] text-[var(--warning, #e5a23c)] px-2 py-1">
+              <div v-if="textContent.truncated" class="text-[11px] text-[var(--warn)] px-2 py-1">
                 文件超过 2 MiB，仅显示前段内容
               </div>
               <pre class="flex-1 min-h-0 overflow-auto text-[12px] leading-relaxed whitespace-pre-wrap break-all bg-[var(--bg)] rounded-md border border-[var(--border)] p-3">{{ textContent.text }}</pre>
@@ -461,11 +461,7 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
               </template>
             </template>
             <template v-else>
-              <span
-                v-for="tag in item.tags"
-                :key="tag.id"
-                class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
-              >
+              <span v-for="tag in item.tags" :key="tag.id" class="chip">
                 {{ tag.name }}
               </span>
             </template>

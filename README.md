@@ -58,6 +58,7 @@ TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:hos
 
 - `docs/GLOSSARY.md` — 业务词汇
 - `docs/DECISIONS.md` — 设计裁决基线（分层、驱动、字节闸门、插件选型）
+- `docs/STYLE.md` — 渲染层风格基线（标准样式表、字号阶梯、禁区机检；新组件动样式先读它）
 - `docs/ARCHITECTURE.md` — 架构与插件机制（含贡献点选型论证）
 - `docs/CONTEXT.md` — 开发交接与当前进度
 - `TODO.md` — 待办唯一清单（按主线/远期/组件/边界/工程化组织）

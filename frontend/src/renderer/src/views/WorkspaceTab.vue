@@ -80,11 +80,10 @@ function selectItem(item: ItemView, intent: SelectIntent): void {
 
     <div
       v-if="itemStore.scanError"
-      class="mx-3 mt-2 px-3 py-2 rounded flex items-center gap-2 text-[12px]"
-      style="background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger)"
+      class="error-note mx-3 mt-2 items-center"
     >
       <span class="flex-1">扫描失败：{{ itemStore.scanError }}</span>
-      <button class="cursor-pointer opacity-70 hover:opacity-100" @click="itemStore.scanError = null">
+      <button @click="itemStore.scanError = null">
         ✕
       </button>
     </div>

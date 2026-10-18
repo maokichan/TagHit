@@ -108,9 +108,8 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           draggable="false"
           @error="thumbFailed = true"
         />
-        <div v-else class="flex flex-col items-center gap-0.5 text-[var(--fg-dim)]">
+        <div v-else class="flex items-center justify-center text-[var(--fg-dim)]">
           <component :is="TypeIcon" :size="20" />
-          <span class="text-[8px] uppercase">{{ item.extension ?? item.mediaType }}</span>
         </div>
         <span
           v-if="selected"
@@ -140,11 +139,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
               />
             </template>
             <template v-else>
-              <span
-                v-for="tag in item.tags.slice(0, 3)"
-                :key="tag.id"
-                class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
-              >
+              <span v-for="tag in item.tags.slice(0, 3)" :key="tag.id" class="chip">
                 {{ tag.name }}
               </span>
             </template>
@@ -160,7 +155,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       <div class="shrink-0 flex items-center gap-4 text-[11px] text-[var(--fg-dim)]">
         <span class="w-14 text-right tabular-nums">{{ formatSize(item.size) }}</span>
         <span class="tabular-nums">{{ formatDate(item.fileModifiedAt) }}</span>
-        <span class="uppercase w-8 text-right">{{ item.extension ?? item.mediaType }}</span>
+        <span class="w-8 text-right">{{ item.extension ?? item.mediaType }}</span>
       </div>
     </div>
   </div>
@@ -199,7 +194,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       />
       <div v-else class="flex flex-col items-center gap-1 text-[var(--fg-dim)] py-6">
         <component :is="TypeIcon" :size="28" />
-        <span class="text-[11px] uppercase">{{ item.extension ?? item.mediaType }}</span>
+        <span class="text-[11px]">{{ item.extension ?? item.mediaType }}</span>
       </div>
       <span
         v-if="selected"
@@ -231,11 +226,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           />
         </template>
         <template v-else>
-          <span
-            v-for="tag in item.tags.slice(0, 4)"
-            :key="tag.id"
-            class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)]"
-          >
+          <span v-for="tag in item.tags.slice(0, 4)" :key="tag.id" class="chip">
             {{ tag.name }}
           </span>
         </template>

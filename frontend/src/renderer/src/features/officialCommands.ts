@@ -6,8 +6,7 @@ import { registerShortcut } from './keyboardMouse/shortcuts'
 import { openBatchTagDialog } from './services/batchTag'
 import { showToast } from './services/dialog'
 import { detailNext, detailPrev } from './detailNav'
-import { itemRoute, openFeatureTab } from './tabs'
-import { useConfigStore } from '../stores/config'
+import { itemRoute } from './tabs'
 import { openPalette } from './palette'
 import { invalidatePathManagement } from './paths/usePathManagement'
 import { api } from '@shared/api'
@@ -169,36 +168,24 @@ export function registerBuiltinCommands(): void {
     }
   )
 
-  // ── 壳导航与视图命令（D33 的事实面：应用能去哪、能切什么，都在这张表里）──
-  // 这些命令没有右键菜单项（无 DOM 目标语义），只经命令面板与快捷键通道暴露。
+  // ── 壳导航命令（D33：面板是注册表的视图；面板管"去哪里"，不复制就地控件）──
+  // 入口纪律：全页呈现的唯一入口是停靠面板右下角角标（D22/D26），布局/标题等视图控制的
+  // 唯一入口是显示面板与设置页——命令面板不为它们开第二扇门（2026-10-18 修剪：
+  // 曾一次性塞入 8 条，其中 6 条违反入口纪律或未经执行路径核查，已撤）。
+  // 主页：关闭全部主页标签后没有别的回程（"+"与设置都会经 ensureHome 兜底）→ 面板是正路。
   official(
     { id: 'shell.home', title: '打开主页', when: { kind: 'targetIs', value: 'shell' } },
-    () => void router.push('/')
+    () => {
+      useTabStore().openNewHome()
+      void router.push('/')
+    }
   )
+  // 设置：标签必须先在 tab store 里存在，守卫才认可 '/settings'（无匹配标签会被弹回活动标签）
   official(
     { id: 'shell.settings', title: '打开设置', when: { kind: 'targetIs', value: 'shell' } },
-    () => void router.push('/settings')
-  )
-  official(
-    { id: 'shell.globalSearch', title: '打开全局搜索', when: { kind: 'targetIs', value: 'shell' } },
-    () => openFeatureTab('globalSearch', '全局搜索', useTabStore().activeWorkspaceId)
-  )
-  official(
-    { id: 'shell.pathsPage', title: '打开来源根页', when: { kind: 'targetIs', value: 'shell' } },
-    () => openFeatureTab('paths', '来源根', useTabStore().activeWorkspaceId)
-  )
-  const setLayout = (mode: 'masonry' | 'grid' | 'list', title: string) =>
-    official({ id: `view.layout.${mode}`, title, when: { kind: 'targetIs', value: 'shell' } }, () => {
-      useConfigStore().setValue('layout', 'layoutMode', mode)
-    })
-  setLayout('masonry', '切换到瀑布流布局')
-  setLayout('grid', '切换到网格布局')
-  setLayout('list', '切换到列表布局')
-  official(
-    { id: 'view.titles.toggle', title: '切换卡片标题显示', when: { kind: 'targetIs', value: 'shell' } },
     () => {
-      const config = useConfigStore()
-      config.setValue('showTitles', 'showTitles', !config.value('showTitles', 'showTitles', true))
+      useTabStore().openSettings()
+      void router.push('/settings')
     }
   )
 

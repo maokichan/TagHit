@@ -3,11 +3,15 @@
 @tailwind utilities;
 
 /* ── 主题变量：暗色默认，亮色可切换（CSS 变量驱动，对应 config.theme） ──
-   层级约定（全项目收敛口径）：
-   - 字号：11 = 说明与次要 · 12 = 正文与控件 · 13 = 输入与强调 · 14+ 仅空态主句/页题；
+   本文件是**样式的单一事实源**（基线见 docs/STYLE.md）：颜色/字号/圆角/组件词汇只在这里定义，
+   组件只挂类名——样式表里没有的形态，先来这里加类，不许在组件里发明一次性样式。
+   层级约定：
+   - 字号白名单：11 = 说明与次要 · 12 = 正文与控件 · 13 = 输入与强调 · 14+ 仅空态主句/页题；
    - 圆角三级制：4px（chip/badge）· 6px（按钮/输入/行内卡）· 8px（面板/弹层）；
-   - 反馈靠边框亮度（--border-hover），阴影只留给浮层（弹层/拖拽预览）——暗色下卡片
-     hover 阴影不可见还引发重绘，边框变亮是唯一稳定的悬浮反馈。 */
+   - 反馈靠边框亮度（--border-hover），阴影只留给浮层（弹层/下拉/拖拽预览）——暗色下卡片
+     hover 阴影不可见还引发重绘，边框变亮是唯一稳定的悬浮反馈。
+   机器可断言的禁区（scripts/check-style.mjs）：hex/rgb 写死、bg-black/*、10px、
+   uppercase/tracking、静态内联 style——组件里一律不出现。 */
 :root {
   color-scheme: dark;
   --bg: #0f1115;
@@ -20,7 +24,12 @@
   --accent: #f59e0b;
   --accent-soft: rgba(245, 158, 11, 0.15);
   --danger: #ef4444;
+  --warn: #e5a23c;
   --ok: #34d399;
+  /* 浮层压暗遮罩（弹层/命令面板/图上角标）：黑度不随主题变 → 单点定义一份。
+     （此前四处组件各写一个 bg-black/NN，三个不同黑度，收敛到这里。） */
+  --overlay-dim: rgb(0 0 0 / 0.45);
+  --overlay-soft: rgb(0 0 0 / 0.25);
   /* 停靠面板（活动栏功能组件）统一宽度：壳级单点——此前各面板 w-64/w-72 不一，
      功能组件不得自定宽度；将来做拖拽调宽也只改这一个变量。 */
   --panel-width: 18rem;
@@ -40,6 +49,7 @@
   --accent: #d97706;
   --accent-soft: rgba(217, 119, 6, 0.12);
   --danger: #dc2626;
+  --warn: #b45309;
   --ok: #059669;
 }
 
@@ -118,5 +128,40 @@ body {
   }
   .kbd {
     @apply px-1 rounded bg-[var(--bg-hover)] border border-[var(--border)] text-[11px] text-[var(--fg-dim)];
+  }
+  /* 标签 chip（词汇表"标签"的最小呈现单元）。三态：
+     静态（只读展示）= .chip · 可点（未挂载，点了挂上）= .chip--action · 激活（已挂载/选中）= .chip--on。
+     搜索候选、筛选 chips、卡片标签都用这一套，不许另造。 */
+  .chip {
+    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)];
+  }
+  .chip--action {
+    @apply border border-[var(--border)] cursor-pointer select-none transition-colors hover:text-[var(--fg)];
+  }
+  .chip--on {
+    @apply bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/40 cursor-pointer select-none;
+  }
+  /* 实心 chip：筛选激活态（当前视图被什么切着，必须一眼可见）——与挂载态（soft）两种强度都是词汇表成员 */
+  .chip--solid {
+    @apply bg-[var(--accent)] text-white cursor-pointer hover:brightness-110 transition-[filter];
+  }
+  /* 失败提示条（面板内/页内的错误横幅）：唯一形态，✕ 关闭钮由组件自带。 */
+  .error-note {
+    @apply px-2.5 py-1.5 rounded text-[11px] flex items-center gap-1;
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    color: var(--danger);
+  }
+  .error-note button {
+    @apply cursor-pointer opacity-70 hover:opacity-100;
+  }
+  /* 框选矩形（几何 left/top/width/height 是 :style 数据，外观在这里） */
+  .marquee-box {
+    @apply fixed z-30 pointer-events-none rounded border border-[var(--accent)];
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  /* 起始页品牌字：字距是排印决策，只在此处（组件不写 tracking-*） */
+  .wordmark {
+    @apply text-[34px] font-semibold text-[var(--accent)] select-none;
+    letter-spacing: 0.04em;
   }
 }

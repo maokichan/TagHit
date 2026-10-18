@@ -401,8 +401,7 @@ watch(
     <!-- 框选覆盖层（视口坐标直出；pointer-events-none 免得挡住鼠标事件） -->
     <div
       v-if="marquee"
-      class="fixed z-30 pointer-events-none rounded-sm border border-[var(--accent)]"
-      style="background: color-mix(in srgb, var(--accent) 14%, transparent)"
+      class="marquee-box"
       :style="{
         left: marquee.x + 'px',
         top: marquee.y + 'px',

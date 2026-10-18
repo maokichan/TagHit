@@ -126,7 +126,7 @@ function openGlobalItem(item: ItemView): void {
       </div>
 
       <!-- 标题（居中，品牌蓝） -->
-      <h1 class="text-[34px] font-semibold tracking-wide text-[var(--accent)] mb-6 select-none">
+      <h1 class="wordmark mb-6">
         TagHit
       </h1>
 
@@ -203,7 +203,7 @@ function openGlobalItem(item: ItemView): void {
               <FolderPlus :size="24" class="text-[var(--fg-dim)] opacity-40" />
               <span
                 v-if="rootCountByWs[ws.id] !== undefined"
-                class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/50 text-white text-[11px]"
+                class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-[var(--overlay-dim)] text-white text-[11px]"
               >
                 {{ rootCountByWs[ws.id] }} 来源根
               </span>

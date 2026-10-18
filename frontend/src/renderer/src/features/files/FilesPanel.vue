@@ -162,13 +162,9 @@ function trashAll(): void {
       </button>
     </template>
 
-    <div
-      v-if="error"
-      class="px-2 py-1.5 rounded text-[11px]"
-      style="background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger)"
-    >
+    <div v-if="error" class="error-note">
       {{ error }}
-      <button class="ml-1 cursor-pointer opacity-70 hover:opacity-100" @click="error = ''">✕</button>
+      <button class="ml-1" @click="error = ''">✕</button>
     </div>
   </div>
 </template>

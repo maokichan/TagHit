@@ -82,7 +82,7 @@ const batchTitle = (): string => {
   <!-- 确认对话框 -->
   <div
     v-if="pending != null"
-    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+    class="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--overlay-dim)]"
     @mousedown="answerConfirm(false)"
   >
     <div
@@ -111,7 +111,7 @@ const batchTitle = (): string => {
   <!-- 批量打标弹层（服务面：标签多选 + 打标/移除） -->
   <div
     v-if="batchTag != null"
-    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/40"
+    class="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--overlay-dim)]"
     @mousedown="closeBatchTagDialog()"
   >
     <div

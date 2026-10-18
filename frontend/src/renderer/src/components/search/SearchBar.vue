@@ -159,7 +159,7 @@ function onScan(): void {
       <button
         v-for="tag in activeTagFilters"
         :key="tag.id"
-        class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-[var(--accent)] text-white cursor-pointer hover:brightness-110 transition-colors"
+        class="chip chip--solid gap-1 px-2"
         :title="`取消筛选 ${tag.name}`"
         @click="itemStore.toggleTagFilter(tag.id)"
       >
