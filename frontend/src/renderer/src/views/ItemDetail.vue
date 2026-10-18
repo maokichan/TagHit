@@ -15,6 +15,7 @@ import { registerDetailNav } from '../features/detailNav'
 import { anchorZoom, pan as panZoom, FIT, wheelFactor, type ZoomState } from '../features/imageZoom'
 import { showToast } from '../features/services/dialog'
 import { formatDate, formatSize } from '../lib/format'
+import { suggestTags } from '../lib/tagSuggest'
 import TagChip from '../components/common/TagChip.vue'
 import ItemFilmstrip from '../components/item/ItemFilmstrip.vue'
 
@@ -274,7 +275,9 @@ let disposeNav: (() => void) | null = null
 onMounted(async () => {
   // 条目与顺序窗口并行取（翻页路径同理）：串行要过两趟 IPC，白等一截
   await Promise.all([load(), loadWindow()])
-  if (workspaceId.value != null) await tagStore.refreshForWorkspace(workspaceId.value)
+  if (workspaceId.value != null) {
+    await Promise.all([tagStore.refreshForWorkspace(workspaceId.value), loadCooccur(workspaceId.value)])
+  }
   // 翻页是命令（快捷键 = 命令注册表的视图）：实现在这里，登记到桥供命令调用
   disposeNav = registerDetailNav({
     prev: () => go(prev.value),
@@ -312,15 +315,34 @@ async function toggleTag(tagId: Id): Promise<void> {
   await load() // 打标后当前页不跳：窗口不重算，翻页时才按新集合取邻居
 }
 
-/** 标签搜索：输入即过滤候选（未挂载的那些），Enter 打上第一个。 */
+/**
+ * 标签搜索候选：未挂载 + 关键字过滤，**按相关性排序**（与该条目已有标签的共现强度，
+ * 见 lib/tagSuggest——排序是增强：统计取不到就退回名单原名序）。Enter 打上第一个。
+ */
 const tagQuery = ref('')
-const tagMatches = computed(() => {
-  const q = tagQuery.value.trim().toLowerCase()
-  const assigned = new Set((item.value?.tags ?? []).map((t) => t.id))
-  return tagStore.tags
-    .filter((t) => !assigned.has(t.id) && (q === '' || t.name.toLowerCase().includes(q)))
-    .slice(0, 12)
-})
+const cooccurPairs = ref<Map<string, number>>(new Map())
+async function loadCooccur(ws: Id): Promise<void> {
+  try {
+    const pairs = await api.tags.pairStats({ workspaceId: ws, kind: 'cooccur', limit: 500 })
+    cooccurPairs.value = new Map(pairs.map((p) => [`${p.a}|${p.b}`, p.together]))
+  } catch {
+    cooccurPairs.value = new Map()
+  }
+}
+const togetherOf = (a: Id, b: Id): number => {
+  if (a === b) return 0
+  const key = a < b ? `${a}|${b}` : `${b}|${a}`
+  return cooccurPairs.value.get(key) ?? 0
+}
+const tagMatches = computed(() =>
+  suggestTags({
+    candidates: tagStore.tags,
+    assignedIds: (item.value?.tags ?? []).map((t) => t.id),
+    query: tagQuery.value,
+    together: togetherOf,
+    limit: 12
+  })
+)
 
 /** chip 显示速打键号（"3·风景"），映射配置在标签全页。 */
 const pinnedDigits = computed(() => {
