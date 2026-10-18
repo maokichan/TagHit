@@ -193,6 +193,18 @@ export const useItemStore = defineStore('item', () => {
     }
   }
 
+  /** 全选当前视图（已加载的成员；壳菜单「全选」/ Ctrl+A）。空视图 = 清空选择。 */
+  function selectAll(): void {
+    if (items.value.length === 0) {
+      clearSelection()
+      return
+    }
+    setSelection(
+      items.value.map((it) => it.id),
+      'replace'
+    )
+  }
+
   /** 多选集计数（右键/批量入口判断）。 */
   function selectionCount(): number {
     return selectedIds.value.length
@@ -322,6 +334,7 @@ export const useItemStore = defineStore('item', () => {
     select,
     applySelection,
     setSelection,
+    selectAll,
     toggleSelect,
     isSelected,
     selectionCount,

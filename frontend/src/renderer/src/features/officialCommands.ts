@@ -5,7 +5,7 @@ import { registerCommand, type CommandEntry } from './commands'
 import { registerShortcut } from './keyboardMouse/shortcuts'
 import { openBatchTagDialog } from './services/batchTag'
 import { showToast } from './services/dialog'
-import { detailNext, detailPrev } from './detailNav'
+import { detailNext, detailPrev, detailQuickTag } from './detailNav'
 import { itemRoute } from './tabs'
 import { openPalette } from './palette'
 import { invalidatePathManagement } from './paths/usePathManagement'
@@ -160,9 +160,25 @@ export function registerBuiltinCommands(): void {
     openPalette()
   })
 
-  // 清空选择（Esc）：视图动作，无菜单项
+  // 全选（壳菜单 / Ctrl+A）：作用于当前视图已加载的成员；空白右键在网格内开壳菜单后即可见
   official(
-    { id: 'selection.clear', title: '清空选择', when: { kind: 'targetIs', value: 'shell' } },
+    {
+      id: 'items.selectAll',
+      title: '全选',
+      menu: { group: 'nav', order: 1 },
+      when: { kind: 'targetIs', value: 'shell' }
+    },
+    () => useItemStore().selectAll()
+  )
+
+  // 清空选择（Esc 为主路径）：壳菜单第二项
+  official(
+    {
+      id: 'selection.clear',
+      title: '清空选择',
+      menu: { group: 'nav', order: 2 },
+      when: { kind: 'targetIs', value: 'shell' }
+    },
     () => {
       useItemStore().clearSelection()
     }
@@ -202,6 +218,24 @@ export function registerBuiltinCommands(): void {
   official({ id: 'item.prev', title: '上一张', when: detailPageOnly }, () => detailPrev())
   official({ id: 'item.next', title: '下一张', when: detailPageOnly }, () => detailNext())
 
+  // 速打标签（数字键 1..9）：pin 映射归标签职能，在标签全页「数字键速打」配置
+  // （config `tags:pinned:<wsId>`）；执行 = 桥上本页的 toggleTag。未配置的键号是空操作——
+  // 配置区与键位表都可见，不属静默失败。输入态（标签搜索框等）由执行器的豁免规则放行。
+  for (const digit of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) {
+    official(
+      { id: `item.quickTag.${digit}`, title: `速打标签 ${digit}`, when: detailPageOnly },
+      () => {
+        void detailQuickTag(digit)
+      }
+    )
+    registerShortcut({
+      commandId: `item.quickTag.${digit}`,
+      key: String(digit),
+      label: `速打标签 ${digit}`
+    })
+  }
+
+
   // ── 官方快捷键绑定（快捷键 = 命令注册表的视图；行为逐个增补） ──
   // Ctrl+F：沿用"键鼠交互"设置开关；输入态也允许（本来就在找搜索框）
   registerShortcut({
@@ -214,6 +248,8 @@ export function registerBuiltinCommands(): void {
   })
   // Esc：清空多选集（含输入态——打字时按 Esc 也应当退出选择态）
   registerShortcut({ commandId: 'selection.clear', key: 'escape', label: '清空选择' })
+  // Ctrl+A 全选：输入态不触发（执行器豁免规则），文本框内的原生全选不受影响
+  registerShortcut({ commandId: 'items.selectAll', key: 'a', mod: true, label: '全选' })
   // 详情页翻页：← / → 与 PgUp / PgDn 四路并存——笔记本可能没有 PgUp/PgDn（要 Fn+↑），
   // 而视频聚焦时方向键属原生控件（见 keyboardMouse/setup.ts 的让位规则），那时 PgUp/PgDn 是主力。
   registerShortcut({ commandId: 'item.prev', key: 'arrowleft', label: '上一张' })

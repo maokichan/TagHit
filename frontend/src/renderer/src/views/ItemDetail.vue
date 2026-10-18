@@ -7,6 +7,7 @@ import type { Id, ItemContext, ItemWindowResult } from '@shared/contract'
 import { toItemView, type ItemView } from '../lib/viewModel'
 import { previewKindOf, taghitFileUrl, type PreviewKind } from '../lib/media'
 import { useTabStore, type ItemTab } from '../stores/tab'
+import { useConfigStore } from '../stores/config'
 import { useTagStore } from '../stores/tag'
 import { itemRoute, resolveItemContext } from '../features/tabs'
 import { windowNav } from '../features/windowNav'
@@ -22,6 +23,7 @@ const route = useRoute()
 const router = useRouter()
 const tabStore = useTabStore()
 const tagStore = useTagStore()
+const config = useConfigStore()
 
 const item = ref<ItemView | null>(null)
 const error = ref('')
@@ -238,7 +240,12 @@ onMounted(async () => {
   await loadWindow()
   if (workspaceId.value != null) await tagStore.refreshForWorkspace(workspaceId.value)
   // 翻页是命令（快捷键 = 命令注册表的视图）：实现在这里，登记到桥供命令调用
-  disposeNav = registerDetailNav({ prev: () => go(prev.value), next: () => go(next.value) })
+  disposeNav = registerDetailNav({
+    prev: () => go(prev.value),
+    next: () => go(next.value),
+    workspaceId: workspaceId.value ?? undefined,
+    toggleTag: (tagId) => toggleTag(tagId)
+  })
 })
 
 onBeforeUnmount(() => {
@@ -279,6 +286,24 @@ const tagMatches = computed(() => {
     .filter((t) => !assigned.has(t.id) && (q === '' || t.name.toLowerCase().includes(q)))
     .slice(0, 12)
 })
+
+/**
+ * pin 徽标：数字键速打的映射（配置在标签全页；config `tags:pinned:<wsId>`）。
+ * chip 上如实显示键号，"3·风景"——哪根数字键打哪个标签不用记。
+ */
+const pinnedDigits = computed(() => {
+  if (workspaceId.value == null) return new Map<Id, number>()
+  const pins = config.value('tags', `pinned:${workspaceId.value}`, []) as Array<Id | null>
+  const map = new Map<Id, number>()
+  pins.forEach((tid, i) => {
+    if (tid != null) map.set(tid, i + 1)
+  })
+  return map
+})
+const chipName = (t: { id: Id; name: string }): string => {
+  const d = pinnedDigits.value.get(t.id)
+  return d != null ? `${d}·${t.name}` : t.name
+}
 
 async function applyFirstMatch(): Promise<void> {
   const first = tagMatches.value[0]
@@ -447,7 +472,7 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
               <TagChip
                 v-for="tag in item.tags"
                 :key="tag.id"
-                :name="tag.name"
+                :name="chipName(tag)"
                 active
                 @click="toggleTag(tag.id)"
               />
@@ -455,7 +480,7 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
                 <TagChip
                   v-for="tag in tagMatches"
                   :key="`add-${tag.id}`"
-                  :name="tag.name"
+                  :name="chipName(tag)"
                   @click="toggleTag(tag.id)"
                 />
               </template>

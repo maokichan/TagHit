@@ -8,15 +8,17 @@
  * ③ 对统计 —— 共现（经常一起出现）与互斥（都在库里却从不同现），
  *    口径 = 工作区浏览成员（与网格同一份成员派生）。可视化先以排行列表呈现，形态后续逐轮调。
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Pencil, Plus, Search, Trash2, X } from 'lucide-vue-next'
 import { api } from '@shared/api'
 import type { Group, Id, Tag, TagPairStat, TagStat } from '@shared/contract'
 import { useTagStore } from '../../stores/tag'
+import { useConfigStore } from '../../stores/config'
 import { confirmDialog } from '../services/dialog'
 
 const props = defineProps<{ workspaceId?: string | null }>()
 const tagStore = useTagStore()
+const config = useConfigStore()
 
 const wsId = computed(() => props.workspaceId ?? '')
 
@@ -170,6 +172,31 @@ async function batchAddToGroup(): Promise<void> {
   for (const tid of checked.value) await api.groups.addMember(batchGroupId.value, tid)
   batchGroupId.value = ''
   await refreshGroups()
+}
+
+// ── 数字键速打（详情页 1..9 直达；映射归标签职能，配置只在此页） ──
+const declared = ref<Id[]>([])
+const pins = ref<Array<Id | null>>(Array(9).fill(null))
+
+const declaredTags = computed(() => tagStore.allTags.filter((t) => declared.value.includes(t.id)))
+
+async function refreshPins(): Promise<void> {
+  if (wsId.value === '') {
+    declared.value = []
+    return
+  }
+  declared.value = await api.workspaces.declaredTags(wsId.value)
+  const saved = config.value('tags', `pinned:${wsId.value}`, []) as Array<Id | null>
+  pins.value = Array.from({ length: 9 }, (_, i) => saved[i] ?? null)
+}
+onMounted(refreshPins)
+watch(wsId, refreshPins)
+
+function setPin(digit: number, tagId: string): void {
+  const arr = [...pins.value]
+  arr[digit - 1] = tagId === '' ? null : (tagId as Id)
+  pins.value = arr
+  config.setValue('tags', `pinned:${wsId.value}`, arr)
 }
 
 // ── ③ 对统计 ──────────────────────────────────────────────
@@ -411,6 +438,33 @@ onMounted(refreshPairs)
           还没有组——建一个，把同类的标签放进去。
         </div>
       </div>
+    </section>
+
+    <!-- 数字键速打：详情页 1..9 直达（映射归标签职能，配置只在此页） -->
+    <section>
+      <h2 class="text-[13px] font-medium mb-2">数字键速打</h2>
+      <p v-if="wsId === ''" class="text-[12px] text-[var(--fg-dim)]">
+        按工作区生效，从工作区打开本页后可配置。
+      </p>
+      <template v-else>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div v-for="digit in 9" :key="digit" class="flex items-center gap-2">
+            <span class="kbd w-6 text-center shrink-0">{{ digit }}</span>
+            <select
+              class="input py-0.5 text-[12px] flex-1 min-w-0"
+              :value="pins[digit - 1] ?? ''"
+              :disabled="declaredTags.length === 0"
+              @change="setPin(digit, ($event.target as HTMLSelectElement).value)"
+            >
+              <option value="">未指定</option>
+              <option v-for="t in declaredTags" :key="t.id" :value="t.id">{{ t.name }}</option>
+            </select>
+          </div>
+        </div>
+        <p v-if="declaredTags.length === 0" class="text-[11px] text-[var(--fg-dim)] mt-1.5">
+          本工作区还没有已声明的标签。
+        </p>
+      </template>
     </section>
 
     <!-- ③ 对统计（共现 / 互斥） -->

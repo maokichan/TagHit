@@ -7,9 +7,16 @@
  * 没挂详情页时是空操作（这也就是它的"生效范围"判定，无需给命令加路由谓词）。
  */
 
+import { useConfigStore } from '../stores/config'
+
+const config = useConfigStore()
+
 export interface DetailNav {
   prev: () => void
   next: () => void
+  /** 速打标签（数字键 1..9）：实现仍在本页（持有 toggleTag 与工作区），命令只调桥。 */
+  workspaceId?: string
+  toggleTag?: (tagId: string) => void | Promise<void>
 }
 
 let current: DetailNav | null = null
@@ -28,6 +35,18 @@ export function detailPrev(): void {
 
 export function detailNext(): void {
   current?.next()
+}
+
+/**
+ * 速打标签：数字键 → 本工作区 pin 的标签 → 本页 toggleTag。
+ * pin 映射归标签职能（标签全页「数字键速打」配置，config `tags:pinned:<wsId>`）；
+ * 未配置的键号在这里自然为空操作——配置区与键位表都可见，不算静默失败。
+ */
+export function detailQuickTag(digit: number): void | Promise<void> {
+  if (current?.toggleTag == null || current.workspaceId == null) return
+  const pins = config.value('tags', `pinned:${current.workspaceId}`, []) as Array<string | null>
+  const tagId = pins[digit - 1]
+  if (tagId != null) return current.toggleTag(tagId)
 }
 
 /**

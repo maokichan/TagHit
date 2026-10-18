@@ -83,7 +83,9 @@ export function assembleMenu(ctx: MenuContext): MenuSection[] {
   for (const entry of registry.values()) {
     if (entry.manifest.source !== 'official') continue // 三方装载未接线，先只出官方
     if (!evalWhen(entry.manifest.when, ctx)) continue
-    const group = entry.manifest.menu?.group ?? 'modify'
+    // 无摆放元数据 = 不是菜单项（只经命令面板/快捷键暴露）——面板专用命令不得漏进右键
+    if (entry.manifest.menu == null) continue
+    const group = entry.manifest.menu.group
     if (!byGroup.has(group)) byGroup.set(group, [])
     byGroup.get(group)!.push(entry)
   }

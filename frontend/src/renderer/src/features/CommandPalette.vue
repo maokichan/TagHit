@@ -72,7 +72,10 @@ function onKey(e: KeyboardEvent): void {
   // 面板是模态调用面：别的**已绑定组合键**在面板打开期间不落到下层执行器
   // （否则 Ctrl+F 会隔着面板去聚焦搜索框，看起来像"面板自己乱跳"）
   const bound = matchShortcut(e)
-  if (bound != null && bound.commandId !== 'shell.commandPalette') {
+  // 组合键（mod/shift）在面板打开期间仍拦下（否则 Ctrl+F 隔着面板聚焦搜索框）；
+  // **裸键放行**——面板输入框是输入态，数字/方向键要能正常打字与移动光标
+  //（裸键绑定的动作在执行器侧本就有"输入态不触发"豁免，不会双触发）。
+  if (bound != null && (bound.mod || bound.shift) && bound.commandId !== 'shell.commandPalette') {
     e.stopPropagation()
     return
   }

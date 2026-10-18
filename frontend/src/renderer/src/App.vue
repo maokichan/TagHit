@@ -142,7 +142,23 @@ function onToggleRight(id: string): void {
 // workspaceId 投影：目标自带 `data-ctx-workspace`（如来源根树行——功能标签页里活动工作区为空）优先。
 function onContextMenu(e: MouseEvent): void {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-ctx-target]')
-  if (el == null) return
+  if (el == null) {
+    // 空白处：声明了 data-ctx-shell 的容器（浏览网格）开壳菜单（全选/清空选择）；
+    // 其余空白保留原生菜单（文本选择等场景，见上）。
+    const shellEl = (e.target as HTMLElement).closest<HTMLElement>('[data-ctx-shell]')
+    if (shellEl == null) return
+    e.preventDefault()
+    openContextMenu(
+      {
+        target: { kind: 'shell' },
+        workspaceId: tabStore.activeWorkspaceId,
+        selection: { ids: [...itemStore.selectedIds] }
+      },
+      e.clientX,
+      e.clientY
+    )
+    return
+  }
   e.preventDefault()
   const kind = el.dataset.ctxTarget ?? ''
   const id = el.dataset.ctxId

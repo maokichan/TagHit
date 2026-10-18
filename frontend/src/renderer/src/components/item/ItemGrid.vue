@@ -326,6 +326,7 @@ watch(
       v-else
       ref="scrollEl"
       class="flex-1 min-h-0 overflow-y-auto select-none"
+      data-ctx-shell
       @scroll.passive="onScroll"
       @click="onContainerClick"
       @mousedown="onContainerMouseDown"
