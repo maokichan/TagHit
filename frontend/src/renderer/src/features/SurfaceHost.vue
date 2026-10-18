@@ -5,7 +5,7 @@
  * 惰性解析（direct 直连 / async defineAsyncComponent）→ **壳级外壳** → FeatureBoundary 错误隔离
  * → FeatureContext 注入。活动栏面板、显示面板块、内容区标签页共用本组件。
  *
- * **容器归壳**（2026-09-12）：外壳由呈现面决定，功能组件只出内容、不自绘宽度与边框——
+ * **容器归壳**：外壳由呈现面决定，功能组件只出内容、不自绘宽度与边框——
  * - `activityBar` → 停靠面板外壳（壳级宽度 `--panel-width` + 左右边框 + 角标）
  * - `contentTab` → 全页外壳（页头 + 占满内容区，**不套窄面板**）
  * - `displayPanel` / `settings` → 无外壳（宿主面板/设置页自带分区容器）

@@ -4,7 +4,7 @@
  * 并给出当前浏览范围（只看某节点）的退出入口。
  *
  * `allowBulk` 控制**一键批量**（恢复全部可见）是否出现：窄面板只做就地轻量操作，
- * 批量改可见性属重管理 → 只在全页呈现（2026-09-12 裁决：批量与去留处置归详细页）。
+ * 批量改可见性属重管理 → 只在全页呈现（裁决：批量与去留处置归详细页）。
  */
 import { Focus, X } from 'lucide-vue-next'
 import { usePathManagement } from './usePathManagement'

@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 
 /**
- * 功能组件设置仓（settings 机制化，DECISIONS 2026-09-07）：
+ * 功能组件设置仓（settings 机制化，见 DECISIONS）：
  * SettingSchema.key 的语义 = **组件内 key**，实际存储键 = `featureId:key`，
  * 由壳统一持有——三方插件声明同名 key 也不会冲突。
  * 持久化：localStorage 起步（taghit.featureSettings），宿主 config 端点落地后整体迁移，

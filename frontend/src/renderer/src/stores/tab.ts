@@ -35,7 +35,7 @@ export interface ItemTab {
 }
 
 /**
- * 功能组件内容标签页（contentTab 贡献点，DECISIONS 2026-09-07）：
+ * 功能组件内容标签页（contentTab 贡献点，见 DECISIONS）：
  * 壳持有标签项（featureId/title/激活），组件自持内容状态；关闭即销毁；
  * 同一 feature 单实例（重复打开 = 激活既有标签）。
  *
@@ -82,7 +82,7 @@ export const useTabStore = defineStore('tab', () => {
   }
 
   /**
-   * "+"：主页单例（2026-08-23 用户决策）——已有主页标签则激活它，没有才新建。
+   * "+"：主页单例（用户决策）——已有主页标签则激活它，没有才新建。
    * 主页只在"没有多余标签页"或"新建标签页"时出现，其他情况下不被随意访问。
    */
   function openNewHome(): void {

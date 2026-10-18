@@ -23,7 +23,7 @@ const settingsFeatures = computed(() => listFeatures('settings'))
 
 /**
  * 设置项读写（机制化）：key 是**组件内 key**，实际存储 = config 仓的
- * `featureId:key`（DECISIONS 2026-09-07）；缺省值取 manifest 声明的 default。
+ * `featureId:key`（见 DECISIONS）；缺省值取 manifest 声明的 default。
  * 面板与设置页读写同一份 config，天然一致；新增设置项零代码（仅声明 schema）。
  */
 const config = useConfigStore()

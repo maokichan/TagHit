@@ -2,7 +2,7 @@
  * 功能组件：键鼠交互 —— 行为注册（快捷键执行器；远期鼠标手势在此扩展）。
  * 无面板 UI，仅挂设置页（配置项见 registry.ts 中 keyboardMouse 的 settings）。
  *
- * 框架（2026-09-12 标准化）：
+ * 框架：
  * 1. **快捷键注册表**（features/keyboardMouse/shortcuts.ts）持绑定 → 命令 id；
  *    本文件只做**执行器**：keydown → 命中绑定 → 开关闸门 → 构造上下文 → 求值 when → 跑命令。
  *    ——快捷键与右键菜单共用同一张命令注册表（DECISIONS：快捷键是命令注册表的视图）。

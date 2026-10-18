@@ -171,7 +171,7 @@ export async function scanWorkspace(
         const facts = await readFileFacts(fs, path)
         if (facts.kind === 'gone') continue // 遍历与采集之间消失：交给下面的消失判定按策略处理
         if (facts.kind === 'unreadable') {
-          // 单点故障不得让整次扫描失败（D24 同规则，此前只覆盖目录级）
+          // 单点故障不得让整次扫描失败（D24 同规则）
           unreadableFiles.add(path)
           summary.filesUnreadable++
           console.warn(`[scan] 文件不可读，本次跳过：${path}（${facts.message}）`)

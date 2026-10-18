@@ -181,7 +181,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       :style="isMasonry ? { aspectRatio } : undefined"
     >
       <!-- object-contain：媒体整体入框，**不裁切**。框比 = 媒体实测比，故通常严丝合缝；
-           比例被钳制（极端横幅/竖幅）或实测值缺失时，宁可留边也不裁画面（2026-09-12）。 -->
+           比例被钳制（极端横幅/竖幅）或实测值缺失时，宁可留边也不裁画面。 -->
       <img
         v-if="thumbUrl && !thumbFailed"
         :src="thumbUrl"

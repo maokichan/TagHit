@@ -9,7 +9,7 @@ export type RightTool = 'info' | 'plugins'
 
 /**
  * 壳自身外观状态。功能组件的设置不在此处：经 stores/config.ts 按
- * `featureId:key` 命名空间持有（DECISIONS 2026-09-07）。
+ * `featureId:key` 命名空间持有（见 DECISIONS）。
  */
 export const useUiStore = defineStore('ui', () => {
   const theme = ref<Theme>('dark')

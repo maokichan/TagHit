@@ -11,8 +11,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const workspaces = ref<Workspace[]>([])
   const loading = ref(false)
   /**
-   * 列表加载失败的原因。**必须暴露**：此前 refresh 失败只是把异常抛出到无人接管的 Promise，
-   * 界面表现为"一个工作区卡片都没有"——看起来像数据丢了，其实是调用断了（2026-10-01 实踩）。
+   * 列表加载失败的原因。**必须暴露**：refresh 失败若只把异常抛出便无人接管，
+   * 界面表现为"一个工作区卡片都没有"，看起来像数据丢了，其实是调用断了。
    */
   const error = ref<string | null>(null)
 

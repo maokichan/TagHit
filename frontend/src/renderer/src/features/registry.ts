@@ -310,7 +310,7 @@ export function registerBuiltinFeatures(): void {
     {
       id: 'showTitles',
       title: '卡片标题',
-      // 显示面板区块（2026-10-18）+ 设置页共享同一份 config；不占活动栏实例
+      // 显示面板区块 + 设置页共享同一份 config；不占活动栏实例
       mounts: ['displayPanel', 'settings'],
       settings: [{ key: 'showTitles', type: 'boolean', label: '网格卡片显示标题', default: true }]
     },

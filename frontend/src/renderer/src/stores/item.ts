@@ -179,8 +179,8 @@ export const useItemStore = defineStore('item', () => {
   }
 
   /**
-   * 选择交互的**唯一实现**（键鼠框架，2026-09-12）：意图由门面解释（features/selection.ts），
-   * 状态变更在此收口——组件不再自写修饰键分支（历史缺陷：Ctrl+双击既切换选择又打开详情）。
+   * 选择交互的**唯一实现**（键鼠框架 D23）：意图由门面解释（features/selection.ts），
+   * 状态变更在此收口——组件不自写修饰键分支。
    * - replace：单选；toggle：出入多选集；range：锚点→本项（按**当前视图顺序**）成区间。
    */
   function applySelection(item: ItemView, intent: SelectIntent): void {

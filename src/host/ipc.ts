@@ -17,7 +17,7 @@
  * config、插件调用、条目 readText 之外的 openWithSystem、
  * 标签关联语义、扫描进度事件（事件面随 D6 落地）。
  * 缩略图（thumbnail.save）为派生小图通道：仅收视频 canvas 抓帧 JPEG（≤2MiB），非原媒体字节。
- * dialog.pickDirectory = 原生目录选择（2026-09-12 落地，仅此一个 dialog 端点，不开通用口子）。
+ * dialog.pickDirectory = 原生目录选择（仅此一个 dialog 端点，不开通用口子）。
  */
 
 import type {

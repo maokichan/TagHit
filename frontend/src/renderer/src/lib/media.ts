@@ -47,9 +47,9 @@ const MAX_RATIO = 2.2
  * 视频宽高（`video.videoWidth/Height`）；极端比例钳制在 [1/2.2, 2.2]（布局守护）。
  *
  * 实测值缺失（旧数据/未抓帧/解析失败）→ **中性 4:3 占位**，与文档/音频一致。
- * 历史行为（2026-09-12 改）：缺失时用 contentHash 派生一个**假比例**——视频在抓帧完成前
- * 就会按假比例出框，卡片用 object-cover 填满 → 画面被裁，用户看到"比例和原始的不一样"。
- * 假数据在这里没有任何收益：真实比例到达后卡片会重排，宁可让它从占位跳到真值。
+ * **不要**用 contentHash 派生"假比例"兜底（已裁定为缺陷源，勿回退，见 D26）：抓帧完成前按假比例
+ * 出框、object-cover 一填就裁画面，而真实比例到达后反正要重排——假数据没有任何收益，
+ * 宁可让它从占位跳到真值。
  */
 export function masonryRatioOf(view: { contentHash: string | null; mediaType: MediaType; width?: number | null; height?: number | null }): number {
   if (view.mediaType !== 'image' && view.mediaType !== 'video') return 4 / 3

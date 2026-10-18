@@ -127,8 +127,7 @@ export interface ItemsQuery {
    * 路径段匹配同 `underDirPath`，**仅命中 file 条目**（脱根判定与清理候选共用）。
    * 空数组 = 空集的否定式，集合语义下**恒真**——全部 file 条目命中（"没有任何根，
    * 则一切有来源条目皆脱根"的如实口径）；与 `underAnyDir` 空数组的恒不命中互为对偶。
-   * （2026-10-04 更正：契约曾误写"空数组 = 恒不命中"，与两份适配器实现相反——
-   * 双跑校准对"两份同错"不敏感，故该语义由 s35 断言钉死。）
+   * （"双跑一致"对两份同错并不敏感——该语义由 s35 断言钉死，改动前先看断言。）
    */
   notUnderAnyDir?: string[]
   /**
@@ -152,7 +151,7 @@ export interface ItemsQuery {
    * `'excluded'` = 被用户排除的直接条目（统计"隐藏了多少条"用同一份译文）。
    *
    * 该条件下沉到存储而非在应用层回捞后筛：ORDER BY 与 LIMIT/OFFSET 必须一律作用于**结果集**，
-   * 否则先取窗口再筛会让条目数随排序键与方向变化（2026-09-12 修复的缺陷）。
+   * 否则先取窗口再筛会让条目数随排序键与方向变化。
    * 语义与 `domain/paths.ts` 的 parentDir 一致（sqlite 用等价 SQL 表达式，校准 s35 逐一致比对）。
    */
   directNodeStateIn?: { workspaceId: Id; state: NodeState }
@@ -186,7 +185,7 @@ export interface ItemHit {
 }
 
 /**
- * 顺序窗口查询（条目详情页的翻页与前后预览，2026-09-30）。
+ * 顺序窗口查询（条目详情页的翻页与前后预览）。
  *
  * 与分页的区别：分页问"从第 N 条起的一页"，窗口问"某一条的前后邻居是谁"——
  * 后者需要一个锚条目。顺序语义与 ItemsQuery.order/orderDir **完全一致**（tiebreak = id 升序），
