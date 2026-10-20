@@ -120,16 +120,39 @@ body {
   }
   .btn {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--fg-dim)]
-      hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer
+      hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] cursor-pointer
       disabled:opacity-40 disabled:cursor-not-allowed
-      focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--accent)];
+      focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)];
+    transition-property: color, background-color, border-color, opacity, transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .btn:not(:disabled):active {
+    transform: scale(0.97);
   }
   .btn-primary {
     @apply bg-[var(--accent)] text-white hover:bg-[var(--accent)] hover:text-white hover:opacity-90;
   }
+  /* 纯图标按钮：无底色，命中区由调用方给尺寸；按压缩放用于即时反馈。 */
+  .icon-btn {
+    @apply inline-flex items-center justify-center rounded cursor-pointer text-[var(--fg-dim)]
+      hover:text-[var(--fg)] disabled:opacity-40 disabled:cursor-not-allowed
+      focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)];
+    transition-property: color, opacity, transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .icon-btn:not(:disabled):active {
+    transform: scale(0.95);
+  }
   .input {
     @apply bg-[var(--bg)] border border-[var(--border)] rounded-md px-2.5 py-1.5
-      text-[var(--fg)] outline-none focus:border-[var(--accent)] transition-colors;
+      text-[var(--fg)] outline-none focus:border-[var(--accent)] transition-colors
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .input::placeholder {
+    color: var(--fg-dim);
+    opacity: 0.7;
   }
   .kbd {
     @apply px-1 rounded bg-[var(--bg-hover)] border border-[var(--border)] text-[11px] text-[var(--fg-dim)];
@@ -141,19 +164,34 @@ body {
     @apply inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)];
   }
   .chip--action {
-    @apply border border-[var(--border)] cursor-pointer select-none transition-colors hover:text-[var(--fg)];
+    @apply border border-[var(--border)] cursor-pointer select-none hover:text-[var(--fg)];
   }
   .chip--on {
     @apply bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-border)] cursor-pointer select-none;
   }
   /* 实心 chip：筛选激活态（当前视图被什么切着，必须一眼可见）——与挂载态（soft）两种强度都是词汇表成员 */
   .chip--solid {
-    @apply bg-[var(--accent)] text-white cursor-pointer hover:brightness-110 transition-[filter];
+    @apply bg-[var(--accent)] text-white cursor-pointer hover:brightness-110;
   }
   /* 排除 chip（`-标签` 筛选激活态）：强度对标 solid，danger 色系表达"剔除"语义 */
   .chip--excluded {
-    @apply text-[var(--danger)] border border-[var(--danger-border)] cursor-pointer hover:brightness-110 transition-[filter];
+    @apply text-[var(--danger)] border border-[var(--danger-border)] cursor-pointer hover:brightness-110;
     background: color-mix(in srgb, var(--danger) 12%, transparent);
+  }
+  /* 可点 chip：色变过渡 + 按压缩放（反馈，不是入场动画） */
+  .chip--action,
+  .chip--on,
+  .chip--solid,
+  .chip--excluded {
+    transition-property: color, background-color, border-color, filter, transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .chip--action:active,
+  .chip--on:active,
+  .chip--solid:active,
+  .chip--excluded:active {
+    transform: scale(0.97);
   }
   /* 失败提示条（面板内/页内的错误横幅）：唯一形态，✕ 关闭钮由组件自带。 */
   .error-note {
@@ -164,6 +202,79 @@ body {
   .error-note button {
     @apply cursor-pointer opacity-70 hover:opacity-100;
   }
+  /* 数据表行：整行底色反馈；行尾操作按需显形（hover 或键盘焦点进入即显形，
+     隐藏态禁用指针命中，避免点到看不见的按钮）。 */
+  .data-row {
+    @apply border-b border-[var(--border)] transition-colors;
+  }
+  .data-row:last-child {
+    border-bottom: 0;
+  }
+  .data-row--selected {
+    @apply bg-[var(--bg-elev)];
+  }
+  .row-actions {
+    @apply flex items-center gap-1.5 opacity-0 pointer-events-none transition-opacity;
+  }
+  .data-row:focus-within .row-actions {
+    @apply opacity-100 pointer-events-auto;
+  }
+  /* 卡片（组卡）的行尾操作：与表行同一套按需显形 */
+  .group-card .card-actions {
+    @apply flex items-center gap-1 opacity-0 pointer-events-none transition-opacity;
+  }
+  .group-card:focus-within .card-actions {
+    @apply opacity-100 pointer-events-auto;
+  }
+  @media (hover: hover) {
+    .data-row:hover {
+      @apply bg-[var(--bg-hover)];
+    }
+    .data-row:hover .row-actions,
+    .group-card:hover .card-actions {
+      @apply opacity-100 pointer-events-auto;
+    }
+  }
+  /* 触屏/无 hover 设备：操作常驻，避免不可达 */
+  @media (hover: none) {
+    .row-actions,
+    .group-card .card-actions {
+      @apply opacity-100 pointer-events-auto;
+    }
+  }
+  /* 分段控件（互斥视图切换） */
+  .segmented {
+    @apply inline-flex items-center p-0.5 rounded-md bg-[var(--bg-elev)] border border-[var(--border)];
+  }
+  .segment {
+    @apply inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] text-[var(--fg-dim)] cursor-pointer;
+    transition-property: color, background-color, transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .segment:hover {
+    color: var(--fg);
+  }
+  .segment--on {
+    @apply bg-[var(--bg-hover)] text-[var(--fg)];
+  }
+  .segment:focus-visible {
+    @apply outline outline-2 outline-offset-1 outline-[var(--accent)];
+  }
+  .segment:active {
+    transform: scale(0.97);
+  }
+  /* 关系条带：轨道与填充的外观在这里，宽度是数据（:style） */
+  .bar-track {
+    @apply h-1 rounded-full bg-[var(--bg-hover)] overflow-hidden;
+  }
+  .bar-fill {
+    @apply h-full rounded-full bg-[var(--accent)];
+  }
+  .bar-fill--dim {
+    background: var(--fg-dim);
+    opacity: 0.45;
+  }
   /* 框选矩形（几何 left/top/width/height 是 :style 数据，外观在这里） */
   .marquee-box {
     @apply fixed z-30 pointer-events-none rounded border border-[var(--accent)];
@@ -173,5 +284,17 @@ body {
   .wordmark {
     @apply text-[34px] font-semibold text-[var(--accent)] select-none;
     letter-spacing: 0.04em;
+  }
+  /* 减少动态：保留色变/透明度反馈，去掉按压缩放 */
+  @media (prefers-reduced-motion: reduce) {
+    .btn:not(:disabled):active,
+    .icon-btn:not(:disabled):active,
+    .segment:active,
+    .chip--action:active,
+    .chip--on:active,
+    .chip--solid:active,
+    .chip--excluded:active {
+      transform: none;
+    }
   }
 }
