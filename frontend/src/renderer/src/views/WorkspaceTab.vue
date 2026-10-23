@@ -8,6 +8,7 @@ import { useTabStore } from '../stores/tab'
 import { useTagStore } from '../stores/tag'
 import { useWorkspaceStore } from '../stores/workspace'
 import { itemRoute } from '../features/tabs'
+import { recallView } from '../lib/scrollMemory'
 import { type SelectIntent } from '../features/selection'
 import type { ItemContext } from '@shared/contract'
 import type { ItemView } from '../lib/viewModel'
@@ -68,7 +69,9 @@ watch(
 onMounted(async () => {
   await workspaceStore.refresh()
   // 视图条件没变（从详情页等处切回来）→ 就地刷新：不闪"加载中"、不回第一页；
-  // 滚动位置由 ItemGrid 按 memKey（工作区|视图签名）还原——浏览位置跨"打开-返回"保持
+  // 滚动位置由 ItemGrid 按 memKey（工作区|视图签名）还原——浏览位置跨"打开-返回"保持。
+  // 条件没变但 store 被别的视图覆盖过（如切过另一个工作区标签页）→ 按视图记忆里的
+  // 已加载深度一次取回：深度与位置一起复原，而不是落回第一页。
   if (
     itemStore.viewWorkspaceId === workspaceId &&
     itemStore.viewSig === itemStore.viewSignature() &&
@@ -76,7 +79,7 @@ onMounted(async () => {
   ) {
     await itemStore.refreshInPlace(workspaceId)
   } else {
-    reload()
+    await itemStore.load(workspaceId, recallView(memKey.value)?.depth)
   }
 })
 

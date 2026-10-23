@@ -6,7 +6,7 @@ import { masonryRatioOf } from '../../lib/media'
 import { useConfigStore } from '../../stores/config'
 import { isBlankClick, marqueeIntentOf, type MarqueeIntent, type SelectIntent } from '../../features/selection'
 import { collectCardRects, hitIds, isDragGesture, rectBetween, type Rect } from '../../features/marquee'
-import { recallScroll, rememberScroll } from '../../lib/scrollMemory'
+import { recallView, rememberView } from '../../lib/scrollMemory'
 import type { LayoutMode } from '@shared/types/config'
 import ItemCard from './ItemCard.vue'
 
@@ -179,7 +179,8 @@ watch(
 
 onUnmounted(() => {
   if (props.memKey != null && scrollEl.value != null) {
-    rememberScroll(props.memKey, scrollEl.value.scrollTop)
+    // 深度 = 已加载条目数：与位置一起按视图签名记忆（返回时整页按深度取回，见 lib/scrollMemory）
+    rememberView(props.memKey, scrollEl.value.scrollTop, props.items.length)
   }
   scrollEl.value?.removeEventListener('scroll', onScroll)
   resizeObs?.disconnect()
@@ -305,8 +306,9 @@ function observeSentinel(): void {
 }
 watch(() => props.hasMore, observeSentinel)
 onMounted(() => {
-  // 滚动记忆：挂载时取出待还原位置（watch immediate 会在容器/数据就绪时消费它）
-  pendingRestore = props.memKey != null ? (recallScroll(props.memKey) ?? null) : null
+  // 滚动记忆：挂载时取出待还原位置（watch immediate 会在容器/数据就绪时消费它）；
+  // 深度由 WorkspaceTab 在装载路径上消费（先于本组件的父级 onMounted 读同一份记忆）
+  pendingRestore = props.memKey != null ? (recallView(props.memKey)?.top ?? null) : null
   // scrollEl 就绪后挂载 sentinel 观察（nextTick 等 DOM 更新）
   watch(
     () => [props.hasMore, scrollEl.value] as const,

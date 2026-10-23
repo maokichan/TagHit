@@ -95,8 +95,12 @@ export const useItemStore = defineStore('item', () => {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   }
 
-  /** 重新加载（过滤/排序/范围/扫描变化时）：回到第一页并替换条目。 */
-  async function load(workspaceId: Id): Promise<void> {
+  /**
+   * 重新加载（过滤/排序/范围/扫描变化时）：回到第一页并替换条目。
+   * `depthItems` = 记忆里的已加载条目数（视图记忆给出，见 lib/scrollMemory）：返回被覆盖的
+   * 视图时按该深度一次取回——不记或无记忆时就是普通第一页。
+   */
+  async function load(workspaceId: Id, depthItems?: number): Promise<void> {
     loading.value = true
     try {
       // 换了工作区 → 多选集与"选中条目"属于上一个视图，先清掉：
@@ -106,10 +110,14 @@ export const useItemStore = defineStore('item', () => {
         viewWorkspaceId.value = workspaceId
       }
       const sig = viewSignature() // 签名在查询前取：描述"这批数据是什么条件下取的"
-      const res = await api.workspaces.browse(workspaceId, buildQuery(0))
+      const limit =
+        depthItems != null && depthItems > PAGE_SIZE
+          ? Math.ceil(depthItems / PAGE_SIZE) * PAGE_SIZE
+          : PAGE_SIZE
+      const res = await api.workspaces.browse(workspaceId, { ...buildQuery(0), limit })
       items.value = res.items.map(toItemView)
       total.value = res.total
-      page.value = 0
+      page.value = Math.max(0, Math.ceil(items.value.length / PAGE_SIZE) - 1)
       hasMore.value = items.value.length < res.total
       viewSig.value = sig
     } finally {
@@ -289,16 +297,16 @@ export const useItemStore = defineStore('item', () => {
     }
   }
 
-  /** 批量打标：对多选集挂标签（单事务原子），完成后刷新当前工作区视图。 */
+  /** 批量打标：对多选集挂标签（单事务原子），完成后**就地刷新**（保分页深度与滚动，不闪加载中）。 */
   async function tagSelected(workspaceId: Id, tagIds: Id[]): Promise<void> {
     await api.items.tagMany(selectionIdsInView(), tagIds)
-    await load(workspaceId)
+    await refreshInPlace(workspaceId)
   }
 
-  /** 批量卸标：对多选集卸标签，完成后刷新。 */
+  /** 批量卸标：对多选集卸标签，完成后就地刷新（同上）。 */
   async function untagSelected(workspaceId: Id, tagIds: Id[]): Promise<void> {
     await api.items.untagMany(selectionIdsInView(), tagIds)
-    await load(workspaceId)
+    await refreshInPlace(workspaceId)
   }
 
   /** 多选集 ∩ 当前视图条目（过滤已离屏/删除的 id，避免批量命令对不存在的条目 NOT_FOUND）。 */
