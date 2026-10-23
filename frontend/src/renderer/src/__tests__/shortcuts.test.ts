@@ -75,4 +75,16 @@ describe('快捷键注册表', () => {
     expect(isEditableTarget({ tagName: 'DIV' } as unknown as EventTarget)).toBe(false)
     expect(isEditableTarget(null)).toBe(false)
   })
+
+  it('Ctrl+E 绑定编辑模式切换（allowInEditable：搜索框打字中也要能退出编辑）', () => {
+    registerShortcut({
+      commandId: 'item.toggleEdit',
+      key: 'e',
+      mod: true,
+      allowInEditable: true,
+      label: '切换编辑模式'
+    })
+    expect(matchShortcut(keyEvent('e', { ctrlKey: true }))?.commandId).toBe('item.toggleEdit')
+    expect(matchShortcut(keyEvent('e'))).toBeNull()
+  })
 })

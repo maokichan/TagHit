@@ -10,7 +10,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { closePalette, usePaletteState, buildPalette, type PaletteRow } from './palette'
 import { matchShortcut } from './keyboardMouse/shortcuts'
-import { isDetailNavMounted } from './detailNav'
+import { isDetailEditing, isDetailNavMounted, isDetailTaggable } from './detailNav'
 import { useItemStore } from '../stores/item'
 import { useTabStore } from '../stores/tab'
 import { showToast } from './services/dialog'
@@ -29,7 +29,9 @@ const rows = computed<PaletteRow[]>(() =>
         workspaceId: tabStore.activeWorkspaceId,
         selectionIds: [...itemStore.selectedIds],
         targetItemId: itemStore.selected?.id ?? null,
-        detailNavActive: isDetailNavMounted()
+        detailNavActive: isDetailNavMounted(),
+        detailTaggableActive: isDetailTaggable(),
+        detailEditingActive: isDetailEditing()
       })
     : []
 )

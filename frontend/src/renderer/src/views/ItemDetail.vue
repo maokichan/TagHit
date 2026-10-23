@@ -35,12 +35,14 @@ const error = ref('')
  * 补齐标签项的工作区。解析规则是纯函数（features/routes.ts），有断言盯着：
  * 尤其是"标签项没有 context 时**不得**退成跨工作区全库"——那会让方向键在整库里乱跳。
  */
-const context = computed<ItemContext>(() => {
-  const tab = tabStore.tabs.find(
-    (t): t is ItemTab => t.kind === 'item' && t.itemId === props.id
-  )
-  return resolveItemContext(tab ?? null, route.query as Record<string, unknown>)
-})
+/** 本条目的标签项 = 详情页**会话**：编辑模式等会话态挂在它身上（见 stores/tab.ts ItemTab）。 */
+const itemTab = computed<ItemTab | null>(
+  () => tabStore.tabs.find((t): t is ItemTab => t.kind === 'item' && t.itemId === props.id) ?? null
+)
+
+const context = computed<ItemContext>(() =>
+  resolveItemContext(itemTab.value, route.query as Record<string, unknown>)
+)
 
 const win = ref<ItemWindowResult | null>(null)
 /** 窗口请求失败的原因（**不许**把失败伪装成"没有序列"：那会把一次报错显示成功能缺失）。 */
@@ -152,6 +154,20 @@ const TypeIcon = computed(() => iconMap[item.value?.mediaType ?? 'other'] ?? Fil
  */
 const workspaceId = computed<Id | null>(() => context.value.workspaceId ?? null)
 
+/**
+ * 编辑模式（Ctrl+E 双向切换）：阅读态的标签区是**静态**的（防误触），修改类动作
+ * （点 chip 打标/摘除、搜标签、数字速打）只在编辑模式可用；无工作区上下文不可编辑。
+ * 模式态挂在条目标签项上——翻页保持（一份打完是下一件），新开详情回到阅读态。
+ */
+const editing = computed(() => itemTab.value?.editing === true)
+
+function toggleEdit(): void {
+  const tab = itemTab.value
+  if (tab == null || workspaceId.value == null) return
+  tab.editing = !tab.editing
+  if (!tab.editing) tagQuery.value = ''
+}
+
 async function load(): Promise<void> {
   error.value = ''
   try {
@@ -177,7 +193,9 @@ onMounted(async () => {
     prev: () => go(prev.value),
     next: () => go(next.value),
     workspaceId: workspaceId.value ?? undefined,
-    toggleTag: (tagId) => toggleTag(tagId)
+    toggleTag: (tagId) => toggleTag(tagId),
+    toggleEdit,
+    isEditing: () => editing.value
   })
 })
 
@@ -367,9 +385,21 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
             </div>
           </dl>
 
-          <div class="panel-label mb-2">标签</div>
-          <div class="flex flex-wrap gap-1.5">
+          <div class="flex items-center gap-2 mb-2 min-h-5">
+            <div class="panel-label">标签</div>
             <template v-if="workspaceId != null">
+              <span v-if="editing" class="text-[11px] text-[var(--accent)]">编辑中</span>
+              <span
+                class="kbd ml-auto"
+                :title="editing ? '退出编辑模式' : '进入编辑模式：点标签打上/摘除'"
+              >
+                Ctrl+E
+              </span>
+              <span class="text-[11px] text-[var(--fg-dim)]">{{ editing ? '完成' : '编辑' }}</span>
+            </template>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <template v-if="workspaceId != null && editing">
               <TagChip
                 v-for="tag in item.tags"
                 :key="tag.id"
@@ -393,8 +423,8 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
             </template>
           </div>
 
-          <!-- 输入即搜：Enter 打上第一个候选（连续打标时手不离键盘） -->
-          <div v-if="workspaceId != null" class="relative mt-2">
+          <!-- 编辑模式下输入即搜：Enter 打上第一个候选（连续打标时手不离键盘） -->
+          <div v-if="workspaceId != null && editing" class="relative mt-2">
             <Search :size="12" class="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--fg-dim)]" />
             <input
               v-model="tagQuery"

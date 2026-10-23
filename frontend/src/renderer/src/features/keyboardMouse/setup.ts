@@ -20,7 +20,7 @@ import { useItemStore } from '../../stores/item'
 import { useTabStore } from '../../stores/tab'
 import { evalWhen, getCommand } from '../commands'
 import { showToast } from '../services/dialog'
-import { isDetailNavMounted } from '../detailNav'
+import { isDetailEditing, isDetailNavMounted, isDetailTaggable } from '../detailNav'
 import {
   describe,
   isEditableTarget,
@@ -41,7 +41,9 @@ function shellContext(): MenuContext {
     target: { kind: 'shell' },
     workspaceId: tabStore.activeWorkspaceId,
     selection: { ids: [...itemStore.selectedIds] },
-    detailNav: isDetailNavMounted()
+    detailNav: isDetailNavMounted(),
+    detailTaggable: isDetailTaggable(),
+    detailEditing: isDetailEditing()
   }
 }
 

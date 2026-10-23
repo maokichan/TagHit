@@ -5,7 +5,7 @@ import { registerCommand, type CommandEntry } from './commands'
 import { registerShortcut } from './keyboardMouse/shortcuts'
 import { openBatchTagDialog } from './services/batchTag'
 import { showToast } from './services/dialog'
-import { detailNext, detailPrev, detailQuickTag } from './detailNav'
+import { detailNext, detailPrev, detailQuickTag, detailToggleEdit } from './detailNav'
 import { itemRoute, routeOfTab } from './tabs'
 import { openPalette } from './palette'
 import { invalidatePathManagement } from './paths/usePathManagement'
@@ -234,12 +234,38 @@ export function registerBuiltinCommands(): void {
   official({ id: 'item.prev', title: '上一张', when: detailPageOnly }, () => detailPrev())
   official({ id: 'item.next', title: '下一张', when: detailPageOnly }, () => detailNext())
 
+  // 编辑模式（Ctrl+E 双向切换）：详情页的修改类动作（点 chip 打标/摘除、搜标签、数字速打）
+  // 只在编辑模式进行，阅读态防误触——相册浏览是高频动作，误改状态是最贵的手感事故。
+  // 模式态挂在条目标签项上（见 stores/tab.ts ItemTab.editing）：翻页保持、新开详情回到阅读态。
+  const detailTaggableOnly: WhenClause = {
+    kind: 'all',
+    clauses: [
+      { kind: 'targetIs', value: 'shell' },
+      { kind: 'fieldEquals', field: 'detailNav', value: true },
+      { kind: 'fieldEquals', field: 'detailTaggable', value: true }
+    ]
+  }
+  official(
+    { id: 'item.toggleEdit', title: '切换编辑模式', when: detailTaggableOnly },
+    () => detailToggleEdit()
+  )
+
   // 速打标签（数字键 1..9）：pin 映射归标签职能，在标签全页「数字键速打」配置
   // （config `tags:pinned:<wsId>`）；执行 = 桥上本页的 toggleTag。未配置的键号是空操作——
   // 配置区与键位表都可见，不属静默失败。输入态（标签搜索框等）由执行器的豁免规则放行。
+  // 生效范围 = 编辑模式（detailEditing）：阅读态按数字不得改动条目。
+  const detailEditingOnly: WhenClause = {
+    kind: 'all',
+    clauses: [
+      { kind: 'targetIs', value: 'shell' },
+      { kind: 'fieldEquals', field: 'detailNav', value: true },
+      { kind: 'fieldEquals', field: 'detailTaggable', value: true },
+      { kind: 'fieldEquals', field: 'detailEditing', value: true }
+    ]
+  }
   for (const digit of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) {
     official(
-      { id: `item.quickTag.${digit}`, title: `速打标签 ${digit}`, when: detailPageOnly },
+      { id: `item.quickTag.${digit}`, title: `速打标签 ${digit}`, when: detailEditingOnly },
       () => {
         void detailQuickTag(digit)
       }
@@ -266,6 +292,14 @@ export function registerBuiltinCommands(): void {
   registerShortcut({ commandId: 'selection.clear', key: 'escape', label: '清空选择' })
   // Ctrl+A 全选：输入态不触发（执行器豁免规则），文本框内的原生全选不受影响
   registerShortcut({ commandId: 'items.selectAll', key: 'a', mod: true, label: '全选' })
+  // Ctrl+E：详情页编辑模式双向切换；输入态也允许（在标签搜索框打字中退出编辑是常态）
+  registerShortcut({
+    commandId: 'item.toggleEdit',
+    key: 'e',
+    mod: true,
+    allowInEditable: true,
+    label: '切换编辑模式'
+  })
   // 详情页翻页：← / → 与 PgUp / PgDn 四路并存——笔记本可能没有 PgUp/PgDn（要 Fn+↑），
   // 而视频聚焦时方向键属原生控件（见 keyboardMouse/setup.ts 的让位规则），那时 PgUp/PgDn 是主力。
   registerShortcut({ commandId: 'item.prev', key: 'arrowleft', label: '上一张' })

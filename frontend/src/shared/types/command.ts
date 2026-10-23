@@ -34,6 +34,10 @@ export interface MenuContext {
    * 命令面板因此能如实标"当前不可用"，而不是让命令执行成一个静默空操作。
    */
   detailNav?: boolean
+  /** 详情页可否打标（挂着详情页且其顺序上下文带工作区）——`item.toggleEdit` 的生效范围。 */
+  detailTaggable?: boolean
+  /** 详情页当前处于编辑模式（阅读态防误触：修改类动作只在编辑模式进行，Ctrl+E 切换）。 */
+  detailEditing?: boolean
 }
 
 /**

@@ -17,6 +17,9 @@ export interface DetailNav {
   /** 速打标签（数字键 1..9）：实现仍在本页（持有 toggleTag 与工作区），命令只调桥。 */
   workspaceId?: string
   toggleTag?: (tagId: string) => void | Promise<void>
+  /** 编辑模式（Ctrl+E 双向切换；模式态挂在条目标签项上，翻页保持、新开详情回到阅读态）。 */
+  toggleEdit?: () => void
+  isEditing?: () => boolean
 }
 
 let current: DetailNav | null = null
@@ -45,6 +48,11 @@ export function detailQuickTag(digit: number): void | Promise<void> {
   if (tagId != null) return current.toggleTag(tagId)
 }
 
+/** 切换编辑模式：桥只转发，模式态与守卫（无工作区不可编辑）在详情页。 */
+export function detailToggleEdit(): void {
+  current?.toggleEdit?.()
+}
+
 /**
  * 详情页翻页是否可用（当前是否挂着详情页）。
  * 壳把它填进调用上下文（MenuContext 的现场事实），命令的 when 据此判定：
@@ -53,4 +61,14 @@ export function detailQuickTag(digit: number): void | Promise<void> {
  */
 export function isDetailNavMounted(): boolean {
   return current != null
+}
+
+/** 详情页可否打标（挂着详情页且带工作区上下文）——编辑模式开关的生效范围事实。 */
+export function isDetailTaggable(): boolean {
+  return current != null && current.workspaceId != null
+}
+
+/** 详情页是否处于编辑模式——修改类命令（数字速打）的生效范围事实。 */
+export function isDetailEditing(): boolean {
+  return current?.isEditing?.() === true
 }

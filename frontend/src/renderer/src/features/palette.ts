@@ -46,6 +46,10 @@ export interface PaletteBase {
   targetItemId: string | null
   /** 详情页翻页此刻是否可用（壳的现场事实，见 detailNav）——命令的 when 会读它。 */
   detailNavActive?: boolean
+  /** 详情页可否打标（挂着详情页且带工作区）——编辑模式开关的生效范围事实。 */
+  detailTaggableActive?: boolean
+  /** 详情页是否处于编辑模式——修改类命令（数字速打）的生效范围事实。 */
+  detailEditingActive?: boolean
 }
 
 /**
@@ -63,7 +67,9 @@ export function paletteCandidates(base: PaletteBase): MenuContext[] {
       target: { kind: 'shell' },
       workspaceId: base.workspaceId,
       selection,
-      detailNav: base.detailNavActive === true
+      detailNav: base.detailNavActive === true,
+      detailTaggable: base.detailTaggableActive === true,
+      detailEditing: base.detailEditingActive === true
     }
   ]
   const targetId = base.targetItemId ?? base.selectionIds[0] ?? null
