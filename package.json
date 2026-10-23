@@ -23,6 +23,7 @@
     "calibrate:roots": "node scripts/s36-roots-calibrate.ts",
     "calibrate:window": "node scripts/s37-window-calibrate.ts",
     "calibrate:fileops": "node scripts/s38-fileops-calibrate.ts",
-    "doctor": "node scripts/doctor.ts"
+    "doctor": "node scripts/doctor.ts",
+    "style": "npm --prefix frontend run style"
   }
 }

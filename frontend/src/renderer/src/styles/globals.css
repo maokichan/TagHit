@@ -25,9 +25,11 @@
   --fg-dim: #9aa3b2;
   --accent: #f59e0b;
   --accent-soft: rgba(245, 158, 11, 0.15);
-  --danger: #ef4444;
-  --warn: #e5a23c;
-  --ok: #34d399;
+  /* 语义色与主题同钥：中性阶是低饱和蓝灰系，语义色压饱和入和声区（哑光），
+     不跟 Tailwind 原生纯色——accent 是全主题唯一的高饱和主角（只强调一次）。 */
+  --danger: #df5858;
+  --warn: #c9a25a;
+  --ok: #5eba99;
   /* 语义着色边框（选中/危险描边）：color-mix 派生、自动跟随主题。
      ⚠ Tailwind v3 的 `var(--x)/40` 透明度修饰符不生效（任意值加 /NN 只支持通道三元组），
      着色边框必须走这两个 token——模板里那种写法是静默无效的（check:style 之外的手工纪律）。 */
@@ -58,9 +60,9 @@
   --fg-dim: #5c6675;
   --accent: #d97706;
   --accent-soft: rgba(217, 119, 6, 0.12);
-  --danger: #dc2626;
-  --warn: #b45309;
-  --ok: #059669;
+  --danger: #d03939;
+  --warn: #ad7d29;
+  --ok: #307e64;
 }
 
 html,

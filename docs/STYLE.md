@@ -43,7 +43,7 @@ TagHit 是**内容管理工具**：界面是内容的容器，视觉为浏览与
 | 边框 | `--border / --border-hover / --border-soft` | 静息 / 悬浮反馈 / 发丝分隔（区域分节） |
 | 文字 | `--fg / --fg-dim` | 正文 / 次要 |
 | 强调 | `--accent / --accent-soft` | 选中与主动作，**只强调一次** |
-| 状态 | `--danger / --warn / --ok` | 语义状态，不做装饰 |
+| 状态 | `--danger / --warn / --ok` | 语义状态，不做装饰；饱和度与中性阶同钥（哑光），accent 是全主题唯一高饱和 |
 | 遮罩 | `--overlay-dim / --overlay-soft` | 弹层压暗 / 轻遮罩（黑度不随主题） |
 | 几何 | `--panel-width / --page-max-width` | 停靠面板宽 / 全页版心（壳级单点） |
 
