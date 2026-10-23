@@ -80,7 +80,7 @@
   ④ 用户库定位 `userData`（%APPDATA%），开发库从 `build/taghit-dev.db` 搬迁——**升级不丢数据的关键在这条，不在更新器**（schema 迁移已就绪）；
   ⑤ 给用户的一句话说明：SmartScreen 弹窗走"更多信息 → 仍要运行"（要免提示再上签名，Azure Trusted Signing 类月费方案）。
 
-- **CI**：八份校准（`calibrate` / `calibrate:sqlite` / `scan` / `boundary` / `view` / `roots` / `window` / `fileops`）+ 五层 typecheck + 前端 `check:templates` 与 `test`（Vitest）+ `doctor` 可直接脚本化。
+- **CI**：已脚本化——`npm run ci`（五层 typecheck + 八份校准 + 渲染层全链 + doctor）+ `.git/hooks/pre-push` 同链（钩子不入版本管理，重装环境后从本条重建）；**远端 CI（GitHub Actions）**：待仓库有远端再接，Node 24 + 只装 frontend 依赖（校准走 node:sqlite，不需要 better-sqlite3 编译）。
 - **测试三件套**（方案裁决：成熟工具为主，自研只留场景；渲染层断言归 Vitest，见 D30）：
   - **Vitest**：渲染层纯逻辑断言已入常规校验链（桥包装不变式、入参纯化、顺序上下文解析、路由命中、缺桥报错等）；剩余——**校准脚本可选迁入**（裁决原文"承接校准脚本可选"）与组件级断言（需 happy-dom）；
   - **fast-check**：property-based 打输入边界；首选靶子是"路径判定 vs SQL 译文等价"（双实现漂移面，比手工样本强）；

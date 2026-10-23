@@ -36,6 +36,8 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{d
 
 ## 五、环境与运行
 
+- **CI 门**：`npm run ci` = 五层 typecheck + 八份校准 + 渲染层全链（typecheck:web/模板/样式机检/Vitest/CSS 编译门）+ doctor，一链到底全绿才算过；`.git/hooks/pre-push` 挂了同一链条——push 由真人执行，链不过不出门（绕过 = `git push --no-verify`）。远端 CI（GitHub Actions）待仓库有远端再接（TODO 工程化）。
+
 - **层 typecheck**：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；freeze 路径已失效）；node v24 可直跑 TS。
 - **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）；**渲染层断言** = `npm --prefix frontend run test`（Vitest：标签↔路由映射、顺序上下文解析、窄桥包装与入参纯化——不需要 DOM，跑一次几百毫秒）；**样式基线机检** = `npm --prefix frontend run check:style`（STYLE §6 禁区：写死颜色/10px/uppercase/内联样式等，组件里零命中才绿）；**CSS 编译门** = `npm --prefix frontend run check:build`（vite 生产构建——check:style/vue-tsc 都不经过 PostCSS/Tailwind 编译，`@apply` 里的非法类只有它抓得住；动过 globals.css 必跑）。
 - **校准**：`npm run calibrate | calibrate:sqlite`（s32 契约，memory / sqlite 各一个入口）· `calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots | calibrate:window | calibrate:fileops`（各自跑同一场景于 memory 与 sqlite）——scene 定义在 `scripts/s3x-*-scenario.ts`，入口是 `*-calibrate.ts`。
