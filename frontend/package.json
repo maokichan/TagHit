@@ -17,6 +17,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "check:templates": "node scripts/check-templates.mjs",
     "check:style": "node scripts/check-style.mjs",
+    "style": "vite --config vite.renderer.config.ts --port 5174 --open /style.html",
     "check:build": "vite build --config vite.renderer.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
