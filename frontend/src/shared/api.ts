@@ -22,6 +22,7 @@ import type {
   ScanOptions,
   ScanSummary,
   Tag,
+  TagProfile,
   VisibilitySummary,
   WindowAction,
   Workspace,
@@ -127,6 +128,12 @@ export const api = {
     },
     async update(tagId: Id, description: string | null): Promise<void> {
       unwrap(await bridge().updateTag(tagId, { description }))
+    },
+    async getProfile(tagId: Id): Promise<TagProfile | null> {
+      return unwrap(await bridge().getTagProfile(tagId))
+    },
+    async setProfile(tagId: Id, profile: TagProfile | null): Promise<void> {
+      unwrap(await bridge().setTagProfile(tagId, profile))
     },
     async stats() {
       return unwrap(await bridge().tagStats())

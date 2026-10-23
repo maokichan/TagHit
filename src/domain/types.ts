@@ -47,6 +47,25 @@ export interface Tag {
   createdAt: string
 }
 
+/** 标签主页外链（有序数组承载顺序）。 */
+export interface TagProfileLink {
+  label: string
+  url: string
+}
+
+/**
+ * 标签主页文档（标签主页呈现面的数据面）：**有类型文档**——只渲染、不查询的长尾内容。
+ * schemaVersion 管演进：加内容形态 = 加字段 + 升版本 + 校验同步；核心事实（name/description）
+ * 留在 Tag 一等列上不进文档——它们要被池总表排序、被搜索命中、被统计聚合。
+ */
+export interface TagProfile {
+  schemaVersion: 1
+  /** 长文正文（Markdown）；null = 未写。 */
+  body: string | null
+  /** 有序外链（作者的社交站、博物馆页面等）。 */
+  links: TagProfileLink[]
+}
+
 /** 作品/合集：有序成员 + 锚条目（标签面）。 */
 export interface Collection {
   id: Id

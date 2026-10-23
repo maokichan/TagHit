@@ -4,7 +4,8 @@
  * 标签关联的「语义带出」（按关联自动补标）属后续语义模块，本层不做。
  */
 
-import type { Id, Tag } from '../domain/index.ts'
+import type { Id, Tag, TagProfile } from '../domain/index.ts'
+import { normalizeTagProfile } from '../domain/index.ts'
 import type { AppServices } from './services.ts'
 import { normalizeName } from './input.ts'
 
@@ -29,6 +30,24 @@ export async function updateTagDescription(
   description: string | null
 ): Promise<void> {
   await svc.store.updateTag(tagId, { description })
+}
+
+/** 读标签主页文档（标签主页呈现面；列表/查询投影不携带，按需取）。NOT_FOUND 透传；未写过 → null。 */
+export async function getTagProfile(svc: AppServices, tagId: Id): Promise<TagProfile | null> {
+  return svc.store.getTagProfile(tagId)
+}
+
+/**
+ * 写标签主页文档（标签主页就地编辑；profile = null 即清除）。
+ * 入参在此过 normalizeTagProfile——形状/容量/版本的唯一判定点（domain/rules），
+ * 宿主窄桥转译进来的任何 JSON 都不绕开它。NOT_FOUND 透传。
+ */
+export async function setTagProfile(
+  svc: AppServices,
+  tagId: Id,
+  profile: TagProfile | null
+): Promise<void> {
+  await svc.store.setTagProfile(tagId, profile == null ? null : normalizeTagProfile(profile))
 }
 
 /** 标签池统计（全局口径；标签全页总表）。 */

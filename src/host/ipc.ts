@@ -31,6 +31,7 @@ import type {
   NodeState,
   PathNode,
   Tag,
+  TagProfile,
   Workspace,
   WorkspaceRoot,
 } from '../domain/index.ts'
@@ -69,6 +70,7 @@ export type {
   ScanSummary,
   Tag,
   TagPairStat,
+  TagProfile,
   TagStat,
   VisibilitySummary,
   Workspace,
@@ -101,6 +103,9 @@ export interface IpcContracts {
   'tags.declare': { args: [{ workspaceId: Id; tagId: Id }]; result: null }
   'tags.undeclare': { args: [{ workspaceId: Id; tagId: Id }]; result: null }
   'tags.update': { args: [tagId: Id, patch: { description?: string | null }]; result: null }
+  /** 标签主页文档（有类型文档）：读 = 未写过 null；写 = upsert，null 即清除（应用层过 normalize）。 */
+  'tags.getProfile': { args: [tagId: Id]; result: TagProfile | null }
+  'tags.setProfile': { args: [tagId: Id, profile: TagProfile | null]; result: null }
   'tags.stats': { args: []; result: TagStat[] }
   'tags.pairStats': {
     args: [q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }]
@@ -217,6 +222,8 @@ export interface TaghitRendererApi {
   declareTag(input: { workspaceId: Id; tagId: Id }): Promise<IpcResult<'tags.declare'>>
   undeclareTag(input: { workspaceId: Id; tagId: Id }): Promise<IpcResult<'tags.undeclare'>>
   updateTag(tagId: Id, patch: { description?: string | null }): Promise<IpcResult<'tags.update'>>
+  getTagProfile(tagId: Id): Promise<IpcResult<'tags.getProfile'>>
+  setTagProfile(tagId: Id, profile: TagProfile | null): Promise<IpcResult<'tags.setProfile'>>
   tagStats(): Promise<IpcResult<'tags.stats'>>
   tagPairStats(q: {
     workspaceId: Id

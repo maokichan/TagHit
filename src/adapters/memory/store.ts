@@ -40,6 +40,7 @@ import type {
   RetiredRoot,
   Tag,
   TagLink,
+  TagProfile,
   Workspace,
   WorkspaceRoot,
 } from '../../domain/index.ts'
@@ -76,6 +77,8 @@ interface State {
   workspaceRoots: Map<string, WorkspaceRoot>
   pathNodes: Map<string, PathNode>
   retiredRoots: Map<string, RetiredRoot>
+  /** 标签主页文档（有类型文档，独立于 Tag 行；读投影不携带，主页按需取）。 */
+  tagProfiles: Map<Id, TagProfile>
 }
 
 function createEmptyState(): State {
@@ -93,6 +96,7 @@ function createEmptyState(): State {
     workspaceRoots: new Map(),
     pathNodes: new Map(),
     retiredRoots: new Map(),
+    tagProfiles: new Map(),
   }
 }
 
@@ -112,6 +116,7 @@ function cloneState(s: State): State {
     workspaceRoots: new Map(s.workspaceRoots),
     pathNodes: new Map(s.pathNodes),
     retiredRoots: new Map(s.retiredRoots),
+    tagProfiles: new Map(s.tagProfiles),
   }
 }
 
@@ -196,6 +201,7 @@ export class MemoryStore implements Store {
 
   async deleteTag(id: Id): Promise<void> {
     if (!this.state.tags.delete(id)) throw notFound('标签', id)
+    this.state.tagProfiles.delete(id) // 主页文档随标签行销毁（对称级联，见 ports/store.ts）
   }
 
   async getTag(id: Id): Promise<Tag | null> {
@@ -213,6 +219,17 @@ export class MemoryStore implements Store {
     }
     out.sort(compareTagName)
     return out
+  }
+
+  async getTagProfile(id: Id): Promise<TagProfile | null> {
+    if (!this.state.tags.has(id)) throw notFound('标签', id)
+    return this.state.tagProfiles.get(id) ?? null
+  }
+
+  async setTagProfile(id: Id, profile: TagProfile | null): Promise<void> {
+    if (!this.state.tags.has(id)) throw notFound('标签', id)
+    if (profile == null) this.state.tagProfiles.delete(id)
+    else this.state.tagProfiles.set(id, profile)
   }
 
   // ---- 条目 ---------------------------------------------------------------

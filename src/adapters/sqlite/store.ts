@@ -11,7 +11,13 @@
  *   内部多语句操作（压实位置/重排）在未处于外显事务时自开短事务。
  */
 
-import { compareTagName, DomainError, isPermutationOf, isSelfLink } from '../../domain/index.ts'
+import {
+  compareTagName,
+  DomainError,
+  isPermutationOf,
+  isSelfLink,
+  normalizeTagProfile,
+} from '../../domain/index.ts'
 import type {
   Collection,
   CollectionMember,
@@ -27,6 +33,7 @@ import type {
   RetiredRoot,
   Tag,
   TagLink,
+  TagProfile,
   Workspace,
   WorkspaceRoot,
 } from '../../domain/index.ts'
@@ -152,6 +159,13 @@ CREATE TABLE IF NOT EXISTS tags (
   createdAt TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tags_name ON tags (LOWER(TRIM(name)));
+
+-- 标签主页文档（有类型文档，只渲染不查询）：独立于 tags 行，列表/查询投影不携带；
+-- 生命周期随标签行（deleteTag 显式随行删除）。文档 TEXT = JSON，形状归 normalizeTagProfile。
+CREATE TABLE IF NOT EXISTS tag_profiles (
+  tagId TEXT PRIMARY KEY REFERENCES tags(id),
+  profile TEXT NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS items (
   id TEXT PRIMARY KEY,
@@ -408,7 +422,29 @@ export class SqliteStore implements Store {
     }))
   }
 
+  async getTagProfile(id: Id): Promise<TagProfile | null> {
+    if (!this.idExists('tags', id)) throw notFound('标签', id)
+    const row = this.get('SELECT profile FROM tag_profiles WHERE tagId = ?', [id])
+    if (row == null) return null
+    // 读出口同样过领域校验：坏文档（手工改库等）暴露为 INVALID，不渲染进页面
+    return normalizeTagProfile(JSON.parse(String(row.profile)))
+  }
+
+  async setTagProfile(id: Id, profile: TagProfile | null): Promise<void> {
+    if (!this.idExists('tags', id)) throw notFound('标签', id)
+    if (profile == null) {
+      this.run('DELETE FROM tag_profiles WHERE tagId = ?', [id])
+      return
+    }
+    this.run(
+      'INSERT INTO tag_profiles (tagId, profile) VALUES (?,?) ' +
+        'ON CONFLICT(tagId) DO UPDATE SET profile = excluded.profile',
+      [id, JSON.stringify(profile)]
+    )
+  }
+
   async deleteTag(id: Id): Promise<void> {
+    this.run('DELETE FROM tag_profiles WHERE tagId = ?', [id]) // 主页文档随标签行销毁（对称级联，见 ports/store.ts）
     if (this.run('DELETE FROM tags WHERE id = ?', [id]).changes === 0) throw notFound('标签', id)
   }
 

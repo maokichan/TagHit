@@ -36,6 +36,7 @@ import type {
   RetiredRoot,
   Tag,
   TagLink,
+  TagProfile,
   Workspace,
   WorkspaceRoot,
 } from '../domain/index.ts'
@@ -247,6 +248,19 @@ export interface Store {
   tagStats(): Promise<TagStat[]>
   /** 标签对统计（工作区成员口径；limit 钳制由应用层负责）。 */
   tagPairStats(q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }): Promise<TagPairStat[]>
+
+  /**
+   * 标签主页文档（TagProfile，有类型文档）：独立于 Tag 行的读取——列表/查询投影**不携带**文档，
+   * 只在主页呈现时按需取。标签不存在 → NOT_FOUND；未写过 → null。
+   * 形状归 domain/rules.normalizeTagProfile（存储读出口也过它，坏文档暴露为 INVALID）。
+   */
+  getTagProfile(id: Id): Promise<TagProfile | null>
+
+  /**
+   * 写标签主页文档（upsert；profile = null 即清除）。标签不存在 → NOT_FOUND。
+   * 生命周期随标签行：deleteTag 时两适配器各自随行删除（对称级联，不进应用层用例）。
+   */
+  setTagProfile(id: Id, profile: TagProfile | null): Promise<void>
 
   // ---- 条目 item ---------------------------------------------------------
 

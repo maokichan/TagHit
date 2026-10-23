@@ -7,7 +7,8 @@
  * 做**等价译文**，并在译文处注明对应的领域函数（D28）。
  */
 
-import type { Id, Tag } from './types.ts'
+import { DomainError } from './errors.ts'
+import type { Id, Tag, TagProfile } from './types.ts'
 
 /** 标签名比较键：唯一性、查找与排序三处共用（trim + 小写；D28）。 */
 function tagKey(name: string): string {
@@ -58,4 +59,51 @@ export function extensionOf(name: string): string | null {
   const dot = name.lastIndexOf('.')
   if (dot <= 0 || dot === name.length - 1) return null
   return name.slice(dot + 1).toLowerCase()
+}
+
+// ---- 标签主页文档（TagProfile）----------------------------------------------
+
+/** 文档容量边界（写入口径，双适配器同源）：超出即 INVALID，不静默截断。 */
+export const TAG_PROFILE_BODY_MAX = 100_000
+export const TAG_PROFILE_LINKS_MAX = 100
+export const TAG_PROFILE_LINK_LABEL_MAX = 200
+export const TAG_PROFILE_LINK_URL_MAX = 2000
+
+/**
+ * 标签主页文档校验与归一（唯一实现，宿主写入口与存储读出口共用同一份）：
+ * - 非 JSON 对象 / schemaVersion 不是当前已知版本 → INVALID（版本错位是硬错误，不猜）；
+ * - body = null 或封顶内字符串；links = {label, url} 有序数组（逐项去空白、封顶）。
+ * 读侧遇到坏文档（手工改库等）经此暴露为 INVALID，而不是把坏数据渲染进页面。
+ */
+export function normalizeTagProfile(raw: unknown): TagProfile {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new DomainError('INVALID', '标签主页文档必须是 JSON 对象')
+  }
+  const o = raw as Record<string, unknown>
+  if (o.schemaVersion !== 1) {
+    throw new DomainError('INVALID', `标签主页文档版本不支持：${String(o.schemaVersion)}`)
+  }
+  const body = o.body
+  if (body != null && (typeof body !== 'string' || body.length > TAG_PROFILE_BODY_MAX)) {
+    throw new DomainError('INVALID', '标签主页正文超限或类型不对')
+  }
+  if (!Array.isArray(o.links) || o.links.length > TAG_PROFILE_LINKS_MAX) {
+    throw new DomainError('INVALID', '标签主页链接列表超限或类型不对')
+  }
+  const links = o.links.map((l): { label: string; url: string } => {
+    if (l == null || typeof l !== 'object') {
+      throw new DomainError('INVALID', '链接项必须是 {label, url}')
+    }
+    const rec = l as Record<string, unknown>
+    const label = typeof rec.label === 'string' ? rec.label.trim() : ''
+    const url = typeof rec.url === 'string' ? rec.url.trim() : ''
+    if (label === '' || label.length > TAG_PROFILE_LINK_LABEL_MAX) {
+      throw new DomainError('INVALID', '链接名不能为空且须在长度内')
+    }
+    if (url === '' || url.length > TAG_PROFILE_LINK_URL_MAX) {
+      throw new DomainError('INVALID', '链接地址不能为空且须在长度内')
+    }
+    return { label, url }
+  })
+  return { schemaVersion: 1, body: body ?? null, links }
 }

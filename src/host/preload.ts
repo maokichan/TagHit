@@ -22,6 +22,8 @@ const api: TaghitRendererApi = {
   declareTag: (input) => invoke('tags.declare', input),
   undeclareTag: (input) => invoke('tags.undeclare', input),
   updateTag: (tagId, patch) => invoke('tags.update', tagId, patch),
+  getTagProfile: (tagId) => invoke('tags.getProfile', tagId),
+  setTagProfile: (tagId, profile) => invoke('tags.setProfile', tagId, profile),
   tagStats: () => invoke('tags.stats'),
   tagPairStats: (q) => invoke('tags.pairStats', q),
 

@@ -30,6 +30,8 @@ import {
   createWorkspace,
   declareTag,
   declaredTagIds,
+  getTagProfile,
+  setTagProfile,
   tagPairStats,
   tagStats,
   updateTagDescription,
@@ -73,7 +75,7 @@ import {
   repairLegacyPaths,
 } from '../application/index.ts'
 import type { AppServices, ItemContext, ScanOptions } from '../application/index.ts'
-import type { Id } from '../domain/index.ts'
+import type { Id, TagProfile } from '../domain/index.ts'
 import type { ItemsQuery } from '../ports/index.ts'
 import type { DomainErrorCode } from '../domain/index.ts'
 
@@ -153,6 +155,10 @@ function registerHandlers(): void {
   )
   ipcMain.handle('tags.update', (_event, tagId: Id, patch: { description?: string | null }) =>
     envelope(updateTagDescription(services, tagId, patch.description ?? null).then(() => null))
+  )
+  ipcMain.handle('tags.getProfile', (_event, tagId: Id) => envelope(getTagProfile(services, tagId)))
+  ipcMain.handle('tags.setProfile', (_event, tagId: Id, profile: TagProfile | null) =>
+    envelope(setTagProfile(services, tagId, profile).then(() => null))
   )
   ipcMain.handle('tags.stats', () => envelope(tagStats(services)))
   ipcMain.handle('tags.pairStats', (_event, q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }) =>

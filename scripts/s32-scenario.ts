@@ -7,7 +7,7 @@
  */
 
 import { DomainError } from '../src/domain/index.ts'
-import type { FileItem, Id, Tag } from '../src/domain/index.ts'
+import type { FileItem, Id, Tag, TagProfile } from '../src/domain/index.ts'
 import type { Store } from '../src/ports/index.ts'
 import {
   addGroupMember,
@@ -34,6 +34,8 @@ import {
   recordThumbnail,
   tagPairStats,
   tagStats,
+  getTagProfile,
+  setTagProfile,
   updateTagDescription,
 } from '../src/application/index.ts'
 import type { AppServices } from '../src/application/index.ts'
@@ -565,6 +567,59 @@ export async function runScenario(store: Store): Promise<void> {
     '完备：共现集 ∩ 互斥集 = 空（together > 0 与 together = 0 的划分）'
   )
 
+  // ---- 标签主页文档（TagProfile）：读写回环 / 守门 / 清除 / 随标签级联 --------
+  const profileDoc: TagProfile = {
+    schemaVersion: 1,
+    body: '# 风景\n\n以自然景物为主体的素材。',
+    links: [
+      { label: '构图参考', url: 'https://example.com/composition' },
+      { label: '色轮', url: 'https://example.com/wheel' },
+    ],
+  }
+  assertEqual(await getTagProfile(svc, 't3'), null, '主页文档：未写过为 null')
+  await setTagProfile(svc, 't3', profileDoc)
+  assertEqual(await getTagProfile(svc, 't3'), profileDoc, '主页文档：写入原样读回（正文+有序外链）')
+  await setTagProfile(svc, 't3', { schemaVersion: 1, body: null, links: [] })
+  assertEqual(
+    await getTagProfile(svc, 't3'),
+    { schemaVersion: 1, body: null, links: [] },
+    '主页文档：覆盖写生效'
+  )
+  await setTagProfile(svc, 't3', null)
+  assertEqual(await getTagProfile(svc, 't3'), null, '主页文档：null 写入即清除')
+  try {
+    await setTagProfile(svc, 't-ghost', profileDoc)
+    assert(false, '主页文档：标签不存在 NOT_FOUND 应抛')
+  } catch (e) {
+    assert(e instanceof DomainError && e.code === 'NOT_FOUND', '主页文档：NOT_FOUND 码值')
+  }
+  try {
+    await setTagProfile(svc, 't3', { schemaVersion: 2, body: null, links: [] } as unknown as TagProfile)
+    assert(false, '主页文档：未知 schemaVersion INVALID 应抛')
+  } catch (e) {
+    assert(e instanceof DomainError && e.code === 'INVALID', '主页文档：未知版本 INVALID 码值')
+  }
+  try {
+    await setTagProfile(svc, 't3', {
+      schemaVersion: 1,
+      body: null,
+      links: [{ label: '', url: 'https://example.com' }],
+    })
+    assert(false, '主页文档：空链接名 INVALID 应抛')
+  } catch (e) {
+    assert(e instanceof DomainError && e.code === 'INVALID', '主页文档：空链接名 INVALID 码值')
+  }
+
+  // 随标签行级联：两适配器各自在 deleteTag 内随行删除（对称级联，见 ports/store.ts）
+  await setTagProfile(svc, 't5', profileDoc)
+  await deleteTagCascade(svc, 't5')
+  assert((await store.getTag('t5')) == null, '级联：t5 已删除')
+  try {
+    await getTagProfile(svc, 't5')
+    assert(false, '主页文档：随标签删除后应 NOT_FOUND')
+  } catch (e) {
+    assert(e instanceof DomainError && e.code === 'NOT_FOUND', '主页文档：级联后 NOT_FOUND 码值')
+  }
 
   console.log(`\nALL CHECKS PASSED（断言执行 ${executedAsserts} 个）`)
 }
