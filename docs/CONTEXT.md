@@ -1,7 +1,7 @@
 # TagHit 开发交接（CONTEXT）
 
 > 面向 AI 会话的快速交接。**架构见 ARCHITECTURE · 词汇 GLOSSARY · 裁决 DECISIONS · 风格基线 STYLE · 待办 TODO.md（唯一清单）**。
-> 版本：0.2.16。
+> 版本：0.2.17。
 
 ## 一、一句话
 
@@ -13,7 +13,7 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{d
 
 ## 三、进度与下一步
 
-**已完成**（名下能力；细节归 DECISIONS 与 git log）：契约 v0 与 typed 窄桥 · 插件生态机制（贡献点四类槽/命令注册表/服务面/HostApi 冻结面）· 桌面壳（无边框窗口/主色/容器归壳与全页呈现面/版心）· 来源根（树/可见性/生命周期/退役根与脱根处置）· 文件管理（真实文件操作直改库）· 浏览正确性（派生条件下沉/计数可信）· 扫描容错与历史数据修复 · 相册式详情页连续打标（顺序上下文/翻页/预览条/图片缩放/标签搜索/数字键速打）· 标签能力（声明投影/搜索框筛选入口/全页：池总表·描述·组·批量·共现互斥统计）· 无标签筛选与格式筛选（类别映射可配置）· 缩略图通道（视频抓帧 + 图片缩放，按 contentHash 共享）· 键鼠框架（选择模型/框选/拖出交付/壳菜单与 Ctrl+A）· 命令面板与菜单装配（注册表的三视图/可用性如实标注）· 失败可见性与界面文案收敛 · 渲染层风格基线（docs/STYLE.md、字号圆角三级制、层级语法 P6 与 npm run style 样式基线页、check:style/check:build 机检）· 渲染层断言（Vitest）与键位表 · 浏览手感（Ctrl+框选翻转、详情页解码后换图不闪白、返回工作区保滚动位置与分页深度、Ctrl+Tab 循环切换标签页）· 详细页预览贡献点（detailPreview 槽：内置四类为默认提供方，按条目认领、后注册覆盖，D37）· 检索与建议（-标签 排除语法贯通契约/适配器/搜索词法；打标候选按共现相关性排序）· 标签全页工艺重做（页内新建/批选就地切换/内联描述/组卡/速打/统计分段与条带）· 详情页编辑模式（Ctrl+E 双向切换：阅读态标签区静态防误触，修改类动作只在编辑模式，生效范围事实入命令面板与键位表，D38）· 标签主页（TagProfile 有类型文档贯通五层+s32；词条式阅读页：左栏事实条/工作区口径共现邻居/Markdown 正文与 `[[标签名]]` 站内链接/外链转系统浏览器/就地编辑；入口 = 详情页 chip 双击，D38）。
+**已完成**（名下能力；细节归 DECISIONS 与 git log）：契约 v0 与 typed 窄桥 · 插件生态机制（贡献点四类槽/命令注册表/服务面/HostApi 冻结面）· 桌面壳（无边框窗口/主色/容器归壳与全页呈现面/版心）· 来源根（树/可见性/生命周期/退役根与脱根处置）· 文件管理（真实文件操作直改库）· 浏览正确性（派生条件下沉/计数可信）· 扫描容错与历史数据修复 · 相册式详情页连续打标（顺序上下文/翻页/预览条/图片缩放/标签搜索/数字键速打）· 标签能力（声明投影/搜索框筛选入口/全页：池总表·描述·组·批量·共现互斥统计）· 无标签筛选与格式筛选（类别映射可配置）· 缩略图通道（视频抓帧 + 图片缩放，按 contentHash 共享）· 键鼠框架（选择模型/框选/拖出交付/壳菜单与 Ctrl+A）· 命令面板与菜单装配（注册表的三视图/可用性如实标注）· 失败可见性与界面文案收敛 · 渲染层风格基线（docs/STYLE.md、字号圆角三级制、层级语法 P6 与 npm run style 样式基线页、check:style/check:build 机检）· 渲染层断言（Vitest）与键位表 · 浏览手感（Ctrl+框选翻转、详情页解码后换图不闪白、返回工作区保滚动位置与分页深度、Ctrl+Tab 循环切换标签页）· 详细页预览贡献点（detailPreview 槽：内置四类为默认提供方，按条目认领、后注册覆盖，D37）· 检索与建议（-标签 排除语法贯通契约/适配器/搜索词法；打标候选按共现相关性排序）· 标签全页工艺重做（页内新建/批选就地切换/内联描述/组卡/速打/统计分段与条带）· 详情页编辑模式（Ctrl+E 双向切换：阅读态标签区静态防误触，修改类动作只在编辑模式，生效范围事实入命令面板与键位表，D38）· 标签主页（TagProfile 有类型文档贯通五层+s32；词条式阅读页：左栏事实条/工作区口径共现邻居/Markdown 正文与 `[[标签名]]` 站内链接/外链转系统浏览器/就地编辑；入口 = 详情页 chip 双击，D38）· 详情页版式样板（P6 层级语法第一批：信息栏折叠节/阅读态去框词元/栏宽可拖）· CI 门（`npm run ci` 全链 + pre-push 钩子）。
 
 **下一步**（详述见 TODO.md）：
 1. 插件生态首批实战：音频封面 + 播放器（以 detailPreview 提供方认领音频，模拟第三方形态）
@@ -36,7 +36,7 @@ README → 本文件 → **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{d
 
 ## 五、环境与运行
 
-- **CI 门**：`npm run ci` = 五层 typecheck + 八份校准 + 渲染层全链（typecheck:web/模板/样式机检/Vitest/CSS 编译门）+ doctor，一链到底全绿才算过；`.git/hooks/pre-push` 挂了同一链条——push 由真人执行，链不过不出门（绕过 = `git push --no-verify`）。远端 CI（GitHub Actions）待仓库有远端再接（TODO 工程化）。
+- **CI 门**：`npm run ci` = 五层 typecheck + 八份校准 + 渲染层全链（typecheck:web/模板/样式机检/Vitest/CSS 编译门）+ doctor，一链到底全绿才算过；`.git/hooks/pre-push` 挂了同一链条——push 由真人执行，链不过不出门（绕过 = `git push --no-verify`）。钩子不入版本管理：重建 = 在 `.git/hooks/pre-push` 写入 `npm run ci`（sh 脚本）。远端 CI（GitHub Actions）待仓库有远端再接（TODO 工程化）。
 
 - **层 typecheck**：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（根无 node_modules；freeze 路径已失效）；node v24 可直跑 TS。
 - **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）；**渲染层断言** = `npm --prefix frontend run test`（Vitest：标签↔路由映射、顺序上下文解析、窄桥包装与入参纯化——不需要 DOM，跑一次几百毫秒）；**样式基线机检** = `npm --prefix frontend run check:style`（STYLE §6 禁区：写死颜色/10px/uppercase/内联样式等，组件里零命中才绿）；**CSS 编译门** = `npm --prefix frontend run check:build`（vite 生产构建——check:style/vue-tsc 都不经过 PostCSS/Tailwind 编译，`@apply` 里的非法类只有它抓得住；动过 globals.css 必跑）。
