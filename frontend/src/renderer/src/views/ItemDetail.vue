@@ -9,7 +9,7 @@ import { taghitFileUrl } from '../lib/media'
 import { useTabStore, type ItemTab } from '../stores/tab'
 import { useConfigStore } from '../stores/config'
 import { useTagStore } from '../stores/tag'
-import { itemRoute, resolveItemContext } from '../features/tabs'
+import { itemRoute, resolveItemContext, openTagTab } from '../features/tabs'
 import { resolveDetailPreview } from '../features/detailPreview'
 import { windowNav } from '../features/windowNav'
 import { registerDetailNav } from '../features/detailNav'
@@ -166,6 +166,14 @@ function toggleEdit(): void {
   if (tab == null || workspaceId.value == null) return
   tab.editing = !tab.editing
   if (!tab.editing) tagQuery.value = ''
+}
+
+/**
+ * 双击 chip → 标签主页（新标签页；阅读/编辑两态同口径——双击=打开是应用既有词汇）。
+ * 工作区上下文随本页固化：主页的共现口径与来处一致。
+ */
+function openProfile(t: { id: Id; name: string }): void {
+  openTagTab(t.id, t.name, workspaceId.value)
 }
 
 async function load(): Promise<void> {
@@ -406,6 +414,7 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
                 :name="chipName(tag)"
                 active
                 @click="toggleTag(tag.id)"
+                @dblclick="openProfile(tag)"
               />
               <template v-if="tagMatches.length">
                 <TagChip
@@ -413,11 +422,18 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
                   :key="`add-${tag.id}`"
                   :name="chipName(tag)"
                   @click="toggleTag(tag.id)"
+                  @dblclick="openProfile(tag)"
                 />
               </template>
             </template>
             <template v-else>
-              <span v-for="tag in item.tags" :key="tag.id" class="chip">
+              <span
+                v-for="tag in item.tags"
+                :key="tag.id"
+                class="chip cursor-pointer"
+                :title="`双击打开标签主页`"
+                @dblclick="openProfile(tag)"
+              >
                 {{ tag.name }}
               </span>
             </template>

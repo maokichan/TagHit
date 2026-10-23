@@ -42,6 +42,19 @@ export interface ItemTab {
 }
 
 /**
+ * 标签主页标签页：tag 是一级实体，有自己的阅读面（词条式主页）。
+ * `workspaceId` = 打开瞬间固化的工作区上下文（共现等口径按它取；从无工作区处打开为 null）。
+ * 重复打开同一标签 = 激活既有标签并更新工作区上下文（换视角，与 openItem 同口径）。
+ */
+export interface TagTab {
+  key: string
+  kind: 'tag'
+  tagId: string
+  workspaceId: string | null
+  title: string
+}
+
+/**
  * 功能组件内容标签页（contentTab 贡献点，见 DECISIONS）：
  * 壳持有标签项（featureId/title/激活），组件自持内容状态；关闭即销毁；
  * 同一 feature 单实例（重复打开 = 激活既有标签）。
@@ -57,7 +70,7 @@ export interface FeatureTab {
   workspaceId: string | null
 }
 
-export type Tab = HomeTab | WorkspaceTabItem | SettingsTab | ItemTab | FeatureTab
+export type Tab = HomeTab | WorkspaceTabItem | SettingsTab | ItemTab | TagTab | FeatureTab
 
 let homeSeq = 0
 
@@ -206,6 +219,24 @@ export const useTabStore = defineStore('tab', () => {
     activeKey.value = key
   }
 
+  /**
+   * 打开标签主页：新开一个标签主页标签页；同一标签已有则激活并更新工作区上下文。
+   * （标签主页与条目详情同为"打开一个视图"，导航语义见 features/tabs.ts。）
+   */
+  function openTag(tagId: string, title: string, workspaceId: string | null): void {
+    const key = `tag:${tagId}`
+    const existing = tabs.value.find((t): t is TagTab => t.kind === 'tag' && t.tagId === tagId)
+    if (existing) {
+      existing.workspaceId = workspaceId
+      existing.title = title
+      activeKey.value = key
+      return
+    }
+    const tab: TagTab = { key, kind: 'tag', tagId, workspaceId, title }
+    tabs.value.push(tab)
+    activeKey.value = key
+  }
+
   function setActive(key: string): void {
     if (tabs.value.some((t) => t.key === key)) activeKey.value = key
   }
@@ -264,6 +295,7 @@ export const useTabStore = defineStore('tab', () => {
     openItem,
     flipItemTab,
     openFeature,
+    openTag,
     openSettings,
     setActive,
     cycleActive,

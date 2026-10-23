@@ -3,6 +3,7 @@ import StartScreen from '../views/StartScreen.vue'
 import WorkspaceTab from '../views/WorkspaceTab.vue'
 import Settings from '../views/Settings.vue'
 import ItemDetail from '../views/ItemDetail.vue'
+import TagProfilePage from '../views/TagProfilePage.vue'
 import FeatureTabView from '../views/FeatureTabView.vue'
 
 const router = createRouter({
@@ -15,6 +16,8 @@ const router = createRouter({
     // 设置（全屏）：全局控制，含工作区管理与统一标签管理
     { path: '/settings', name: 'settings', component: Settings },
     { path: '/item/:id', name: 'item', component: ItemDetail, props: true },
+    // 标签主页：tag 的阅读面（词条式；路由是标签的投影，App.vue 守卫同一套）
+    { path: '/tag/:id', name: 'tag', component: TagProfilePage, props: true },
     // 功能组件内容标签页（contentTab 贡献点）：路由是标签的投影
     { path: '/feature/:featureId', name: 'feature', component: FeatureTabView, props: true }
   ]

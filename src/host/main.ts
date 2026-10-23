@@ -397,6 +397,12 @@ function createWindow(): void {
     },
   })
   const rendererUrl = () => process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173'
+  // 外链（标签主页等处）：应用内不弹新窗口，http(s) 交系统浏览器——Electron 默认行为是
+  // 开新 BrowserWindow，那会把应用变成浏览器，必须拦下。
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
   // 渲染层控制台转发：warning 以上打到主进程 stdout（渲染层早崩/黑屏的唯一诊断窗口）
   win.webContents.on('console-message', (_e, level, message, line, sourceId) => {
     if (level >= 2) console.log(`[renderer] ${message} (${sourceId}:${line})`)

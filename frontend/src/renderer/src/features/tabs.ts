@@ -1,6 +1,6 @@
 import router from '../router'
 import { useTabStore, type Tab } from '../stores/tab'
-import { routeOfTab } from './routes'
+import { routeOfTab, tagRoute } from './routes'
 
 /**
  * 标签与导航的**语义单点**（壳能力）。
@@ -24,6 +24,7 @@ export {
   resolveItemContext,
   routeMatchesTab,
   routeOfTab,
+  tagRoute,
 } from './routes'
 
 /** 激活标签并同步路由（**不写历史**：标签切换属"换视角"，不是"去新地方"）。 */
@@ -50,4 +51,13 @@ export function openFeatureTab(
 ): void {
   useTabStore().openFeature(featureId, title, workspaceId)
   void router.push(`/feature/${featureId}`)
+}
+
+/**
+ * 打开标签主页（**写历史**：这是一次"打开"，返回应回到来处）。
+ * 工作区上下文在打开瞬间固化到标签项上（共现等口径随它取）；同一标签已有标签页 = 激活。
+ */
+export function openTagTab(tagId: string, title: string, workspaceId: string | null): void {
+  useTabStore().openTag(tagId, title, workspaceId)
+  void router.push(tagRoute(tagId))
 }

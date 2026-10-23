@@ -15,7 +15,7 @@ import {
   routeOfTab,
 } from '../features/routes'
 import type { ItemContext } from '@shared/contract'
-import type { ItemTab, WorkspaceTabItem } from '../stores/tab'
+import type { ItemTab, TagTab, WorkspaceTabItem } from '../stores/tab'
 
 const CTX: ItemContext = {
   workspaceId: 'ws-1',
@@ -102,5 +102,12 @@ describe('标签 ↔ 路由', () => {
     const ws = { key: 'ws:1', kind: 'workspace', workspaceId: 'ws-1', title: '工作区' } as WorkspaceTabItem
     expect(routeMatchesTab(ws, '/workspace/ws-1')).toBe(true)
     expect(routeMatchesTab(ws, '/workspace/ws-1?x=1')).toBe(false)
+  })
+
+  it('标签主页标签：路由是 tagId 的投影，整串命中', () => {
+    const tab = { key: 'tag:t1', kind: 'tag', tagId: 't1', workspaceId: null, title: '风景' } as TagTab
+    expect(routeOfTab(tab)).toBe('/tag/t1')
+    expect(routeMatchesTab(tab, '/tag/t1')).toBe(true)
+    expect(routeMatchesTab(tab, '/tag/OTHER')).toBe(false)
   })
 })

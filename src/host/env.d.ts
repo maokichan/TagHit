@@ -33,6 +33,8 @@ declare module 'electron' {
         listener: (event: unknown, level: number, message: string, line: number, sourceId: string) => void
       ): void
       on(event: 'render-process-gone', listener: (event: unknown, details: { reason: string; exitCode: number }) => void): void
+      /** 窗口打开拦截：应用内不弹新窗口，http(s) 外链交系统浏览器（返回 deny）。 */
+      setWindowOpenHandler(handler: (details: { url: string }) => { action: 'deny' | 'allow' }): void
     }
   }
 
@@ -68,6 +70,8 @@ declare module 'electron' {
 
   export const shell: {
     trashItem(path: string): Promise<void>
+    /** 系统默认程序打开外链（标签主页链接等；仅 http(s)，由调用方把关）。 */
+    openExternal(url: string): Promise<void>
   }
 
   export const dialog: {

@@ -74,6 +74,11 @@ export function resolveItemContext(
   return ctx
 }
 
+/** 标签主页路由（tag 是一级实体；workspaceId 固化在标签项上，不进路由）。 */
+export function tagRoute(tagId: string): string {
+  return `/tag/${tagId}`
+}
+
 /** 标签 → 路由（唯一映射；TabBar、守卫、打开入口共用，避免各处手写模板字符串）。 */
 export function routeOfTab(tab: Tab): string {
   switch (tab.kind) {
@@ -85,6 +90,8 @@ export function routeOfTab(tab: Tab): string {
       return `/feature/${tab.featureId}`
     case 'item':
       return itemRoute(tab.itemId, tab.context)
+    case 'tag':
+      return tagRoute(tab.tagId)
     case 'workspace':
       return `/workspace/${tab.workspaceId}`
   }
