@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChevronLeft, ChevronRight, File, Film, Image as ImageIcon, Music, FileText, Search } from 'lucide-vue-next'
+import { ChevronDown, ChevronLeft, ChevronRight, File, Film, Image as ImageIcon, Music, FileText, Search } from 'lucide-vue-next'
 import { api } from '@shared/api'
 import type { Id, ItemContext, ItemWindowResult } from '@shared/contract'
 import { toItemView, type ItemView } from '../lib/viewModel'
@@ -304,6 +304,48 @@ const rows = computed(() => {
   ] as Array<[string, string]>
 })
 
+// ── 信息栏（P6 样板）：一页一重心（媒体），栏是支撑信息的连续表面 ──
+/**
+ * 宽度即身份：栏宽由用户按内容调（拖左缘手柄），配置持久化——不在代码里拍一个固定宽度。
+ * 几何是数据（:style），手柄外观在样式表（P1）。
+ */
+const railWidth = ref<number>(config.value('shell', 'detailRailWidth', 288))
+let railDrag: { startX: number; startW: number } | null = null
+function onRailResizeDown(e: PointerEvent): void {
+  railDrag = { startX: e.clientX, startW: railWidth.value }
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+}
+function onRailResizeMove(e: PointerEvent): void {
+  if (railDrag == null) return
+  railWidth.value = Math.min(460, Math.max(220, railDrag.startW + (railDrag.startX - e.clientX)))
+}
+function onRailResizeUp(e: PointerEvent): void {
+  if (railDrag == null) return
+  railDrag = null
+  ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+  config.setValue('shell', 'detailRailWidth', railWidth.value)
+}
+
+/**
+ * 节拍折叠：常显一行骨架（类型 · 尺寸 · 大小），长尾事实收进折叠节——
+ * 翻页会重挂组件，展开态挂配置（跨翻页保持）。
+ */
+const factsOpen = ref<boolean>(config.value('shell', 'detailFactsOpen', false))
+function toggleFacts(): void {
+  factsOpen.value = !factsOpen.value
+  config.setValue('shell', 'detailFactsOpen', factsOpen.value)
+}
+const factSummary = computed(() => {
+  if (!item.value) return ''
+  const parts = [MEDIA_LABEL[item.value.mediaType] ?? item.value.mediaType]
+  if (item.value.width != null && item.value.height != null) {
+    parts.push(`${item.value.width} × ${item.value.height}`)
+  }
+  parts.push(formatSize(item.value.size))
+  return parts.join(' · ')
+})
+const factRows = computed(() => rows.value.filter(([k]) => k !== '类型' && k !== '尺寸' && k !== '大小'))
+
 const MEDIA_LABEL: Record<string, string> = {
   image: '图片',
   video: '视频',
@@ -382,16 +424,40 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
         />
       </div>
 
-      <!-- 右：媒体信息 + 标签（内容页内，替代右侧边栏的"媒体信息"工具） -->
-      <div class="w-72 shrink-0 h-full overflow-y-auto border-l border-[var(--border)] bg-[var(--bg-elev)]">
-        <div class="px-3 py-3">
-          <div class="panel-label mb-2">媒体信息</div>
-          <dl class="space-y-1 text-[12px] mb-5">
-            <div v-for="[k, v] in rows" :key="k" class="flex gap-2">
+      <!-- 右：信息栏（P6 样板：一整块连续表面，节头 + 发丝线分节；左缘可拖宽，宽度持久化） -->
+      <div
+        class="relative shrink-0 h-full overflow-y-auto border-l border-[var(--border)] bg-[var(--bg-elev)]"
+        :style="{ width: railWidth + 'px' }"
+      >
+        <div
+          class="absolute left-0 top-0 z-10 h-full w-1 cursor-col-resize hover:bg-[var(--accent-border)]"
+          role="separator"
+          aria-label="拖动调整信息栏宽度"
+          title="拖动调整栏宽"
+          @pointerdown="onRailResizeDown"
+          @pointermove="onRailResizeMove"
+          @pointerup="onRailResizeUp"
+        ></div>
+        <div class="px-4 py-3">
+          <!-- 文件事实：常显一行骨架，长尾折叠（节拍折叠；展开态挂配置，翻页不丢） -->
+          <button
+            class="section-head w-full"
+            :data-open="factsOpen ? 'true' : 'false'"
+            :aria-expanded="factsOpen"
+            @click="toggleFacts"
+          >
+            <ChevronDown :size="11" />
+            媒体信息
+          </button>
+          <div class="text-[12px] mt-1.5">{{ factSummary }}</div>
+          <dl v-if="factsOpen" class="space-y-1 text-[12px] mt-2">
+            <div v-for="[k, v] in factRows" :key="k" class="flex gap-2">
               <dt class="w-16 shrink-0 text-[var(--fg-dim)] truncate" :title="k">{{ k }}</dt>
               <dd class="break-all min-w-0">{{ v }}</dd>
             </div>
           </dl>
+
+          <div class="divider my-3"></div>
 
           <div class="flex items-center gap-2 mb-2 min-h-5">
             <div class="panel-label">标签</div>
@@ -426,16 +492,17 @@ const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺�
                 />
               </template>
             </template>
+            <!-- 阅读态：词元去框化（P6 一页一重心——形态即状态，不可改就不长可改的样子） -->
             <template v-else>
-              <span
+              <button
                 v-for="tag in item.tags"
                 :key="tag.id"
-                class="chip cursor-pointer"
-                :title="`双击打开标签主页`"
+                class="chip--text"
+                :title="'双击打开标签主页'"
                 @dblclick="openProfile(tag)"
               >
                 {{ tag.name }}
-              </span>
+              </button>
             </template>
           </div>
 
