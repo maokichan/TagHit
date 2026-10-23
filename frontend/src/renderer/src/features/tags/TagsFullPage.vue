@@ -239,7 +239,7 @@ async function removeOne(id: Id, name: string): Promise<void> {
   }
 }
 
-// ── 组（组织标签的扁平容器；只用组组织，组索引/筛选另行再看） ──
+// ── ② 组（组织标签的扁平容器；只用组组织，组索引/筛选另行再看） ──
 const groups = ref<Group[]>([])
 const memberships = ref<Array<{ groupId: Id; tagId: Id }>>([])
 const groupsLoaded = ref(false)
@@ -397,7 +397,7 @@ async function batchAddToGroup(): Promise<void> {
   })
 }
 
-// ── 数字键速打（详情页 1..9 直达；映射归标签职能，配置只在此页） ──
+// ── ③ 数字键速打（详情页 1..9 直达；映射归标签职能，配置只在此页） ──
 const declared = ref<Id[]>([])
 const pins = ref<Array<Id | null>>(Array<Id | null>(9).fill(null))
 const pinsLoaded = ref(false)
@@ -442,7 +442,7 @@ function setPin(digit: number, tagId: string): void {
   config.setValue('tags', `pinned:${wsId.value}`, arr)
 }
 
-// ── ③ 对统计 ──────────────────────────────────────────────
+// ── ④ 对统计 ──────────────────────────────────────────────
 const cooccur = ref<TagPairStat[]>([])
 const mutex = ref<TagPairStat[]>([])
 const pairsLoaded = ref(false)
@@ -718,7 +718,7 @@ watch(wsId, () => {
                   </template>
                   <template v-else>
                     <button
-                      class="block w-full truncate text-left text-[var(--fg-dim)] hover:text-[var(--fg)] hover:underline decoration-dotted underline-offset-2 transition-colors cursor-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:opacity-60 disabled:cursor-not-allowed"
+                      class="cell-edit"
                       :title="row.tag.description ?? '点击添加描述'"
                       :aria-label="
                         row.tag.description
@@ -951,7 +951,7 @@ watch(wsId, () => {
       </template>
     </section>
 
-    <!-- 数字键速打：详情页 1..9 直达（映射归标签职能，配置只在此页） -->
+    <!-- ③ 数字键速打：详情页 1..9 直达（映射归标签职能，配置只在此页） -->
     <section>
       <h2 class="text-[13px] font-medium mb-3">数字键速打</h2>
       <div v-if="wsId === ''" class="text-[12px] text-[var(--fg-dim)]">
@@ -993,7 +993,7 @@ watch(wsId, () => {
       </template>
     </section>
 
-    <!-- ③ 对统计（共现 / 互斥） -->
+    <!-- ④ 对统计（共现 / 互斥） -->
     <section>
       <div class="flex items-center gap-2 mb-3">
         <h2 class="text-[13px] font-medium flex-1">统计</h2>
