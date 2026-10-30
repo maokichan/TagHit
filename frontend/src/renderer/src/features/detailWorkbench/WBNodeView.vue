@@ -76,6 +76,8 @@ interface WeightDrag {
   dir: 'row' | 'col'
 }
 let weightDrag: WeightDrag | null = null
+/** 拖拽中的缝索引（ref 供模板渲染 accent 常亮态；weightDrag 是非响应式手势数据）。 */
+const resizingIndex = ref<number | null>(null)
 
 function onResizeDown(index: number, e: PointerEvent): void {
   const s = split.value
@@ -90,6 +92,7 @@ function onResizeDown(index: number, e: PointerEvent): void {
     start: [...s.weights],
     dir: s.dir
   }
+  resizingIndex.value = index
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 }
 
@@ -124,14 +127,15 @@ function onResizeUp(e: PointerEvent): void {
   }
   draftWeights.value = null
   weightDrag = null
+  resizingIndex.value = null
 }
 </script>
 
 <template>
-  <!-- 叶 -->
+  <!-- 叶（槽位卡片：附在底板上，--bg-elev 浅一档） -->
   <div
     v-if="leaf"
-    class="h-full w-full relative flex flex-col min-w-0 min-h-0 overflow-hidden"
+    class="h-full w-full relative flex flex-col min-w-0 min-h-0 overflow-hidden bg-[var(--bg-elev)]"
     @dragover="onBodyOver"
     @drop.prevent="onBodyDrop"
   >
@@ -169,10 +173,10 @@ function onResizeUp(e: PointerEvent): void {
     </template>
   </div>
 
-  <!-- 枝 -->
+  <!-- 枝（分割容器自身是底板的一部分：缝隙处露出最深底色） -->
   <div
     v-else-if="split"
-    class="h-full w-full flex min-h-0 min-w-0"
+    class="h-full w-full flex min-h-0 min-w-0 bg-[var(--bg)]"
     :class="split.dir === 'row' ? 'flex-row' : 'flex-col'"
   >
     <template v-for="(child, i) in split.children" :key="child.id">
@@ -182,7 +186,8 @@ function onResizeUp(e: PointerEvent): void {
       <div
         v-if="i < split.children.length - 1"
         class="wb-seam shrink-0"
-        :class="split.dir === 'row' ? 'w-px cursor-col-resize' : 'h-px cursor-row-resize'"
+        :class="split.dir === 'row' ? 'wb-seam--x' : 'wb-seam--y'"
+        :data-drag="resizingIndex === i ? 'true' : 'false'"
         :aria-label="split.dir === 'row' ? '拖动调整槽位宽度' : '拖动调整槽位高度'"
         @pointerdown="onResizeDown(i, $event)"
         @pointermove="onResizeMove"

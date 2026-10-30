@@ -108,10 +108,11 @@ provideWorkbenchApi(api)
 </script>
 
 <template>
-  <div v-if="layout" class="h-full w-full flex min-h-0 min-w-0">
+  <!-- 底板：工作台根走最深底色并留边距——槽位卡片附在其上（D41 卡片/底板模型） -->
+  <div v-if="layout" class="h-full w-full flex min-h-0 min-w-0 bg-[var(--bg)] p-1.5">
     <!-- 菜单的外点关闭遮罩（菜单本体 fixed，见 AddViewMenu） -->
     <div v-if="menu" class="fixed inset-0 z-30" @click="api.closeMenu()"></div>
-    <WBNodeView :node="layout.tree" />
+    <WBNodeView :node="layout.tree" class="flex-1 min-w-0 min-h-0" />
     <AddViewMenu v-if="menu" />
   </div>
 </template>

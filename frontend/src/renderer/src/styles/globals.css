@@ -357,16 +357,49 @@ body {
   .wb-tab:active {
     transform: scale(0.97);
   }
-  /* 槽与槽之间的边缘（D41）：枝内兄弟之间的 1px 全强度缝，兼作拖宽/拖高柄——
-     悬停亮 accent 提示"这条缝可以拖"（P3 反馈靠边框）。 */
+  /* 槽位容器 = 附在底板上的卡片（D41）：底板（工作台根与分割容器）走最深 --bg，
+     卡片（叶槽位）走 --bg-elev，卡片之间的缝隙即底板透出——不画缝线，明度差即分界。
+     .wb-seam 只是缝隙里的拖柄：静默透明，悬停/拖拽中亮 accent 线（2px 居中）。 */
   .wb-seam {
-    background: var(--border);
-    transition-property: background-color;
+    position: relative;
+  }
+  .wb-seam--x {
+    width: 6px;
+    cursor: col-resize;
+  }
+  .wb-seam--y {
+    height: 6px;
+    cursor: row-resize;
+  }
+  .wb-seam--x::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    right: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition-property: opacity;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
-  .wb-seam:hover {
+  .wb-seam--y::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 2px;
+    bottom: 2px;
     background: var(--accent);
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .wb-seam:hover::after,
+  .wb-seam[data-drag='true']::after {
+    opacity: 1;
   }
   /* 缘落点区（拖拽中出现的分割热区）：静默透明，命中即染 accent-soft + accent 描边。 */
   .wb-edge[data-on='true'] {
