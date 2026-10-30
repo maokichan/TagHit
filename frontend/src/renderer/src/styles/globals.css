@@ -335,9 +335,8 @@ body {
       transform: none;
     }
   }
-  /* 详情页工作台（D39）：槽位 tab 栈的词汇。tab = 小号标签（激活 = 顶部 accent 细条，
-     与壳标签页同词汇）；落点高亮 = 槽缘 accent 描边（outline 不参与布局，高亮不跳版面，
-     P3 反馈靠边框）。拖动中的 tab 降透明度（同壳标签页）。 */
+  /* 详情页工作台（D39/D41）：槽位 tab 栈的词汇。tab = 小号标签（激活 = 顶部 accent 细条，
+     与壳标签页同词汇）。拖动中的 tab 降透明度（同壳标签页）。 */
   .wb-tabstrip {
     @apply flex items-center gap-0.5 px-1.5 h-8 shrink-0 border-b border-[var(--border-soft)];
   }
@@ -358,7 +357,20 @@ body {
   .wb-tab:active {
     transform: scale(0.97);
   }
-  .wb-slot[data-drop='true'] {
+  /* 槽与槽之间的边缘（D41）：枝内兄弟之间的 1px 全强度缝，兼作拖宽/拖高柄——
+     悬停亮 accent 提示"这条缝可以拖"（P3 反馈靠边框）。 */
+  .wb-seam {
+    background: var(--border);
+    transition-property: background-color;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .wb-seam:hover {
+    background: var(--accent);
+  }
+  /* 缘落点区（拖拽中出现的分割热区）：静默透明，命中即染 accent-soft + accent 描边。 */
+  .wb-edge[data-on='true'] {
+    background: var(--accent-soft);
     outline: 1px solid var(--accent);
     outline-offset: -1px;
   }

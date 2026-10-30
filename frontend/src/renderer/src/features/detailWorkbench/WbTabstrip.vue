@@ -15,7 +15,7 @@ defineProps<{
 const emit = defineEmits<{
   activate: [viewId: string]
   close: [viewId: string]
-  add: []
+  add: [e: MouseEvent]
   dragstart: [viewId: string, e: DragEvent]
   dragend: []
 }>()
@@ -45,8 +45,8 @@ const emit = defineEmits<{
     </div>
     <button
       class="ml-auto icon-btn h-5 w-5 shrink-0"
-      title="添加视图"
-      @click.stop="emit('add')"
+      title="添加视图 / 分割新槽"
+      @click.stop="emit('add', $event)"
     >
       <Plus :size="12" />
     </button>

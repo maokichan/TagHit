@@ -1,76 +1,77 @@
 <script setup lang="ts">
 /**
- * 回添菜单（D40）：列出未落在目标槽的已注册视图（含被用户关闭的——安置即收回关闭记录），
- * 点选即落位并激活。工作台槽条"+"与中心空态按钮共用；外点关闭归父级（openSlot 状态）。
+ * 回添/分割菜单（D40/D41）：挂在触发按钮的屏幕坐标上（fixed 定位，越缘翻转）。
+ * 两组动作——「加入此槽」列出未落本叶的已注册视图（含被关闭的，安置即收回关闭记录）；
+ * 「分割新槽」四向新建空槽（D41：任意槽位上下左右都能长出新槽）。
+ * 菜单本体归 DetailWorkbench 单例渲染（api.menu 持有锚点），外点关闭归其遮罩层。
  */
 import { computed } from 'vue'
-import { DETAIL_SLOTS, moveView, type DetailSlotId } from './slots'
+import { findLeaf, type SplitDir } from './slots'
 import { listDetailViews } from './views'
-import { commitLayout, workbenchLayoutRef } from './store'
+import { useWorkbenchApi } from './api'
 
-const props = defineProps<{
-  /** 目标槽（点选的视图落到这里）。 */
-  to: DetailSlotId
-  /** 弹层方位：槽条下方（左/中/右）或槽体上方（底槽，防溢出视口）。 */
-  anchor: 'below' | 'above'
-}>()
+const api = useWorkbenchApi()
 
-const emit = defineEmits<{ done: [] }>()
-
-const layout = workbenchLayoutRef()
-
-const SLOT_LABEL: Record<DetailSlotId, string> = {
-  left: '左栏',
-  center: '中心',
-  right: '右栏',
-  bottom: '底栏'
-}
-
-const items = computed(() => {
-  const l = layout.value
-  if (l == null) return []
-  return listDetailViews().filter((v) => !l.slots[props.to].includes(v.id))
+const leaf = computed(() => {
+  const m = api.menu.value
+  if (m == null) return null
+  return api.layout.value ? findLeaf(api.layout.value.tree, m.leafId) : null
 })
 
-function slotOf(viewId: string): DetailSlotId | null {
-  const l = layout.value
-  if (l == null) return null
-  return DETAIL_SLOTS.find((s) => l.slots[s].includes(viewId)) ?? null
-}
+const items = computed(() => {
+  const l = leaf.value
+  if (l == null) return []
+  return listDetailViews().filter((v) => !l.stack.includes(v.id))
+})
 
-function add(viewId: string): void {
-  const l = layout.value
-  if (l == null) return
-  commitLayout(moveView(l, viewId, props.to))
-  emit('done')
-}
+const SPLIT_DIRS: Array<{ dir: SplitDir; label: string }> = [
+  { dir: 'left', label: '向左分割新槽' },
+  { dir: 'right', label: '向右分割新槽' },
+  { dir: 'above', label: '向上分割新槽' },
+  { dir: 'below', label: '向下分割新槽' }
+]
+
+const MENU_W = 224
+
+/** fixed 定位 + 越缘翻转：右缘收、下缘向上弹。 */
+const pos = computed(() => {
+  const m = api.menu.value
+  if (m == null) return { left: '8px', top: '8px' }
+  const est = 34 + items.value.length * 26 + SPLIT_DIRS.length * 26 + 24
+  const left = Math.max(8, Math.min(m.x, window.innerWidth - MENU_W - 8))
+  const top = m.y + est > window.innerHeight - 8 ? Math.max(8, m.y - est - 32) : m.y
+  return { left: `${left}px`, top: `${top}px`, width: `${MENU_W}px` }
+})
 </script>
 
 <template>
-  <!-- 左槽贴窗口左缘：菜单必须向右展开，锚右缘会整片出屏（落在"虚空"里） -->
   <div
-    class="absolute z-20 min-w-44 py-1 rounded-md border border-[var(--border)] bg-[var(--bg-elev)] shadow-lg"
-    :class="[
-      anchor === 'below' ? 'top-9' : 'bottom-full mb-1',
-      to === 'left' ? 'left-1.5' : 'right-1.5'
-    ]"
+    v-if="leaf"
+    class="fixed z-40 py-1 rounded-md border border-[var(--border)] bg-[var(--bg-elev)] shadow-lg"
+    :style="pos"
   >
+    <div class="px-2.5 pt-1 pb-0.5 text-[11px] text-[var(--fg-dim)] opacity-70">加入此槽</div>
     <button
       v-for="v in items"
       :key="v.id"
       class="w-full flex items-center gap-2 text-left px-2.5 py-1.5 text-[12px] text-[var(--fg-dim)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] cursor-pointer"
-      @click="add(v.id)"
+      @click="api.addToLeaf(v.id, leaf.id); api.closeMenu()"
     >
       <span class="truncate">{{ v.title }}</span>
-      <span
-        v-if="slotOf(v.id)"
-        class="text-[11px] opacity-70 shrink-0"
-      >
-        在{{ SLOT_LABEL[slotOf(v.id)!] }}
-      </span>
     </button>
     <div v-if="!items.length" class="px-2.5 py-1.5 text-[12px] text-[var(--fg-dim)] opacity-70">
       没有可添加的视图
     </div>
+
+    <div class="divider my-1"></div>
+    <div class="px-2.5 pt-0.5 pb-1 text-[11px] text-[var(--fg-dim)] opacity-70">分割新槽</div>
+    <button
+      v-for="d in SPLIT_DIRS"
+      :key="d.dir"
+      class="w-full flex items-center text-left px-2.5 py-1.5 text-[12px] text-[var(--fg-dim)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] cursor-pointer"
+      @click="api.splitLeaf(leaf.id, d.dir); api.closeMenu()"
+    >
+      <span>{{ d.label }}</span>
+    </button>
   </div>
 </template>

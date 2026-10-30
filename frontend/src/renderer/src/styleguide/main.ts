@@ -178,14 +178,20 @@ const componentsSection = section(
       body: `<div class="error-note max-w-md" role="alert"><span class="min-w-0 flex-1 break-words">扫描进行中：3 个文件不可读，已跳过并计入摘要。</span><button class="icon-btn h-4 w-4 shrink-0 text-[var(--danger)]" title="关闭">✕</button></div>`
     },
     {
-      label: '.wb-tabstrip / .wb-tab / .wb-tab--on / .wb-slot[data-drop]（工作台槽位 tab 栈：激活 = 顶部 accent 细条；data-drop = 拖放落点描边）',
-      body: `<div class="max-w-md rounded-lg border border-[var(--border)] overflow-hidden">
-        <div class="wb-tabstrip">
-          <div class="wb-tab wb-tab--on">预览</div>
-          <div class="wb-tab">信息</div>
-          <div class="wb-tab" data-drop="true">预览条</div>
+      label: '.wb-tabstrip / .wb-tab / .wb-tab--on / .wb-seam / .wb-edge[data-on]（工作台：槽位 tab 栈 + 槽间接缝 + 缘落点）',
+      body: `<div class="max-w-md rounded-lg border border-[var(--border)] overflow-hidden flex">
+        <div class="flex-1 min-w-0">
+          <div class="wb-tabstrip">
+            <div class="wb-tab wb-tab--on">预览</div>
+            <div class="wb-tab">信息</div>
+          </div>
+          <div class="h-20 flex items-center justify-center text-[12px] text-[var(--fg-dim)]">视图填满槽位</div>
         </div>
-        <div class="h-20 flex items-center justify-center text-[12px] text-[var(--fg-dim)]">tab 可拖拽换槽；落点槽缘亮 accent 描边（outline 不跳版面）</div>
+        <div class="wb-seam w-px self-stretch"></div>
+        <div class="w-28 shrink-0 relative">
+          <div class="wb-edge absolute inset-2" data-on="true"></div>
+          <div class="absolute inset-0 flex items-center justify-center text-[12px] text-[var(--fg-dim)]">缘落点</div>
+        </div>
       </div>`
     },
     {

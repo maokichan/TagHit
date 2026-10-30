@@ -1,196 +1,284 @@
 /**
- * 详情页工作台槽位规则断言（D39）。
- * 钉住分配解析的裁决口径：出厂按偏好落位 / 用户覆盖为准 / 已注销视图剔除 /
- * 已知无归宿视图回落（dismissed 不回落）/ active 修正 / 尺寸 clamp。
+ * 详情页工作台布局规则断言（D41 分割树）。
+ * 钉住：默认树形状 / v1 四槽迁移 / v2 序列化往返 / 树操作（分割·关闭·移动·权重）/
+ * 别名陷阱（split 嵌入克隆叶）/ 回落规则（空叶优先、偏好方向、dismissed 不回落）。
  */
 import { describe, expect, it } from 'vitest'
 import {
-  activateView,
-  closeView,
-  clampSlotSize,
-  moveView,
-  resetLayout,
+  layoutActivate,
+  layoutAdjustWeights,
+  layoutCloseLeaf,
+  layoutCloseView,
+  layoutMoveView,
+  layoutSplit,
   resolveLayout,
-  setSlotSize,
-  SLOT_SIZE_BOUNDS,
   type KnownView,
+  type WBLeaf,
   type WorkbenchLayout
 } from '../features/detailWorkbench/slots'
 
 const KNOWN: KnownView[] = [
   { id: 'preview', preferredSlot: 'center' },
   { id: 'info', preferredSlot: 'right' },
-  { id: 'filmstrip', preferredSlot: 'bottom' },
-  { id: 'plugin.panel', preferredSlot: 'left' },
-  { id: 'plugin.naked' } // 无偏好 → 右栏
+  { id: 'filmstrip', preferredSlot: 'bottom' }
 ]
 
-/** 已知视图按偏好落位的出厂形态。 */
-function expectFactory(layout: WorkbenchLayout): void {
-  expect(layout.slots.center).toEqual(['preview'])
-  expect(layout.slots.right).toEqual(['info', 'plugin.naked'])
-  expect(layout.slots.bottom).toEqual(['filmstrip'])
-  expect(layout.slots.left).toEqual(['plugin.panel'])
-  expect(layout.active).toEqual({ left: 'plugin.panel', center: 'preview', right: 'info', bottom: 'filmstrip' })
+function leafOf(layout: WorkbenchLayout, id: string): WBLeaf {
+  const found = findLeafById(layout.tree, id)
+  expect(found).not.toBeNull()
+  return found!
 }
 
-describe('resolveLayout', () => {
-  it('无存储（null）→ 出厂：全部已知视图按偏好落位，注册序 = tab 序', () => {
+function findLeafById(node: WorkbenchLayout['tree'], id: string): WBLeaf | null {
+  if (node.kind === 'leaf') return node.id === id ? node : null
+  for (const c of node.children) {
+    const hit = findLeafById(c, id)
+    if (hit) return hit
+  }
+  return null
+}
+
+/** 出厂树形：row[ col[s1(预览), s2(预览条)], s5(信息) ]。 */
+function expectFactory(layout: WorkbenchLayout): void {
+  expect(layout.version).toBe(2)
+  expect(layout.tree.kind).toBe('split')
+  const root = layout.tree as { dir: string; children: WorkbenchLayout['tree'][] }
+  expect(root.dir).toBe('row')
+  const [main, right] = root.children
+  expect(leafOf(layout, right!.id).stack).toEqual(['info'])
+  expect(main!.kind).toBe('split')
+  const col = main as { dir: string; children: WorkbenchLayout['tree'][] }
+  expect(col.dir).toBe('col')
+  expect(leafOf(layout, col.children[0]!.id).stack).toEqual(['preview'])
+  expect(leafOf(layout, col.children[1]!.id).stack).toEqual(['filmstrip'])
+}
+
+describe('resolveLayout / 默认树', () => {
+  it('无存储 → 出厂：偏好落位成默认树', () => {
     expectFactory(resolveLayout(null, KNOWN))
   })
 
-  it('存储损坏（非对象/缺 slots）→ 出厂', () => {
+  it('存储损坏 → 出厂', () => {
     expectFactory(resolveLayout('garbage', KNOWN))
-    expectFactory(resolveLayout(42, KNOWN))
-    expectFactory(resolveLayout({ nope: 1 }, KNOWN))
+    expectFactory(resolveLayout({ version: 2, tree: { kind: 'nope' } }, KNOWN))
+    expectFactory(resolveLayout({ slots: {} }, KNOWN)) // v1 全空 → 出厂
   })
 
-  it('用户覆盖为准：存储的栈序、active、尺寸原样保留', () => {
-    const stored = {
-      slots: { center: ['info'], right: ['preview'], bottom: [], left: [] },
-      active: { center: 'info', right: 'preview', bottom: null, left: null },
-      sizes: { leftW: 300, rightW: 400, bottomH: 200 },
+  it('v1 四槽存储 → 迁移为等价树（空左槽不注入）', () => {
+    const old = {
+      slots: {
+        left: [],
+        center: ['preview'],
+        right: ['info'],
+        bottom: ['filmstrip']
+      },
+      active: { center: 'preview', right: 'info', bottom: 'filmstrip', left: null },
+      sizes: { leftW: 260, rightW: 288, bottomH: 144 },
       dismissed: []
     }
-    const layout = resolveLayout(stored, KNOWN)
-    expect(layout.slots.center).toEqual(['info'])
-    expect(layout.active.center).toBe('info')
-    expect(layout.sizes).toEqual({ leftW: 300, rightW: 400, bottomH: 200 })
-    // 未安置的已知视图（filmstrip / plugin.*）按偏好回落
-    expect(layout.slots.bottom).toEqual(['filmstrip'])
-    expect(layout.slots.left).toEqual(['plugin.panel'])
-    // plugin.naked 未安置也未 dismiss → 回落右栏（追加在用户栈之后）
-    expect(layout.slots.right).toEqual(['preview', 'plugin.naked'])
+    expectFactory(resolveLayout(old, KNOWN))
   })
 
-  it('已注销视图（不在 known）从栈与 dismissed 中剔除', () => {
+  it('v1 非空左槽 → 树含左叶', () => {
+    const old = {
+      slots: { left: ['x'], center: [], right: [], bottom: [] },
+      dismissed: []
+    }
+    const layout = resolveLayout(old, [{ id: 'x' }])
+    const root = layout.tree as { dir: string; children: WorkbenchLayout['tree'][] }
+    expect(root.dir).toBe('row')
+    expect(leafOf(layout, root.children[0]!.id).stack).toEqual(['x'])
+  })
+
+  it('v2 往返：布局 → JSON → resolve 深度一致', () => {
+    const original = resolveLayout(null, KNOWN)
+    const round = resolveLayout(JSON.parse(JSON.stringify(original)), KNOWN)
+    expect(round).toEqual(original)
+  })
+
+  it('v2 归一：未知视图剔除、重复去重、active 修正', () => {
     const stored = {
-      slots: { center: ['preview', 'ghost.plugin'], right: [], bottom: [], left: [] },
-      active: { center: 'ghost.plugin', right: null, bottom: null, left: null },
-      dismissed: ['ghost.plugin', 'gone.too']
+      version: 2,
+      tree: {
+        kind: 'leaf',
+        id: 's1',
+        stack: ['preview', 'preview', 'ghost'],
+        active: 'ghost'
+      },
+      dismissed: ['ghost']
     }
     const layout = resolveLayout(stored, KNOWN)
-    expect(layout.slots.center).toEqual(['preview'])
-    expect(layout.active.center).toBe('preview') // active 指向鬼视图 → 修正为栈首
+    const leaf = leafOf(layout, 's1')
+    expect(leaf.stack).toEqual(['preview'])
+    expect(leaf.active).toBe('preview')
+    // 未安置的已知视图回落（空叶优先 → 没有空叶 → info/filmstrip 落 s1 后？不：无偏好方向 → 第一个叶）
     expect(layout.dismissed).toEqual([])
   })
 
-  it('用户主动关闭（dismissed）的已知视图不回落——以用户为准', () => {
+  it('v2 单子枝折叠（其余视图已 dismissed，不再回落长枝）', () => {
     const stored = {
-      slots: { center: ['preview'], right: ['info'], bottom: [], left: [] },
-      active: { center: 'preview', right: 'info', bottom: null, left: null },
-      dismissed: ['filmstrip']
+      version: 2,
+      tree: {
+        kind: 'split',
+        id: 's9',
+        dir: 'row',
+        children: [{ kind: 'leaf', id: 's1', stack: ['preview'], active: 'preview' }],
+        weights: [1]
+      },
+      dismissed: ['info', 'filmstrip']
     }
     const layout = resolveLayout(stored, KNOWN)
-    expect(layout.slots.bottom).toEqual([])
-    expect(layout.active.bottom).toBeNull()
+    expect(layout.tree.kind).toBe('leaf')
+    expect(leafOf(layout, 's1').stack).toEqual(['preview'])
+  })
+})
+
+describe('回落规则', () => {
+  it('新注册视图：空叶优先', () => {
+    let layout = resolveLayout(null, KNOWN)
+    layout = layoutCloseView(layout, 'filmstrip') // 底叶变空（保留）
+    layout = resolveLayout(JSON.parse(JSON.stringify(layout)), [
+      ...KNOWN,
+      { id: 'plugin.x', preferredSlot: 'bottom' }
+    ])
+    // filmstrip 被 dismissed 不回落；plugin.x 偏好 bottom → 空叶优先落 s2
+    expect(leafOf(layout, 's2').stack).toEqual(['plugin.x'])
     expect(layout.dismissed).toEqual(['filmstrip'])
   })
 
-  it('存储尺寸越界 → clamp；非数值 → 回默认', () => {
-    const stored = {
-      slots: { center: ['preview'], right: ['info'], bottom: ['filmstrip'], left: [] },
-      active: { center: 'preview', right: 'info', bottom: 'filmstrip', left: null },
-      sizes: { leftW: 9999, rightW: 1, bottomH: 'bogus' }
-    }
-    const layout = resolveLayout(stored, KNOWN)
-    expect(layout.sizes.leftW).toBe(clampSlotSize('leftW', 9999))
-    expect(layout.sizes.rightW).toBe(clampSlotSize('rightW', 1))
-    expect(layout.sizes.bottomH).toBe(clampSlotSize('bottomH', NaN)) // 回默认
+  it('新注册视图：有存储但缺视图 → 空叶优先，无空叶则按偏好方向分割新叶（right = 最右叶右侧）', () => {
+    const stored = resolveLayout(null, KNOWN) // 出厂树不含 plugin.x
+    const layout = resolveLayout(JSON.parse(JSON.stringify(stored)), [
+      ...KNOWN,
+      { id: 'plugin.x', preferredSlot: 'right' }
+    ])
+    const root = layout.tree as { children: WorkbenchLayout['tree'][] }
+    expect(root.children.length).toBe(3)
+    expect(leafOf(layout, root.children[2]!.id).stack).toEqual(['plugin.x'])
+    // 出厂（无存储）时全部已知视图按偏好直接排入默认树，不走分割
+    expect(leafOf(resolveLayout(null, [...KNOWN, { id: 'plugin.x', preferredSlot: 'right' }]), 's5').stack).toEqual([
+      'info',
+      'plugin.x'
+    ])
   })
 
-  it('栈内重复 id 去重（脏存储不复制标签）', () => {
+  it('dismissed 不回落；用户覆盖（v2 栈序）为准', () => {
     const stored = {
-      slots: { center: ['preview', 'preview'], right: [], bottom: [], left: [] },
-      active: { center: 'preview', right: null, bottom: null, left: null }
+      version: 2,
+      tree: {
+        kind: 'split',
+        id: 's3',
+        dir: 'row',
+        children: [
+          { kind: 'leaf', id: 's1', stack: ['info'], active: 'info' },
+          { kind: 'leaf', id: 's2', stack: ['preview'], active: 'preview' }
+        ],
+        weights: [0.5, 0.5]
+      },
+      dismissed: ['filmstrip']
     }
     const layout = resolveLayout(stored, KNOWN)
-    expect(layout.slots.center).toEqual(['preview'])
+    expect(leafOf(layout, 's1').stack).toEqual(['info'])
+    expect(leafOf(layout, 's2').stack).toEqual(['preview'])
+    expect(layout.dismissed).toEqual(['filmstrip'])
   })
 })
 
-describe('布局操作', () => {
-  const factory = (): WorkbenchLayout =>
-    resolveLayout(null, [
-      { id: 'preview', preferredSlot: 'center' },
-      { id: 'info', preferredSlot: 'right' },
-      { id: 'filmstrip', preferredSlot: 'bottom' }
-    ])
+describe('树操作', () => {
+  const factory = (): WorkbenchLayout => resolveLayout(null, KNOWN)
 
-  it('moveView：跨槽移动 = 原槽移除 + 目标栈尾 + 激活；原槽 active 修正', () => {
-    const next = moveView(factory(), 'info', 'bottom')
-    expect(next.slots.right).toEqual([])
-    expect(next.active.right).toBeNull()
-    expect(next.slots.bottom).toEqual(['filmstrip', 'info'])
-    expect(next.active.bottom).toBe('info')
-    // 纯函数：原布局不受影响
-    expect(factory().slots.right).toEqual(['info'])
+  it('layoutMoveView：跨叶移动 + 收回 dismissed；原叶 active 修正', () => {
+    const moved = layoutMoveView(factory(), 'info', 's1')
+    expect(leafOf(moved, 's1').stack).toEqual(['preview', 'info'])
+    expect(leafOf(moved, 's1').active).toBe('info')
+    expect(leafOf(moved, 's5').stack).toEqual([])
+    const closed = layoutCloseView(moved, 'info')
+    expect(closed.dismissed).toEqual(['info'])
+    const back = layoutMoveView(closed, 'info', 's5')
+    expect(back.dismissed).toEqual([])
+    expect(leafOf(back, 's5').stack).toEqual(['info'])
   })
 
-  it('moveView：把 dismissed 的视图重新安置 = 收回关闭记录', () => {
-    const closed = closeView(factory(), 'filmstrip')
-    expect(closed.dismissed).toEqual(['filmstrip'])
-    const readded = moveView(closed, 'filmstrip', 'left')
-    expect(readded.slots.left).toEqual(['filmstrip'])
-    expect(readded.dismissed).toEqual([])
+  it('layoutSplit：同向父枝 → 插为兄弟（权重对半）；视图挪入新叶且不双份', () => {
+    // s5（信息）向右分割并带走 preview：preview 从 s1 摘除、只在新叶
+    const next = layoutSplit(factory(), 's5', 'right', 'preview')
+    const root = next.tree as { children: WorkbenchLayout['tree'][]; weights: number[] }
+    expect(root.children.length).toBe(3)
+    // 全树恰有一份 preview（不双份）：s1 空了，s6 持有
+    expect(leafOf(next, 's1').stack).toEqual([])
+    expect(leafOf(next, 's6').stack).toEqual(['preview'])
+    expect(leafOf(next, 's5').stack).toEqual(['info'])
+    expect(root.weights.reduce((a, b) => a + b, 0)).toBeCloseTo(1)
   })
 
-  it('moveView：目标 = 原槽（同槽拖放）→ 移到栈尾（等效重排尾位），无副作用炸裂', () => {
+  it('layoutSplit：根是叶 → 升级为新枝（新根）', () => {
+    const single: WorkbenchLayout = {
+      version: 2,
+      tree: { kind: 'leaf', id: 's1', stack: ['preview'], active: 'preview' },
+      dismissed: []
+    }
+    const next = layoutSplit(single, 's1', 'below', 'info')
+    expect(next.tree.kind).toBe('split')
+    const root = next.tree as { dir: string; children: WorkbenchLayout['tree'][] }
+    expect(root.dir).toBe('col')
+    expect(leafOf(next, root.children[0]!.id).stack).toEqual(['preview'])
+    expect(leafOf(next, root.children[1]!.id).stack).toEqual(['info'])
+  })
+
+  it('layoutSplit：空分割（不带视图）→ 新空叶', () => {
+    const next = layoutSplit(factory(), 's5', 'below')
+    const root = next.tree as { children: WorkbenchLayout['tree'][] }
+    const last = root.children[1] as { kind: string; children?: WorkbenchLayout['tree'][] }
+    expect(last.kind).toBe('split')
+  })
+
+  it('layoutCloseLeaf：摘叶兄弟 absorbs（单子枝折叠）；视图入 dismissed', () => {
+    const next = layoutCloseLeaf(factory(), 's5') // 关掉信息叶
+    expect(findLeafById(next.tree, 's5')).toBeNull()
+    expect(next.dismissed).toEqual(['info'])
+    // col[预览, 底] 成为整树（row 折叠消失）
+    expect(next.tree.kind).toBe('split')
+    const root = next.tree as { dir: string }
+    expect(root.dir).toBe('col')
+  })
+
+  it('layoutCloseLeaf：唯一的叶不可摘 → 清空', () => {
+    const single: WorkbenchLayout = {
+      version: 2,
+      tree: { kind: 'leaf', id: 's1', stack: ['preview'], active: 'preview' },
+      dismissed: []
+    }
+    const next = layoutCloseLeaf(single, 's1')
+    expect(next.tree.kind).toBe('leaf')
+    expect(leafOf(next, 's1').stack).toEqual([])
+    expect(next.dismissed).toEqual(['preview'])
+  })
+
+  it('layoutCloseView：摘出 + dismissed；active 修正为栈首', () => {
     const layout = factory()
-    const next = moveView(layout, 'preview', 'center')
-    expect(next.slots.center).toEqual(['preview'])
-    expect(next.active.center).toBe('preview')
-  })
-
-  it('closeView：出栈 + 入 dismissed；active 修正为栈首', () => {
-    const layout = factory()
-    layout.slots.right = ['info', 'extra']
-    layout.active.right = 'info'
-    const next = closeView(layout, 'info')
-    expect(next.slots.right).toEqual(['extra'])
-    expect(next.active.right).toBe('extra')
+    layout.tree = JSON.parse(JSON.stringify(layout.tree))
+    const moved = layoutMoveView(layout, 'info', 's1')
+    const next = layoutCloseView(moved, 'info')
+    expect(leafOf(next, 's1').stack).toEqual(['preview'])
     expect(next.dismissed).toEqual(['info'])
   })
 
-  it('activateView：仅当视图在本槽栈内才生效', () => {
+  it('layoutActivate：仅当视图在本叶栈内', () => {
     const layout = factory()
-    expect(activateView(layout, 'right', 'preview')).toBe(layout) // 不在右栏 → 原样返回
-    const next = activateView(layout, 'center', 'preview')
-    expect(next.active.center).toBe('preview')
+    expect(layoutActivate(layout, 's1', 'info')).toBe(layout)
+    expect(layoutActivate(layout, 's1', 'preview').tree).not.toBe(layout.tree)
   })
 
-  it('setSlotSize：clamp 后写入', () => {
-    const next = setSlotSize(factory(), 'rightW', 8000)
-    expect(next.sizes.rightW).toBe(clampSlotSize('rightW', 8000))
-  })
-
-  it('resetLayout：清 dismissed、按偏好重排、尺寸回默认', () => {
-    const dirty = closeView(moveView(factory(), 'info', 'center'), 'filmstrip')
-    dirty.sizes.rightW = 460
-    const fresh = resetLayout([
-      { id: 'preview', preferredSlot: 'center' },
-      { id: 'info', preferredSlot: 'right' },
-      { id: 'filmstrip', preferredSlot: 'bottom' }
-    ])
-    expect(fresh.slots.center).toEqual(['preview'])
-    expect(fresh.slots.right).toEqual(['info'])
-    expect(fresh.slots.bottom).toEqual(['filmstrip'])
-    expect(fresh.dismissed).toEqual([])
-    expect(fresh.sizes.rightW).toBe(clampSlotSize('rightW', NaN)) // 默认
-  })
-
-  it('seedSizes：首读播种（旧右栏宽迁移）', () => {
-    const layout = resolveLayout(null, KNOWN, { rightW: 333 })
-    expect(layout.sizes.rightW).toBe(333)
-  })
-})
-
-describe('clampSlotSize', () => {
-  it('三向边界 + 非有限值回默认', () => {
-    expect(clampSlotSize('rightW', 100)).toBe(220)
-    expect(clampSlotSize('rightW', 5000)).toBe(460)
-    expect(clampSlotSize('rightW', 300.6)).toBe(301)
-    expect(clampSlotSize('bottomH', NaN)).toBe(SLOT_SIZE_BOUNDS.bottomH.default)
-    expect(clampSlotSize('leftW', Infinity)).toBe(SLOT_SIZE_BOUNDS.leftW.default)
+  it('layoutAdjustWeights：转移 + 双侧 clamp + 归一', () => {
+    const layout = factory()
+    const root = layout.tree as { id: string; weights: number[] }
+    const next = layoutAdjustWeights(layout, root.id, 0, 0.4)
+    const w = (next.tree as { weights: number[] }).weights
+    expect(w.reduce((a, b) => a + b, 0)).toBeCloseTo(1)
+    expect(Math.min(...w)).toBeGreaterThanOrEqual(0.05)
+    // 极限 delta：不越下限（返回 clamp 后布局）
+    const extreme = layoutAdjustWeights(layout, root.id, 0, 10)
+    const w2 = (extreme.tree as { weights: number[] }).weights
+    expect(Math.min(...w2)).toBeGreaterThanOrEqual(0.05)
   })
 })
