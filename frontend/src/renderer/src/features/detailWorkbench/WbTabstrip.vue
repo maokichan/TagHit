@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /**
  * 槽位 tab 栈的条（D39）：tab = 小号标签（激活 = 顶部 accent 细条，与壳标签页同词汇），
- * 可拖拽换槽、悬停显关闭钮。拖放与关闭的语义归工作台（emit），本组件只呈现。
+ * 可拖拽换槽、悬停显关闭钮；条尾"+"= 回添菜单（D40：关掉的视图从这里回来）。
+ * 拖放与关闭的语义归工作台（emit），本组件只呈现。
  */
-import { X } from 'lucide-vue-next'
+import { Plus, X } from 'lucide-vue-next'
 import type { DetailViewEntry } from './views'
 
 defineProps<{
@@ -14,6 +15,7 @@ defineProps<{
 const emit = defineEmits<{
   activate: [viewId: string]
   close: [viewId: string]
+  add: []
   dragstart: [viewId: string, e: DragEvent]
   dragend: []
 }>()
@@ -41,5 +43,12 @@ const emit = defineEmits<{
         <X :size="11" />
       </button>
     </div>
+    <button
+      class="ml-auto icon-btn h-5 w-5 shrink-0"
+      title="添加视图"
+      @click.stop="emit('add')"
+    >
+      <Plus :size="12" />
+    </button>
   </div>
 </template>

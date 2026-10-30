@@ -13,8 +13,7 @@
  * statusBar / grid 为 v2 预留：不进注册清单，仅留类型占位。
  */
 export type MountPoint =
-  | 'activityBar:left'   // 左活动栏工具（一个工具 = 一个面板）
-  | 'activityBar:right'  // 右活动栏工具
+  | 'activityBar:left'   // 左活动栏工具（一个工具 = 一个面板；右活动栏已裁撤，D40）
   | 'displayPanel'       // 显示面板内的区块
   | 'settings'           // 设置页分区（按功能组件分类渲染）
   | 'contentTab'         // 内容区标签页（壳持标签项，组件自持内容状态，DECISIONS 2026-09-07）

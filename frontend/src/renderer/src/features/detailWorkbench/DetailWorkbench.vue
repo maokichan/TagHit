@@ -25,6 +25,7 @@ import { getDetailView, knownViews, type DetailViewEntry } from './views'
 import { commitLayout, initWorkbenchLayout, workbenchLayoutRef } from './store'
 import { provideDetailWorkbenchContext } from './context'
 import WbTabstrip from './WbTabstrip.vue'
+import AddViewMenu from './AddViewMenu.vue'
 
 const props = defineProps<{
   item: ItemView
@@ -78,6 +79,14 @@ function close(slot: DetailSlotId, viewId: string): void {
   const l = layout.value
   if (l == null) return
   commitLayout(closeView(l, viewId))
+}
+
+// ── 回添入口（D40）：菜单本体在 AddViewMenu（点选落位、安置即收回关闭记录）；
+// 这里只持有"哪个槽的菜单开着"。全部关死时，中心空态的按钮是可靠归路。 ──
+const openSlot = ref<DetailSlotId | null>(null)
+
+function toggleAdd(slot: DetailSlotId): void {
+  openSlot.value = openSlot.value === slot ? null : slot
 }
 
 // ── 跨槽拖放（HTML5 DnD，壳标签页同词汇）：拖 tab → 槽缘 accent 描边落点 → 松手换位 ──
@@ -164,6 +173,9 @@ function onResizeUp(e: PointerEvent): void {
 
 <template>
   <div class="h-full flex min-h-0 min-w-0">
+    <!-- 回添菜单的点击外关闭层 -->
+    <div v-if="openSlot != null" class="fixed inset-0 z-10" @click="openSlot = null"></div>
+
     <!-- 左槽（空则整槽不渲染）：右侧拖宽手柄 -->
     <div
       v-if="slotDef('left').tabs.length"
@@ -179,9 +191,11 @@ function onResizeUp(e: PointerEvent): void {
         :dragging-id="draggingId"
         @activate="(id) => activate('left', id)"
         @close="(id) => close('left', id)"
+        @add="toggleAdd('left')"
         @dragstart="(id, e) => onTabDragStart(id, e)"
         @dragend="onTabDragEnd"
       />
+      <AddViewMenu v-if="openSlot === 'left'" to="left" anchor="below" @done="openSlot = null" />
       <div class="flex-1 min-h-0 relative overflow-hidden">
         <FeatureBoundary v-if="activeEntry('left')" :key="activeEntry('left')!.id" :label="activeEntry('left')!.title">
           <component :is="activeEntry('left')!.component" />
@@ -213,9 +227,11 @@ function onResizeUp(e: PointerEvent): void {
           :dragging-id="draggingId"
           @activate="(id) => activate('center', id)"
           @close="(id) => close('center', id)"
+          @add="toggleAdd('center')"
           @dragstart="(id, e) => onTabDragStart(id, e)"
           @dragend="onTabDragEnd"
         />
+        <AddViewMenu v-if="openSlot === 'center'" to="center" anchor="below" @done="openSlot = null" />
         <!-- 预览台（带边缘的容器，D39/D37 落点）：插件的预览器经 detailPreview 认领后
              落进这个有界的面——预览器是一个"物件"，边缘宣告它的范围（P6 边框分职）；
              内衬留隙，不与邻槽接缝叠线。 -->
@@ -226,8 +242,9 @@ function onResizeUp(e: PointerEvent): void {
             </FeatureBoundary>
           </div>
         </div>
-        <div v-else class="flex-1 min-h-0 flex items-center justify-center">
+        <div v-else class="flex-1 min-h-0 flex flex-col items-center justify-center gap-2">
           <span class="text-[12px] text-[var(--fg-dim)]">此槽为空</span>
+          <button class="btn" @click="toggleAdd('center')">添加视图</button>
         </div>
       </div>
 
@@ -246,9 +263,11 @@ function onResizeUp(e: PointerEvent): void {
           :dragging-id="draggingId"
           @activate="(id) => activate('bottom', id)"
           @close="(id) => close('bottom', id)"
+          @add="toggleAdd('bottom')"
           @dragstart="(id, e) => onTabDragStart(id, e)"
           @dragend="onTabDragEnd"
         />
+        <AddViewMenu v-if="openSlot === 'bottom'" to="bottom" anchor="above" @done="openSlot = null" />
         <div class="flex-1 min-h-0 relative overflow-hidden">
           <FeatureBoundary v-if="activeEntry('bottom')" :key="activeEntry('bottom')!.id" :label="activeEntry('bottom')!.title">
             <component :is="activeEntry('bottom')!.component" />
@@ -281,9 +300,11 @@ function onResizeUp(e: PointerEvent): void {
         :dragging-id="draggingId"
         @activate="(id) => activate('right', id)"
         @close="(id) => close('right', id)"
+        @add="toggleAdd('right')"
         @dragstart="(id, e) => onTabDragStart(id, e)"
         @dragend="onTabDragEnd"
       />
+      <AddViewMenu v-if="openSlot === 'right'" to="right" anchor="below" @done="openSlot = null" />
       <div class="flex-1 min-h-0 relative overflow-hidden">
         <FeatureBoundary v-if="activeEntry('right')" :key="activeEntry('right')!.id" :label="activeEntry('right')!.title">
           <component :is="activeEntry('right')!.component" />

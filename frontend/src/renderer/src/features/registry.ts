@@ -229,13 +229,13 @@ export function registerBuiltinFeatures(): void {
     { icon: FileCog, component: FilesPanel }
   )
 
-  // ── 右活动栏工具 ──
+  // ── 媒体信息 / 插件（原右活动栏工具，右栏裁撤后迁左，D40） ──
   official(
-    { id: 'info', title: '媒体信息', mounts: ['activityBar:right'] },
+    { id: 'info', title: '媒体信息', mounts: ['activityBar:left'] },
     { icon: Info, component: InfoPanel }
   )
   official(
-    { id: 'plugins', title: '插件', mounts: ['activityBar:right'] },
+    { id: 'plugins', title: '插件', mounts: ['activityBar:left'] },
     { icon: Puzzle, component: PluginsPanel }
   )
 

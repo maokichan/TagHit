@@ -46,8 +46,6 @@ const win = ref<ItemWindowResult | null>(null)
 const winError = ref<string | null>(null)
 let winSeq = 0
 const windowViews = computed<ItemView[]>(() => (win.value?.items ?? []).map(toItemView))
-const index = computed(() => win.value?.index ?? -1)
-const total = computed(() => win.value?.total ?? 0)
 /**
  * 切片内定位：**切片位置 = index − from**（窗口是"锚条目 ± radius"的切片，index 是序列位置）。
  * 直接拿 index 索引切片会跳张、越界（实机症状："前十张正常，然后跳到第十四张，之后按键没反应"）。
@@ -80,28 +78,6 @@ async function loadWindow(): Promise<void> {
     console.error('[detail] 顺序窗口加载失败：', e)
   }
 }
-
-/**
- * 进度文案：正常走"当前视图序列"；若锚条目不在该序列里（关键词已变、跨工作区打开、
- * 无节点归属…），用例会退到"全部素材"并回报 `loose`——**如实说明**，不给死胡同。
- * 连全部素材里都没有（锚条目=非内容）才是真的没有序列。
- */
-const progressText = computed(() => {
-  if (winError.value != null) return '序列不可用'
-  if (index.value < 0) return '非内容条目 · 无浏览序列'
-  const base = `第 ${index.value + 1} / ${total.value}`
-  return win.value?.loose === true ? `${base}（已按全部素材）` : base
-})
-
-const progressTitle = computed(() => {
-  if (winError.value != null) return `顺序窗口加载失败：${winError.value}`
-  if (index.value < 0) {
-    return '锚条目（承接作品标签的空条目）不是内容，任何浏览序列都不含它'
-  }
-  return win.value?.loose === true
-    ? '该条目不在打开时的视图序列里（关键词已变 / 跨工作区 / 无节点归属），已退到「全部素材」顺序'
-    : `当前视图顺序：第 ${index.value + 1} 张，共 ${total.value} 张`
-})
 
 /**
  * 翻页：在当前条目标签内换内容（**不新开标签**——翻十张就是十个标签），
@@ -213,17 +189,10 @@ watch(
     </div>
 
     <template v-else-if="item">
-      <!-- 顶：标题 + 位置；相册式浏览的"我在哪、还有多少"（骨架，不可分配） -->
-      <div class="h-9 shrink-0 flex items-center gap-3 px-3 border-b border-[var(--border)]">
-        <div class="text-[12px] font-medium truncate min-w-0" :title="item.title">
-          {{ item.title }}
-        </div>
-        <span
-          class="text-[11px] text-[var(--fg-dim)] shrink-0"
-          :title="progressTitle"
-        >
-          {{ progressText }}
-        </span>
+      <!-- 失败可见性：顺序窗口取不到时如实说（顶栏已裁撤 D40，标题由标签页承载；常驻进度不再有） -->
+      <div v-if="winError" class="error-note mx-3 mt-2 shrink-0" role="alert">
+        <span class="min-w-0 flex-1 break-words">顺序窗口加载失败：{{ winError }}</span>
+        <button class="icon-btn h-4 w-4 shrink-0" title="关闭" @click="winError = null">✕</button>
       </div>
 
       <!-- 版面：详情页工作台（D39 槽位化；视图 = 预览/信息面/预览条） -->
