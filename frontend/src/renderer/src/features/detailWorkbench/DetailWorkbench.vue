@@ -216,10 +216,15 @@ function onResizeUp(e: PointerEvent): void {
           @dragstart="(id, e) => onTabDragStart(id, e)"
           @dragend="onTabDragEnd"
         />
-        <div v-if="activeEntry('center')" class="flex-1 min-h-0 relative overflow-hidden">
-          <FeatureBoundary :key="activeEntry('center')!.id" :label="activeEntry('center')!.title">
-            <component :is="activeEntry('center')!.component" />
-          </FeatureBoundary>
+        <!-- 预览台（带边缘的容器，D39/D37 落点）：插件的预览器经 detailPreview 认领后
+             落进这个有界的面——预览器是一个"物件"，边缘宣告它的范围（P6 边框分职）；
+             内衬留隙，不与邻槽接缝叠线。 -->
+        <div v-if="activeEntry('center')" class="flex-1 min-h-0 relative p-2">
+          <div class="h-full w-full relative overflow-hidden border border-[var(--border)]">
+            <FeatureBoundary :key="activeEntry('center')!.id" :label="activeEntry('center')!.title">
+              <component :is="activeEntry('center')!.component" />
+            </FeatureBoundary>
+          </div>
         </div>
         <div v-else class="flex-1 min-h-0 flex items-center justify-center">
           <span class="text-[12px] text-[var(--fg-dim)]">此槽为空</span>

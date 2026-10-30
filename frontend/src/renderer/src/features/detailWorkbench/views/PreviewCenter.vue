@@ -25,7 +25,8 @@ const TypeIcon = computed(() => iconMap[ctx.item.mediaType] ?? File)
 </script>
 
 <template>
-  <div class="h-full w-full relative flex items-center justify-center p-4 overflow-hidden">
+  <!-- 呼吸留白归预览台的内衬（DetailWorkbench 的 p-2），视图内不再另垫——媒体可以贴到台缘 -->
+  <div class="h-full w-full relative flex items-center justify-center overflow-hidden">
     <button
       class="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-[var(--bg-elev)] border border-[var(--border)] hover:border-[var(--fg-dim)] disabled:opacity-30 disabled:cursor-default"
       :disabled="ctx.prev == null"

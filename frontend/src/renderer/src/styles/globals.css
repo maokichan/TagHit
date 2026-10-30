@@ -9,13 +9,14 @@
    本文件只实现规则，不复述规则。 */
 :root {
   color-scheme: dark;
-  /* 明度阶梯档距拉大（P6）：底最深、组件面最浅，平面差一眼可辨；
-     边缝（--border）高于两侧平面，1px 全强度接缝在静态下可见（对象定界）。 */
-  --bg: #0b0d12;
-  --bg-elev: #1a1f2b;
-  --bg-hover: #252b3a;
-  --border: #2d3442;
-  --border-hover: #414a5e;
+  /* 明度阶梯档距（P6）：底最深、组件面最浅——暗色下大面积平面差感知极差，
+     档距必须一步到位（bg→elev 的 Weber 对比 ≈ 5×）；面板与面板相邻处平面语言
+     本就不适用，那里靠边缝（--border 高于两侧平面，1px 全强度接缝静态可见）。 */
+  --bg: #07090d;
+  --bg-elev: #1d232f;
+  --bg-hover: #2a3242;
+  --border: #364052;
+  --border-hover: #4a5670;
   --fg: #e6e9ef;
   --fg-dim: #9aa3b2;
   --accent: #f59e0b;
