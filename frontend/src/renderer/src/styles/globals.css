@@ -9,11 +9,13 @@
    本文件只实现规则，不复述规则。 */
 :root {
   color-scheme: dark;
-  --bg: #0f1115;
-  --bg-elev: #171a21;
-  --bg-hover: #1f2430;
-  --border: #262b36;
-  --border-hover: #3d4454;
+  /* 明度阶梯档距拉大（P6）：底最深、组件面最浅，平面差一眼可辨；
+     边缝（--border）高于两侧平面，1px 全强度接缝在静态下可见（对象定界）。 */
+  --bg: #0b0d12;
+  --bg-elev: #1a1f2b;
+  --bg-hover: #252b3a;
+  --border: #2d3442;
+  --border-hover: #414a5e;
   --fg: #e6e9ef;
   --fg-dim: #9aa3b2;
   --accent: #f59e0b;
@@ -44,11 +46,11 @@
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg: #f7f8fa;
+  --bg: #eff2f6;
   --bg-elev: #ffffff;
-  --bg-hover: #eef0f4;
-  --border: #e3e6ec;
-  --border-hover: #c3c9d6;
+  --bg-hover: #e6eaf1;
+  --border: #d9dfe9;
+  --border-hover: #bcc4d4;
   --fg: #1c2330;
   --fg-dim: #5c6675;
   --accent: #d97706;
