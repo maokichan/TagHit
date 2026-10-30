@@ -47,9 +47,13 @@ function add(viewId: string): void {
 </script>
 
 <template>
+  <!-- 左槽贴窗口左缘：菜单必须向右展开，锚右缘会整片出屏（落在"虚空"里） -->
   <div
     class="absolute z-20 min-w-44 py-1 rounded-md border border-[var(--border)] bg-[var(--bg-elev)] shadow-lg"
-    :class="anchor === 'below' ? 'right-1.5 top-9' : 'right-1.5 bottom-full mb-1'"
+    :class="[
+      anchor === 'below' ? 'top-9' : 'bottom-full mb-1',
+      to === 'left' ? 'left-1.5' : 'right-1.5'
+    ]"
   >
     <button
       v-for="v in items"

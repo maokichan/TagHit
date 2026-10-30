@@ -249,15 +249,12 @@ function onResizeUp(e: PointerEvent): void {
           @dragend="onTabDragEnd"
         />
         <AddViewMenu v-if="openSlot === 'center'" to="center" anchor="below" @done="openSlot = null" />
-        <!-- 预览台（带边缘的容器，D39/D37 落点）：插件的预览器经 detailPreview 认领后
-             落进这个有界的面——预览器是一个"物件"，边缘宣告它的范围（P6 边框分职）；
-             内衬留隙，不与邻槽接缝叠线。 -->
-        <div v-if="activeEntry('center')" class="flex-1 min-h-0 relative p-2">
-          <div class="h-full w-full relative overflow-hidden border border-[var(--border)]">
-            <FeatureBoundary :key="activeEntry('center')!.id" :label="activeEntry('center')!.title">
-              <component :is="activeEntry('center')!.component" />
-            </FeatureBoundary>
-          </div>
+        <!-- 视图填满槽位（D40 修订）：边缘 = 槽与槽之间的接缝，槽内不再垫内衬框——
+             插件的预览器经 detailPreview 认领后落进这个槽，槽界即容器界。 -->
+        <div v-if="activeEntry('center')" class="flex-1 min-h-0 relative overflow-hidden">
+          <FeatureBoundary :key="activeEntry('center')!.id" :label="activeEntry('center')!.title">
+            <component :is="activeEntry('center')!.component" />
+          </FeatureBoundary>
         </div>
         <div v-else class="flex-1 min-h-0 flex flex-col items-center justify-center gap-2">
           <span class="text-[12px] text-[var(--fg-dim)]">此槽为空</span>
