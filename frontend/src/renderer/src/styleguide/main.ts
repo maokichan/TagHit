@@ -178,6 +178,17 @@ const componentsSection = section(
       body: `<div class="error-note max-w-md" role="alert"><span class="min-w-0 flex-1 break-words">扫描进行中：3 个文件不可读，已跳过并计入摘要。</span><button class="icon-btn h-4 w-4 shrink-0 text-[var(--danger)]" title="关闭">✕</button></div>`
     },
     {
+      label: '.wb-tabstrip / .wb-tab / .wb-tab--on / .wb-slot[data-drop]（工作台槽位 tab 栈：激活 = 顶部 accent 细条；data-drop = 拖放落点描边）',
+      body: `<div class="max-w-md rounded-lg border border-[var(--border)] overflow-hidden">
+        <div class="wb-tabstrip">
+          <div class="wb-tab wb-tab--on">预览</div>
+          <div class="wb-tab">信息</div>
+          <div class="wb-tab" data-drop="true">预览条</div>
+        </div>
+        <div class="h-20 flex items-center justify-center text-[12px] text-[var(--fg-dim)]">tab 可拖拽换槽；落点槽缘亮 accent 描边（outline 不跳版面）</div>
+      </div>`
+    },
+    {
       label: '.doc（渲染文档：标签主页正文的形态族——markdown-it 输出，html 关闭即转义）',
       body: `<div class="doc max-w-lg">
         <h1>风景</h1>

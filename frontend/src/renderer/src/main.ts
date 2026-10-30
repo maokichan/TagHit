@@ -5,6 +5,7 @@ import router from './router'
 import { useUiStore } from './stores/ui'
 import { registerBuiltinFeatures, setupFeatureBehaviors } from './features/registry'
 import { registerBuiltinDetailPreviews } from './features/detailPreview'
+import { registerBuiltinDetailViews } from './features/detailWorkbench/views'
 import { registerBuiltinCommands } from './features/officialCommands'
 import './styles/globals.css'
 
@@ -19,6 +20,8 @@ async function bootstrap(): Promise<void> {
   registerBuiltinCommands()
   // 内置详情页预览提供方（detailPreview 槽的默认提供者，D37）
   registerBuiltinDetailPreviews()
+  // 内置详情页工作台视图（detailView 面的出厂分配：中心/右/底，D39）
+  registerBuiltinDetailViews()
   app.mount('#app')
 
   // 执行功能组件的行为钩子（键鼠交互快捷键等）

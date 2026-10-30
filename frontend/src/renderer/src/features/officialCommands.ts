@@ -6,6 +6,8 @@ import { registerShortcut } from './keyboardMouse/shortcuts'
 import { openBatchTagDialog } from './services/batchTag'
 import { showToast } from './services/dialog'
 import { detailNext, detailPrev, detailQuickTag, detailToggleEdit } from './detailNav'
+import { knownViews } from './detailWorkbench/views'
+import { resetWorkbenchLayout } from './detailWorkbench/store'
 import { itemRoute, routeOfTab } from './tabs'
 import { openPalette } from './palette'
 import { invalidatePathManagement } from './paths/usePathManagement'
@@ -276,6 +278,15 @@ export function registerBuiltinCommands(): void {
       label: `速打标签 ${digit}`
     })
   }
+
+  // 重置详情页版面为出厂（D39）：可配置版面必须自带退路——槽位分配/关掉的视图/尺寸一并归位。
+  // 生效范围 = 详情页在场（detailNav 现场事实）；版面持有者归模块（detailWorkbench/store）。
+  official(
+    { id: 'detail.layoutReset', title: '重置详情页版面', when: detailPageOnly },
+    () => {
+      resetWorkbenchLayout(knownViews())
+    }
+  )
 
 
   // ── 官方快捷键绑定（快捷键 = 命令注册表的视图；行为逐个增补） ──

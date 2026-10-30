@@ -4,7 +4,8 @@
  *
  * 三条口径：
  * - **顺序与翻页同源**：items 就是详情页的顺序窗口（含当前条目），点击 = 跳到那张；
- * - 只做载体，不做导航决策（当前条目、能不能翻都由详情页给）；
+ * - 只做载体，不做导航决策（当前条目、能不能翻都由详情页给）；外壳（边框/底色）归
+ *   呈现容器——详情页工作台的槽位（D22 容器归壳），组件只出内容；
  * - 缩略图优先用派生缓存（视频抓帧的 previewUri），图片回落原图（经 taghit-file 协议），
  *   其余按类型出图标——不在这里发任何新请求。
  */
@@ -58,7 +59,7 @@ watch(() => props.items, centerCurrent)
 <template>
   <div
     ref="strip"
-    class="flex items-center gap-1.5 overflow-x-auto px-2 py-2 border-t border-[var(--border)] bg-[var(--bg-elev)]"
+    class="flex items-center gap-1.5 overflow-x-auto px-2 py-2"
     data-filmstrip
   >
     <button

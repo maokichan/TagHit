@@ -18,6 +18,7 @@ export type MountPoint =
   | 'displayPanel'       // 显示面板内的区块
   | 'settings'           // 设置页分区（按功能组件分类渲染）
   | 'contentTab'         // 内容区标签页（壳持标签项，组件自持内容状态，DECISIONS 2026-09-07）
+  | 'detailView'         // 详情页工作台视图（"条目的一个侧面"，D39：声明常驻不按条目认领，认领是 detailPreview 的事）
   | 'statusBar'          // v2 预留
   | 'grid'               // v2 预留（网格内贡献）
 

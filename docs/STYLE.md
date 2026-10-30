@@ -70,6 +70,8 @@ TagHit 是**内容管理工具**：界面是内容的容器，视觉为浏览与
 | `.segmented` / `.segment` | 分段控件（互斥视图切换；选中段上浮一档） | 统计 |
 | `.bar-track` / `.bar-fill` | 关系条带（宽度走 `:style` 的几何数据，外观在这里） | 统计可视化 |
 | `.doc` | 渲染文档形态族（markdown-it 输出：标题/列表/代码/引用；html 关闭即转义） | 标签主页正文 |
+| `.wb-tabstrip` / `.wb-tab` / `--on` | 工作台槽位 tab 栈：小号标签（激活 = 顶部 accent 细条 + 上浮一档底色） | 详情页工作台（D39）槽位 |
+| `.wb-slot[data-drop]` | 拖放落点态：槽缘 accent 描边（outline，不参与布局） | 工作台跨槽拖放 |
 | `.marquee-box` | 框选矩形（几何走 `:style`，外观在这里） | ItemGrid 框选 |
 | `.wordmark` | 起始页品牌字（字距是排印决策，唯一出现处） | StartScreen |
 | `.drag-region` / `.no-drag` | 无边框窗口拖拽区 | TabBar/窗口控制键 |
