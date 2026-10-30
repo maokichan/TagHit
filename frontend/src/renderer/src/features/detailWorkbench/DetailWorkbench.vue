@@ -11,6 +11,7 @@
  * 左/中/右纵分，底横贯中列下方；空槽整槽不渲染。
  */
 import { ref } from 'vue'
+import { Plus } from 'lucide-vue-next'
 import type { ItemView } from '../../lib/viewModel'
 import FeatureBoundary from '../FeatureBoundary.vue'
 import {
@@ -212,6 +213,22 @@ function onResizeUp(e: PointerEvent): void {
       ></div>
     </div>
 
+    <!-- 左槽空态：窄条（D40——槽位是常驻结构，不随内容消失；保留落点与回添钮） -->
+    <div
+      v-else
+      class="wb-slot relative shrink-0 h-full bg-[var(--bg-elev)] border-r border-[var(--border)] flex flex-col items-center pt-1.5"
+      :style="{ width: '40px' }"
+      :data-drop="dropSlot === 'left' ? 'true' : 'false'"
+      @dragover="onSlotDragOver('left', $event)"
+      @dragleave="onSlotDragLeave('left')"
+      @drop="onSlotDrop('left', $event)"
+    >
+      <button class="icon-btn h-6 w-6" title="添加视图到左栏" @click="toggleAdd('left')">
+        <Plus :size="13" />
+      </button>
+      <AddViewMenu v-if="openSlot === 'left'" to="left" anchor="below" @done="openSlot = null" />
+    </div>
+
     <!-- 中列：中心槽（恒在）+ 底槽（空则不渲染） -->
     <div class="flex-1 min-w-0 h-full flex flex-col">
       <div
@@ -283,6 +300,22 @@ function onResizeUp(e: PointerEvent): void {
           @pointerup="onResizeUp"
         ></div>
       </div>
+
+      <!-- 底槽空态：细条（D40——同左/右槽，结构常驻） -->
+      <div
+        v-else
+        class="wb-slot relative shrink-0 h-9 bg-[var(--bg-elev)] border-t border-[var(--border)] flex items-center px-2"
+        :data-drop="dropSlot === 'bottom' ? 'true' : 'false'"
+        @dragover="onSlotDragOver('bottom', $event)"
+        @dragleave="onSlotDragLeave('bottom')"
+        @drop="onSlotDrop('bottom', $event)"
+      >
+        <span class="text-[11px] text-[var(--fg-dim)]">底栏</span>
+        <button class="icon-btn h-6 w-6 ml-auto" title="添加视图到底栏" @click="toggleAdd('bottom')">
+          <Plus :size="13" />
+        </button>
+        <AddViewMenu v-if="openSlot === 'bottom'" to="bottom" anchor="above" @done="openSlot = null" />
+      </div>
     </div>
 
     <!-- 右槽：左侧拖宽手柄 -->
@@ -319,6 +352,22 @@ function onResizeUp(e: PointerEvent): void {
         @pointermove="onResizeMove"
         @pointerup="onResizeUp"
       ></div>
+    </div>
+
+    <!-- 右槽空态：窄条（D40——同左槽） -->
+    <div
+      v-else
+      class="wb-slot relative shrink-0 h-full bg-[var(--bg-elev)] border-l border-[var(--border)] flex flex-col items-center pt-1.5"
+      :style="{ width: '40px' }"
+      :data-drop="dropSlot === 'right' ? 'true' : 'false'"
+      @dragover="onSlotDragOver('right', $event)"
+      @dragleave="onSlotDragLeave('right')"
+      @drop="onSlotDrop('right', $event)"
+    >
+      <button class="icon-btn h-6 w-6" title="添加视图到右栏" @click="toggleAdd('right')">
+        <Plus :size="13" />
+      </button>
+      <AddViewMenu v-if="openSlot === 'right'" to="right" anchor="below" @done="openSlot = null" />
     </div>
   </div>
 </template>
