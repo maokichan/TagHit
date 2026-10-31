@@ -76,15 +76,10 @@
 ## 工程化
 
 - **LICENSE**：未定未加。
-- **frontend/package.json 双身份收敛**：frontend/ 仍是 0.1.x 的完整 Electron 应用骨架（`main: out/main/index.js`、electron-builder、release 脚本、license 标 MIT、版本 0.1.2），与根 package.json（esbuild bundle:host 为唯一装配线）并存，且根目录 bundle:host 借道 `frontend/node_modules/esbuild`——"哪个是应用、版本/LICENSE 归谁"已有两处口径（LICENSE 条与 frontend 的 MIT 字段矛盾）。翻新时瘦身成 renderer-only 包（或在文件头注明其"渲染层 + 工具链宿主"角色），版本号与 LICENSE 归口到根；动前先确认 release 脚本是否还有消费方。
+- **frontend/package.json 双身份收敛**：已清（0.3.0 打包随行）——死脚本（build:win/release:win 指向丢失的 ps1、build:mac/linux、electron-vite dev/start/build、postinstall）与 `main`/`version`/`license` 字段撤除，版本与 LICENSE 归口根 package.json；frontend 定位收敛为"渲染层 + 工具链宿主"。
 - **启动失败可见性**（两处静默失败，黑屏不是可接受的终态）：① 单实例锁拒绝新启动时只在**新进程的终端**里说话——用户看到的旧窗口照旧黑着、新启动像没发生；应在宿主拒退出前 `dialog.showMessageBox` 说清"已有实例在运行"。② 渲染进程崩溃自恢复的 3 次上限用尽后**停在黑屏**——应用尽时渲染一张错误页（"渲染进程反复崩溃，请重启应用"）。
 
-- **打包分发（便携 zip）**：目标 = 朋友们可自取的绿色包——electron-builder `--dir`/portable 产物打 zip；**不上**安装器与自动更新体系（electron-updater + feed + 签名等用户群扩大后增量加，不推翻便携形态）。要点：
-  ① 先清「frontend 双身份」账（打包入口与版本号归一，见上条）；
-  ② `files` 只收编译产物（`build/main.cjs` + `preload.cjs` + 渲染层 dist）与 better-sqlite3 三件套——纯 JS 依赖已被 esbuild 揉进 bundle；**asarUnpack 原生模块**（从 asar 里 load 不了 .node）；
-  ③ **真机验证**：在无 Node 的机器上双击跑通（ABI 重编译的坑只有真机兜得住）；
-  ④ 用户库定位 `userData`（%APPDATA%），开发库从 `build/taghit-dev.db` 搬迁——**升级不丢数据的关键在这条，不在更新器**（schema 迁移已就绪）；
-  ⑤ 给用户的一句话说明：SmartScreen 弹窗走"更多信息 → 仍要运行"（要免提示再上签名，Azure Trusted Signing 类月费方案）。
+- **打包分发（便携 zip）**：装配线已落地（0.3.0）——`npm run pack` = bundle:host → vite 构建（base './'，hash 路由使 file:// 可用）→ renderer-dist 归置 → electron-builder（`electron-builder.yml`：zip target、asarUnpack better-sqlite3、files 只收编译产物 + 三件套；插件经 @plugins 字面量 import 静态入渲染层 bundle，不单独携带）；库定位 userData 早已就绪（host dbPath 缺省分支，dev 经 TAGHIT_DB 隔离）。余：**无 Node 机器真机验证**（ABI 坑只有真机兜得住）；**随包一句话说明**（SmartScreen 弹窗走"更多信息 → 仍要运行"；要免提示再上签名，Azure Trusted Signing 类月费方案，用户群扩大后再议）。
 
 - **远端 CI（GitHub Actions）**：待仓库有远端再接——Node 24 + 只装 frontend 依赖（校准走 node:sqlite，不需要编译 better-sqlite3）；本地门见 CONTEXT §五。
 - **测试三件套**（方案裁决：成熟工具为主，自研只留场景；渲染层断言归 Vitest，见 D30）：

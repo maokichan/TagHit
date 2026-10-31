@@ -31,6 +31,7 @@ npm --prefix frontend run check:style      # 样式禁区机检（docs/STYLE.md 
 npm --prefix frontend run check:build      # CSS 编译门（vite 生产构建）
 npm run dev                # 真机：bundle:host → vite dev → Electron（开发库 build/taghit-dev.db）
 npm run bundle:host        # esbuild 打包 src/host → build/（宿主改动必须重新打包并重启；渲染层改动刷新窗口即可）
+npm run pack               # 便携 zip：bundle:host → vite 构建 → renderer-dist 归置 → electron-builder（产物 release/，gitignore；cwd=根，版本归口根 package.json）
 ```
 
 ## 四、文档地图（渐进披露，按需读）

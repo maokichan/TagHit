@@ -1,0 +1,31 @@
+# 便携 zip 装配线（TODO 工程化）：绿色包 = 解压即跑，不上安装器与自动更新体系。
+# 版本号唯一归口 = 仓库根 package.json——builder 以 cwd 的 package.json 为应用元数据，
+# 故 scripts/pack.mjs 必须以仓库根为 cwd 借用 frontend 的 electron-builder（根 node_modules
+# 是 ABI 红线区，不新增安装）。插件（audio-cover-player）经 @plugins 字面量 import 静态
+# 打进渲染层 bundle，不随包单独携带（dev 装载语义，分发形态另议）。
+appId: dev.taghit.app
+productName: TagHit
+electronVersion: 33.4.11
+directories:
+  output: release
+  buildResources: build/resources
+files:
+  - package.json
+  - build/main.cjs
+  - build/preload.cjs
+  - renderer-dist/**/*
+  # 三件套：better-sqlite3（bundle 外部依赖，运行时 require，Electron ABI 随包）+ 原生绑定链
+  - node_modules/better-sqlite3/**/*
+  - node_modules/bindings/**/*
+  - node_modules/file-uri-to-path/**/*
+  # music-metadata 已被 esbuild 揉进 main.cjs（bundle:host 仅 external electron/better-sqlite3），不随包
+  - '!node_modules/music-metadata/**'
+asarUnpack:
+  # 原生 .node 不能从 asar 内 require
+  - node_modules/better-sqlite3/**/*
+npmRebuild: false
+win:
+  target:
+    - target: zip
+      arch:
+        - x64

@@ -41,3 +41,6 @@ declare module 'node:stream' {
 declare const Buffer: {
   from(data: string, encoding: string): Uint8Array
 }
+
+/** bundle:host 以 cjs 格式输出（build/main.cjs），CJS 的模块目录全局在运行时存在。 */
+declare const __dirname: string

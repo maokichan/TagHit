@@ -1,17 +1,11 @@
 {
   "name": "taghit",
-  "version": "0.1.2",
   "description": "TagHit — 多源内容标记与管理系统（Electron 重构版）",
-  "main": "./out/main/index.js",
   "author": "TagHit",
-  "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
     "dev:renderer": "vite --config vite.renderer.config.ts",
-    "dev": "electron-vite dev",
-    "start": "electron-vite preview",
-    "build": "electron-vite build",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "vue-tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
@@ -20,13 +14,7 @@
     "style": "vite --config vite.renderer.config.ts --port 5174 --open /style.html",
     "check:build": "vite build --config vite.renderer.config.ts",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "postinstall": "electron-builder install-app-deps",
-    "build:win": "electron-vite build && electron-builder --win",
-    "release:win": "powershell -ExecutionPolicy Bypass -File scripts/build-release.ps1",
-    "release:win:full": "powershell -ExecutionPolicy Bypass -File scripts/build-release.ps1 -Full",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",

@@ -87,6 +87,8 @@ declare module 'electron' {
     whenReady(): Promise<void>
     quit(): void
     on(event: 'window-all-closed' | 'activate', listener: () => void): void
+    /** 打包态（electron-builder 产物）为 true：渲染层走随包静态产物而非 dev server。 */
+    isPackaged: boolean
     getAppPath(): string
     getPath(name: string): string
     setPath(name: string, path: string): void

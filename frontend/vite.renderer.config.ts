@@ -14,6 +14,8 @@ const rootVersion = (JSON.parse(readFileSync(resolve(here, '../package.json'), '
 
 export default defineConfig({
   root: resolve(here, 'src/renderer'),
+  // 相对资源路径：打包态 loadFile（file://）要求 base './'；dev server 不受影响
+  base: './',
   define: {
     'import.meta.env.APP_VERSION': JSON.stringify(rootVersion),
   },

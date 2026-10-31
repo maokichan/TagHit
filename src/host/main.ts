@@ -441,14 +441,19 @@ function createWindow(): void {
     height: 840,
     // 无边框：原生标题栏/默认菜单一并去除，控制键由渲染层自绘（window.control 窄桥，D17）
     frame: false,
-    backgroundColor: '#0f1115',
+    backgroundColor: '#0b0a09',
     webPreferences: {
       preload: `${app.getAppPath()}/build/preload.cjs`,
       contextIsolation: true,
       nodeIntegration: false,
     },
   })
-  const rendererUrl = () => process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173'
+  // 开发态走 dev server URL（TAGHIT_RENDERER_URL）；打包态渲染层静态产物随包
+  // （asar 内 renderer-dist/，hash 路由 + base './' 使 file:// 可用），loadFile 直取
+  const loadRenderer = (): Promise<void> => {
+    if (!app.isPackaged) return win.loadURL(process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173')
+    return win.loadFile(join(__dirname, 'renderer-dist', 'index.html'))
+  }
   // 外链（标签主页等处）：应用内不弹新窗口，http(s) 交系统浏览器——Electron 默认行为是
   // 开新 BrowserWindow，那会把应用变成浏览器，必须拦下。
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -470,10 +475,10 @@ function createWindow(): void {
     }
     reloads++
     setTimeout(() => {
-      if (!win.isDestroyed()) void win.loadURL(rendererUrl()).catch((e) => console.error('[host] 重载失败', e))
+      if (!win.isDestroyed()) void loadRenderer().catch((e) => console.error('[host] 重载失败', e))
     }, 1000)
   })
-  void win.loadURL(rendererUrl())
+  void loadRenderer()
 }
 
 // 字节闸门（媒体侧）：taghit-file:// 特权 scheme 必须在 ready 前注册
