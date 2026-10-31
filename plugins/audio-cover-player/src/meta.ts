@@ -13,13 +13,19 @@ export interface AudioMetaView {
 
 const cache = new Map<string, AudioMetaView>()
 
-/** 拉取音频元数据；条目无内容签名（锚）/宿主判定不可解析 → null。 */
+/** 拉取音频元数据；条目无内容签名（锚）/宿主判定不可解析 → null；失败可见（不静默）。 */
 export async function fetchAudioMeta(item: ItemView): Promise<AudioMetaView | null> {
   const hash = item.contentHash
   if (hash == null) return null
   const hit = cache.get(hash)
   if (hit != null) return hit
-  const meta = await hostApi().items.readAudioMeta(item.id)
-  if (meta != null) cache.set(hash, meta)
-  return meta
+  try {
+    const meta = await hostApi().items.readAudioMeta(item.id)
+    if (meta != null) cache.set(hash, meta)
+    return meta
+  } catch (err) {
+    // 失败可见性（D42 收口）：源文件缺失（NOT_FOUND）等不再被调用方吞掉，这里如实记录。
+    console.error('[audioPlayer] readAudioMeta 失败', item.id, err)
+    return null
+  }
 }

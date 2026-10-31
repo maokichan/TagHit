@@ -42,7 +42,8 @@ async function loadMeta(): Promise<void> {
   const seq = ++loadSeq
   const item = props.item
   meta.value = null
-  const m = await fetchAudioMeta(item).catch(() => null)
+  // fetchAudioMeta 自带失败可见与 null 兜底（meta.ts），这里不吞错也不重复记录
+  const m = await fetchAudioMeta(item)
   if (seq !== loadSeq || props.item.id !== item.id) return // 竞态守卫：翻页后丢弃过期响应
   meta.value = m
 }
