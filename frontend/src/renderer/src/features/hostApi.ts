@@ -8,8 +8,17 @@
 import { api } from '@shared/api'
 import { confirmDialog, showToast } from './services/dialog'
 import { taghitFileUrl } from '../lib/media'
+import {
+  playbackPlay,
+  playbackToggle,
+  playbackPause,
+  playbackSeek,
+  playbackSetVolume,
+  playbackSnapshot,
+  playbackSubscribe
+} from './playback/playback'
 
-export const HOST_API_VERSION = '0.2.0'
+export const HOST_API_VERSION = '0.2.1'
 
 export const hostApi = {
   version: HOST_API_VERSION,
@@ -40,5 +49,15 @@ export const hostApi = {
   ui: {
     confirm: confirmDialog,
     toast: showToast
+  },
+  /** 播放面（D43）：全局播放引擎的冻结子集——换曲即播/传输控制/快照订阅（回调式，不暴露响应式对象）。 */
+  playback: {
+    play: playbackPlay,
+    toggle: playbackToggle,
+    pause: playbackPause,
+    seek: playbackSeek,
+    setVolume: playbackSetVolume,
+    snapshot: playbackSnapshot,
+    onChange: playbackSubscribe
   }
 } as const
