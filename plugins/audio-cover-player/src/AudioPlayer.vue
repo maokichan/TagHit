@@ -1,9 +1,11 @@
 <script setup lang="ts">
 /**
- * 音频播放器（detailPreview 提供方实现）——遥控器 + 黑胶，内部页签自组织（D43 修订）。
+ * 音频播放器（detailPreview 提供方实现）——单页左右分区（D43 修订二）：
+ * 左 = 黑胶 + 元数据 + 传输控制；右 = 歌词（专辑播放列表等 Collection 后并入右列）。
  * 声音与播放状态归全局播放引擎（hostApi().playback），本组件只出界面：
  * 翻页/切标签页组件重挂即重新订阅快照，声音不断；换曲 = 对新条目点播放。
  * 黑胶 = 旋转体：封面圆裁填盘心、随盘一起转（开发者定形）；转动 = 引擎有声音在响。
+ * 窄槽响应经 container query（槽宽不足 → 上下堆叠），不发明第二套页签。
  * 样式走壳 token（视觉与主题同语）；三方代码不受壳机检约束（D42）。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -16,9 +18,6 @@ const props = defineProps<{ item: ItemView }>()
 
 const meta = ref<AudioMetaView | null>(null)
 const snap = ref(hostApi().playback.snapshot())
-
-// ---- 内部页签（插件内容集中一页自组织，D43）：黑胶 | 歌词 ----
-const activeTab = ref<'disc' | 'lyrics'>('disc')
 
 let loadSeq = 0
 async function loadMeta(): Promise<void> {
@@ -176,26 +175,9 @@ function formatTime(sec: number): string {
 </script>
 
 <template>
-  <div class="h-full w-full flex flex-col min-h-0 p-2 gap-2">
-    <!-- 页签（PR 面板式）：插件内容集中一页自组织（D43 修订） -->
-    <div class="flex items-center gap-1 shrink-0">
-      <button
-        v-for="t in [
-          { id: 'disc', title: '黑胶' },
-          { id: 'lyrics', title: '歌词' }
-        ]"
-        :key="t.id"
-        type="button"
-        class="px-2.5 py-1 rounded text-[11px] cursor-pointer transition-colors"
-        :class="activeTab === t.id ? 'bg-[var(--bg-hover)] text-[var(--fg)]' : 'text-[var(--fg-dim)] hover:text-[var(--fg)]'"
-        @click="activeTab = t.id as 'disc' | 'lyrics'"
-      >
-        {{ t.title }}
-      </button>
-    </div>
-
-    <!-- 黑胶页：整个盘（含封面圆）随播放旋转 -->
-    <div v-show="activeTab === 'disc'" class="flex-1 min-h-0 flex flex-col items-center justify-center gap-4">
+  <div class="player-root">
+    <!-- 左：黑胶 + 元数据 + 传输控制 -->
+    <div class="player-left">
       <div class="flex-1 min-h-0 w-full flex items-center justify-center" style="container-type: size">
         <!-- 盘 = 旋转体：封面圆裁填盘心、中孔居中，随 rAF 一起转 -->
         <div ref="discEl" class="relative rounded-full will-change-transform" :style="discStyle">
@@ -227,7 +209,7 @@ function formatTime(sec: number): string {
       </div>
 
       <!-- 元数据：内嵌标签优先，回退文件名 -->
-      <div class="w-full max-w-md text-center min-w-0">
+      <div class="w-full max-w-md text-center min-w-0 shrink-0">
         <div class="text-[13px] truncate" :title="displayTitle">{{ displayTitle }}</div>
         <div v-if="metaLine != null" class="text-[11px] text-[var(--fg-dim)] truncate" :title="metaLine">{{ metaLine }}</div>
       </div>
@@ -297,9 +279,53 @@ function formatTime(sec: number): string {
       <div v-else-if="failed" class="error-note">音频无法内嵌播放</div>
     </div>
 
-    <!-- 歌词页 -->
-    <div v-show="activeTab === 'lyrics'" class="flex-1 min-h-0">
+    <!-- 右：歌词（专辑播放列表等 Collection 后并入此列） -->
+    <div class="player-right">
       <LyricsView :item="item" />
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 播放器分区（D43 修订二：单页左右，槽宽不足时上下堆叠）——插件代码不受壳机检约束（D42），
+   颜色仍走壳 token。container query 以本组件根为查询容器。 */
+.player-root {
+  container-type: inline-size;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.player-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 55%;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+}
+.player-right {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--border-soft);
+}
+@container (max-width: 620px) {
+  .player-root {
+    flex-direction: column;
+  }
+  .player-left {
+    width: 100%;
+    flex: 1;
+  }
+  .player-right {
+    flex: none;
+    height: 42%;
+    border-left: none;
+    border-top: 1px solid var(--border-soft);
+  }
+}
+</style>

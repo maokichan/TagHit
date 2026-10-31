@@ -1,6 +1,7 @@
 import router from '../router'
 import { useTabStore, type Tab } from '../stores/tab'
 import { routeOfTab, tagRoute } from './routes'
+import { playbackPause, playbackSnapshot } from './playback/playback'
 
 /**
  * 标签与导航的**语义单点**（壳能力）。
@@ -31,6 +32,19 @@ export {
 export function activateTab(tab: Tab): void {
   useTabStore().setActive(tab.key)
   void router.replace(routeOfTab(tab))
+}
+
+/**
+ * 关闭标签（关闭语义单点；TabBar 消费）。**播放生命周期（D43）**：切走/翻页不停播
+ * （全局播放），但**关闭 = 终结该内容的会话**——关闭正在播放其音频的条目标签即停播
+ * （引擎暂停、进度保留；停用后重开标签点播放可续）。
+ */
+export function closeTab(key: string): void {
+  const tab = useTabStore().tabs.find((t) => t.key === key)
+  if (tab?.kind === 'item' && tab.itemId === playbackSnapshot().itemId && playbackSnapshot().status === 'playing') {
+    playbackPause()
+  }
+  useTabStore().close(key)
 }
 
 /** 当前活动标签对应的路由（守卫回落用；无活动标签 → 主页）。 */

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { Plus, Settings, X } from 'lucide-vue-next'
 import { useTabStore, type Tab } from '../../stores/tab'
-import { activateTab } from '../../features/tabs'
+import { activateTab, closeTab } from '../../features/tabs'
 import WindowControls from './WindowControls.vue'
 
 const route = useRoute()
@@ -19,9 +19,9 @@ function go(key: string): void {
   if (tab) activateTab(tab)
 }
 
-/** 关闭标签：回落标签的路由同样不写历史。 */
+/** 关闭标签：回落标签的路由同样不写历史；播放生命周期归 closeTab（D43：关闭播放中的条目标签即停播）。 */
 function close(key: string): void {
-  tabStore.close(key)
+  closeTab(key)
   const active = tabStore.activeTab
   if (active) activateTab(active)
 }
