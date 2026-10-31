@@ -1,6 +1,6 @@
 {
   "name": "taghit",
-  "version": "0.2.18",
+  "version": "0.3.0",
   "description": "TagHit — 多源内容标记与管理系统",
   "private": true,
   "type": "module",
