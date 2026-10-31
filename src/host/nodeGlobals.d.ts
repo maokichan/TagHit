@@ -10,6 +10,7 @@ declare module 'node:url' {
 declare module 'node:path' {
   export const sep: string
   export function normalize(path: string): string
+  export function dirname(path: string): string
   export function join(...parts: string[]): string
   export function resolve(...parts: string[]): string
 }

@@ -127,12 +127,14 @@ export interface IpcContracts {
    * 音频元数据与内嵌封面（宿主原生媒体能力，与视频抓帧同族）：非音频/解析失败 → null。
    * 封面经既有缩略图通道落盘（{userData}/thumbnails，contentHash 键，幂等：已有即跳过）
    * 并按哈希回写 previewUri——网格/胶片条随 previewUri 自动呈现；无封面或超 2MiB → previewUri null。
+   * 歌词 = 同名 .lrc 伴生原文优先、内嵌歌词标签次之（只读文件事实，D43）；都无 → null。
    */
   'item.readAudioMeta': {
     args: [itemId: Id]
     result: {
       tags: { title: string | null; artist: string | null; album: string | null }
       previewUri: string | null
+      lyrics: string | null
     } | null
   }
 

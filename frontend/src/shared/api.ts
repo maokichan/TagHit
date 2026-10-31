@@ -191,8 +191,8 @@ export const api = {
     async readText(itemId: Id, maxBytes?: number): Promise<{ text: string; truncated: boolean } | null> {
       return unwrap(await bridge().readText(itemId, maxBytes))
     },
-    /** 音频元数据与内嵌封面（宿主原生媒体能力）：非音频/解析失败 → null；封面已走缩略图通道回写。 */
-    async readAudioMeta(itemId: Id): Promise<{ tags: { title: string | null; artist: string | null; album: string | null }; previewUri: string | null } | null> {
+    /** 音频元数据与内嵌封面（宿主原生媒体能力）：非音频/解析失败 → null；封面已走缩略图通道回写；歌词 = .lrc 伴生优先、内嵌次之（D43）。 */
+    async readAudioMeta(itemId: Id): Promise<{ tags: { title: string | null; artist: string | null; album: string | null }; previewUri: string | null; lyrics: string | null } | null> {
       return unwrap(await bridge().readAudioMeta(itemId))
     }
   },

@@ -45,6 +45,8 @@ export interface AudioCover {
 export interface AudioMeta {
   tags: AudioTags
   cover: AudioCover | null
+  /** 内嵌歌词标签原文（common.lyrics 首段；无词 → null）。伴生 .lrc 的读取决策在 handler。 */
+  lyrics: string | null
 }
 
 const EXT_BY_MIME: Array<[RegExp, AudioCover['ext']]> = [
@@ -87,5 +89,6 @@ export async function readAudioMeta(filePath: string): Promise<AudioMeta | null>
       album: meta.common.album ?? null,
     },
     cover,
+    lyrics: meta.common.lyrics?.[0]?.text || null,
   }
 }

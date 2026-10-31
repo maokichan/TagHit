@@ -12,7 +12,7 @@
 
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { DomainError } from '../domain/index.ts'
 import { createSqliteStoreFromDriver } from '../adapters/sqlite/store.ts'
@@ -22,6 +22,7 @@ import { registerPrivilegedSchemes, registerTaghitFileProtocol } from './protoco
 import { invalidateAllowedRoots } from './pathGate.ts'
 import { startFileDrag } from './drag.ts'
 import { isAudioExt, readAudioMeta } from './media/audioMeta.ts'
+import { TEXT_MAX_BYTES } from '../application/content.ts'
 import {
   appendCollectionMember,
   browseWorkspace,
@@ -192,7 +193,7 @@ function registerHandlers(): void {
     envelope(readItemText(services, nodeFs, itemId, maxBytes))
   )
 
-  // ---- 音频元数据（宿主原生媒体能力，与视频抓帧同族）：标签 + 内嵌封面走缩略图通道 ----
+  // ---- 音频元数据（宿主原生媒体能力，与视频抓帧同族）：标签 + 内嵌封面走缩略图通道 + 歌词 ----
   // 封面落盘镜像 thumbnail.save 的闸门纪律（十六进制 contentHash、2MiB 上限）；幂等 =
   // 该内容已有 previewUri 即跳过落盘（recordThumbnail 按哈希回写，同内容全部条目共享）。
   ipcMain.handle('item.readAudioMeta', (_event, itemId: Id) =>
@@ -207,6 +208,20 @@ function registerHandlers(): void {
         }
         const meta = await readAudioMeta(item.sourceUri)
         if (meta == null) return null
+
+        // 歌词（只读文件事实）：同名 .lrc 伴生优先（常带时间轴），内嵌标签次之。
+        // .lrc 与音频同目录派生（同属来源根白名单），走 readHead 不进 TEXT_EXTS。
+        let lyrics = meta.lyrics
+        try {
+          const lrcPath = join(dirname(item.sourceUri), `${item.title.replace(/\.[^.]+$/, '')}.lrc`)
+          const lrcStat = await nodeFs.stat(lrcPath)
+          if (lrcStat.exists && lrcStat.kind === 'file') {
+            const text = new TextDecoder('utf-8').decode(await nodeFs.readHead(lrcPath, TEXT_MAX_BYTES))
+            if (text !== '') lyrics = text
+          }
+        } catch {
+          // 无伴生词/不可读 → 保持内嵌（或 null）
+        }
 
         let previewUri = item.previewUri ?? null
         if (previewUri == null && meta.cover != null && item.contentHash != null &&
@@ -223,7 +238,7 @@ function registerHandlers(): void {
             height: meta.cover.height,
           })
         }
-        return { tags: meta.tags, previewUri }
+        return { tags: meta.tags, previewUri, lyrics }
       })()
     )
   )
