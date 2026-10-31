@@ -28,43 +28,13 @@ TagHit 正在朝**插件生态**演进（VS Code / Obsidian 式）：核心保�
 
 ## 当前状态
 
-开发中（v0.2.x）：后端核心（领域/端口/应用层/双存储适配器）完成并通过全量校准（八份：用例/用例·sqlite/扫描/输入边界/浏览窗口/来源根生命周期/顺序窗口/文件操作）；桌面端（Electron）已可真实运行：标签/检索/扫描/预览/多布局浏览/右键菜单/多选批量打标/视频与图片缩略图全链路可用；**相册式详情页**（打开即固化"来处的顺序上下文"，`←`/`→` 与 `PgUp`/`PgDn` 翻页 + 两侧按钮 + 标签搜索打标）；**详情页编辑模式**（`Ctrl+E`：阅读态防误触，打标/搜标签/速打只在编辑模式）与**标签主页**（双击标签进入的词条式阅读页：Markdown 正文、`[[站内链接]]`、外链与共现邻居）；**详情页工作台**（版面 = 分割树，D39/D41：槽位是附在更深底板上的卡片，任意槽位上下左右分割新槽、卡片间缝隙即底板透出、缝隙拖柄调宽高、视图填满槽位、槽内标签栈、出厂默认分配、槽条"+"菜单回添/分割 + `detail.layoutReset` 重置命令——详情页 = 不可分配的骨架（顺序上下文/翻页）+ 用户自由生长的版面）；**无边框窗口**（自绘标题栏与窗口控制键、无默认菜单）；**来源根目录树**（逐级展开、节点可见性即浏览成员前提，含「只看某节点」的视图范围与退役根/脱根条目处置，右键即可只看此节点或整棵子树隐藏/显示）；**文件管理**（真实文件改名/移动/删除进回收站，扫描按内容认领、标签随行）；**功能组件全页呈现面**（壳提供容器与版心，批量与重管理归全页）与**键鼠交互框架**（快捷键即命令注册表的视图，`Ctrl+Shift+P` 命令面板列出全部命令并如实标注当前可用的那些；空白处拖出选择框成批选择，`Ctrl/Cmd` 追加；**从网格把条目拖到系统里得到的是真实文件**——多选即多文件，缺失/无源条目会明确告知跳过）；显示面板提供格式筛选（"视频/图片里包含哪些格式"由用户配置，视图里有什么格式才显示什么块）、无标签筛选与标题开关；标签全页管理标签池（描述/批量/组）并提供共现·互斥统计；详情页支持数字键速打（映射在标签全页配置）；插件生态机制全部就位（贡献点六类槽：活动栏/内容标签页/显示面板/设置分区/详情页预览/工作台视图，标准容器、命令注册表、服务面、HostApi 冻结面），**首个三方形态插件已落地**（音频播放器：detailPreview 认领音频 + 宿主原生封面提取，封面缩略图入既有通道、网格原生呈现，D42；**播放全局化与黑胶形态**（D43）：播放引擎归壳——切标签页/返回网格不停播，标签资源被替换（翻页）或标签关闭即停，播放器 = 单页左右分区：左黑胶（封面圆裁填盘心、整个盘随播放旋转）+ 完整传输控制（快退/快进/单曲循环/静音/音量）、右歌词（读 `.lrc` 伴生/内嵌歌词、随进度同步高亮，无词给正在播放排版），EQ/频谱机制口就位；**插件面板管理插件**——能力清单可见、默认启用可停），三方插件的发现/分发未接入。
+开发中：后端核心通过全量校准，桌面端（Electron）可真实运行——标签/检索/扫描/预览/多布局浏览/详情页工作台/插件生态机制 + 首个音频播放器插件（黑胶播放 + 歌词 + 全局播放）全链路可用。当前能力清单与进度见 `docs/CONTEXT.md` §三。
 
-愿意现在试用的开发者请继续往下读。
-
-## 面向开发者
-
-架构一句话：**领域先行 + 六边形分层**——业务规则全部在纯 TS 的领域层与应用层，存储/文件系统在适配器后可替换，Electron 宿主只做装配与安全边界（渲染层经 typed IPC 窄桥访问用例，文件字节经白名单协议闸门）。这样设计是因为业务规则要有单一可验证的归属、宿主技术要可替换、未来多入口（UI/CLI/插件）必须共享同一套规则。
-
-```bash
-# 全链 CI 门：五层 typecheck + 八份校准 + 渲染层全链 + doctor，一链到底（pre-push 钩子同链）
-npm run ci
-
-# 分层类型检查 + 校准（memory 与 sqlite 跑同一场景，契约一致才绿）
-npm run typecheck:domain && npm run typecheck:ports && npm run typecheck:adapters
-npm run typecheck:application && npm run typecheck:host
-npm run calibrate && npm run calibrate:sqlite && npm run calibrate:scan
-npm run calibrate:boundary && npm run calibrate:view && npm run calibrate:roots
-npm run calibrate:window && npm run calibrate:fileops
-npm --prefix frontend run test              # 渲染层断言（Vitest：标签↔路由/顺序上下文/窄桥边界）
-npm --prefix frontend run check:templates   # 模板解析（vue-tsc 会漏报标签不闭合）
-npm --prefix frontend run style             # 样式基线页（浏览器：token/组件词汇/层级语法样张）
-
-# 真机运行
-npm run dev             # 一键：bundle:host → vite dev server（端口自适应）+ Electron（dev 库 build/taghit-dev.db）
-# 或手动分步：
-npm run dev:renderer   # 终端 A：渲染层 vite dev server
-npm run bundle:host    # 终端 B：esbuild 打包 src/host → build/
-TAGHIT_RENDERER_URL=http://localhost:5173 TAGHIT_DB=<db路径> npm run start:host
-```
+愿意现在试用的开发者：`npm install`（frontend 依赖）后 `npm run dev` 一键真机运行。
 
 ## 文档
 
-- `docs/GLOSSARY.md` — 业务词汇
-- `docs/DECISIONS.md` — 设计裁决基线（分层、驱动、字节闸门、插件选型）
-- `docs/STYLE.md` — 渲染层风格基线（标准样式表、字号阶梯、禁区机检；新组件动样式先读它）
-- `docs/ARCHITECTURE.md` — 架构与插件机制（含贡献点选型论证）
-- `docs/CONTEXT.md` — 开发交接与当前进度
-- `TODO.md` — 待办唯一清单（按主线/远期/组件/边界/工程化组织）
+- [`AGENTS.md`](AGENTS.md) — 开发上下文入口（纪律红线、命令、文档地图；**AI 会话与贡献代码从这里开始**）
+- [`TODO.md`](TODO.md) — 待办唯一清单
 
-历史版本存档于 `../freeze/`（Tauri 原型、Electron 0.1.x）。
+架构、词汇、裁决、样式基线与开发交接等六件套在 `docs/`，地图见 AGENTS.md §四。历史版本存档于 `../freeze/`。
