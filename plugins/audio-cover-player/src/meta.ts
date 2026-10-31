@@ -9,6 +9,8 @@ import { hostApi } from './context.ts'
 export interface AudioMetaView {
   tags: { title: string | null; artist: string | null; album: string | null }
   previewUri: string | null
+  /** 歌词原文（.lrc 伴生优先、内嵌次之；都无 → null，D43）。解析归插件（lrc.ts）。 */
+  lyrics: string | null
 }
 
 const cache = new Map<string, AudioMetaView>()
