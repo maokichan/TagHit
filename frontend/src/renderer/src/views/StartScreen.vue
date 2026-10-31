@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { FolderPlus, Search } from 'lucide-vue-next'
+import { FolderPlus, Search, Trash2 } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../stores/workspace'
 import { useTabStore } from '../stores/tab'
 import { itemRoute } from '../features/tabs'
+import { confirmDialog } from '../features/services/dialog'
 import { api } from '@shared/api'
 import { toItemView, type ItemView } from '../lib/viewModel'
 import type { ItemContext } from '@shared/contract'
@@ -47,6 +48,19 @@ async function loadRootCounts(): Promise<void> {
 function openWorkspace(id: string, name: string): void {
   tabStore.openWorkspace(id, name)
   router.push(`/workspace/${id}`)
+}
+
+/** 删除工作区（工作区生命周期的家，自设置页迁来）：危险动作带确认，行尾显形。 */
+async function deleteWorkspace(id: string, name: string): Promise<void> {
+  const ok = await confirmDialog({
+    title: '删除工作区',
+    message: `删除工作区「${name}」？其来源根、节点与标签声明将一并删除。`,
+    confirmText: '删除',
+    danger: true
+  })
+  if (!ok) return
+  await workspaceStore.remove(id)
+  void loadRootCounts()
 }
 
 function toggleNewForm(): void {
@@ -193,11 +207,14 @@ function openGlobalItem(item: ItemView): void {
           v-if="workspaceStore.workspaces.length"
           class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 w-full"
         >
-          <button
+          <div
             v-for="ws in workspaceStore.workspaces"
             :key="ws.id"
-            class="panel overflow-hidden text-left hover:border-[var(--accent-border)] transition-colors cursor-pointer"
+            role="button"
+            tabindex="0"
+            class="panel group relative overflow-hidden text-left hover:border-[var(--accent-border)] transition-colors cursor-pointer"
             @click="openWorkspace(ws.id, ws.name)"
+            @keydown.enter="openWorkspace(ws.id, ws.name)"
           >
             <div class="aspect-video bg-[var(--bg)] flex items-center justify-center relative">
               <FolderPlus :size="24" class="text-[var(--fg-dim)] opacity-40" />
@@ -214,7 +231,16 @@ function openGlobalItem(item: ItemView): void {
                 创建于 {{ new Date(ws.createdAt).toLocaleDateString() }}
               </div>
             </div>
-          </button>
+            <!-- 删除（危险动作）：行尾显形，点击不触发打开 -->
+            <button
+              class="icon-btn w-5 h-5 absolute top-1 right-1 text-[var(--danger)] bg-[var(--bg-elev)]
+                     opacity-0 group-hover:opacity-100 focus:opacity-100"
+              :title="`删除工作区 ${ws.name}`"
+              @click.stop="deleteWorkspace(ws.id, ws.name)"
+            >
+              <Trash2 :size="12" />
+            </button>
+          </div>
         </div>
         <p v-else class="text-[12px] text-[var(--fg-dim)] mt-1">还没有工作区</p>
       </template>

@@ -47,7 +47,7 @@ const statusText = computed(() => {
 </script>
 
 <template>
-  <footer class="flex items-center gap-2 px-3 h-7 text-[11px] text-[var(--fg-dim)]">
+  <footer class="flex items-center gap-2 px-3 h-6 text-[11px] text-[var(--fg-dim)]">
     <!-- 状态栏直接坐在底板上（D44）：无自身底色与接缝 -->
     <!-- 多选：状态 + 批量动作（原搜索栏下的操作条并入此处） -->
     <template v-if="count > 0">

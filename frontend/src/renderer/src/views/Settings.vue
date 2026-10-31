@@ -1,24 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { Plus, Trash2 } from 'lucide-vue-next'
+import { computed } from 'vue'
 import { useUiStore } from '../stores/ui'
-import { useWorkspaceStore } from '../stores/workspace'
-import { useTagStore } from '../stores/tag'
 import { useConfigStore } from '../stores/config'
 import SchemaControl from '../components/settings/SchemaControl.vue'
 import { listFeatures } from '../features/registry'
-import { confirmDialog } from '../features/services/dialog'
 
 /**
  * 设置页（0.2 契约 v0）：
- * - 保留：外观（本地状态）、功能组件分区、工作区删除、全局标签池建删；
- * - 降级：config 持久化、工作区改名/封面、标签层级（不在契约 v0）。
+ * - 外观归壳（ui store 自身外观）；功能组件分区由注册表按组件分组渲染；
+ * - 领域管理不在此——归属纪律"谁的功能谁管理"：标签池归「标签」全页，
+ *   工作区生命周期归起始页工作区卡（走查反馈裁撤设置页内的重复管理面）；
+ * - 「关于」= 应用自述（版本经构建从根 package.json 注入）。
  */
 const uiStore = useUiStore()
-const workspaceStore = useWorkspaceStore()
-const tagStore = useTagStore()
 
-/** 挂载 settings 的功能组件（设置页按组件分类渲染；显示相关：layout / showTitles） */
+/** 挂载 settings 的功能组件（设置页按组件分类渲染） */
 const settingsFeatures = computed(() => listFeatures('settings'))
 
 /**
@@ -35,55 +31,14 @@ function setSetting(featureId: string, key: string, v: unknown): void {
   config.setValue(featureId, key, v)
 }
 
-// 统一标签管理
-const newTagName = ref('')
-const newTagDesc = ref('')
-const tagError = ref('')
-
 const themes = [
   { key: 'dark', label: '暗色' },
   { key: 'light', label: '亮色' },
   { key: 'system', label: '跟随系统' }
 ] as const
 
-onMounted(async () => {
-  await workspaceStore.refresh()
-  await tagStore.refreshAll()
-})
-
-async function deleteWorkspace(id: string): Promise<void> {
-  const ok = await confirmDialog({
-    title: '删除工作区',
-    message: '删除该工作区？其来源根、节点与标签声明将一并删除。',
-    confirmText: '删除',
-    danger: true
-  })
-  if (!ok) return
-  await workspaceStore.remove(id)
-}
-
-// ── 标签管理 ──
-async function createTag(): Promise<void> {
-  tagError.value = ''
-  if (!newTagName.value.trim()) return
-  try {
-    await tagStore.create(newTagName.value.trim(), newTagDesc.value || undefined)
-    newTagName.value = ''
-    newTagDesc.value = ''
-  } catch (e) {
-    tagError.value = e instanceof Error ? e.message : String(e)
-  }
-}
-async function deleteTag(id: string): Promise<void> {
-  const ok = await confirmDialog({
-    title: '删除标签',
-    message: '删除该全局标签？其挂载、声明与组内成员关系将一并删除。',
-    confirmText: '删除',
-    danger: true
-  })
-  if (!ok) return
-  await tagStore.remove(id)
-}
+/** 版本号：构建时注入（vite define ← 根 package.json），模板不吃 import.meta 故在此转交。 */
+const appVersion = import.meta.env.APP_VERSION
 </script>
 
 <template>
@@ -91,7 +46,7 @@ async function deleteTag(id: string): Promise<void> {
     <div class="max-w-2xl mx-auto space-y-6">
       <h1 class="text-lg font-semibold">设置</h1>
 
-      <!-- 外观 -->
+      <!-- 外观：壳自身的外观（ui store），不属任何功能组件 -->
       <section class="panel p-4">
         <div class="text-sm font-medium mb-3">外观</div>
         <div class="flex flex-wrap items-center gap-4">
@@ -116,7 +71,6 @@ async function deleteTag(id: string): Promise<void> {
             </button>
           </div>
         </div>
-        <p class="text-[11px] text-[var(--fg-dim)] mt-3">设置仅当前会话内生效。</p>
       </section>
 
       <!-- 功能组件设置分区：由注册表按组件分组渲染（每个组件一个分区，标题 = 组件 title） -->
@@ -135,45 +89,17 @@ async function deleteTag(id: string): Promise<void> {
         </section>
       </template>
 
-      <!-- 工作区管理 -->
+      <!-- 关于 -->
       <section class="panel p-4">
-        <div class="text-sm font-medium mb-3">工作区管理</div>
-        <div v-if="workspaceStore.workspaces.length === 0" class="text-[12px] text-[var(--fg-dim)]">
-          暂无工作区
-        </div>
-        <div class="space-y-3">
-          <div v-for="ws in workspaceStore.workspaces" :key="ws.id" class="border border-[var(--border)] p-3">
-            <div class="flex items-center gap-2">
-              <span class="font-medium flex-1 truncate">{{ ws.name }}</span>
-              <button class="btn text-[var(--danger)]" @click="deleteWorkspace(ws.id)"><Trash2 :size="13" /></button>
-            </div>
+        <div class="text-sm font-medium mb-3">关于</div>
+        <dl class="space-y-1.5 text-[12px]">
+          <div class="flex gap-2"><dt class="w-12 shrink-0 text-[var(--fg-dim)]">应用</dt><dd>TagHit</dd></div>
+          <div class="flex gap-2"><dt class="w-12 shrink-0 text-[var(--fg-dim)]">版本</dt><dd class="tabular-nums">{{ appVersion }}</dd></div>
+          <div class="flex gap-2">
+            <dt class="w-12 shrink-0 text-[var(--fg-dim)]">定位</dt>
+            <dd>本地内容标记与检索管理器——标签替代层级、数据全本地、单一数据库文件。</dd>
           </div>
-        </div>
-      </section>
-
-      <!-- 统一标签管理 -->
-      <section class="panel p-4">
-        <div class="text-sm font-medium mb-3">标签</div>
-
-        <div class="flex gap-2 mb-3">
-          <input v-model="newTagName" class="input flex-1" placeholder="新标签名" @keyup.enter="createTag" />
-          <input v-model="newTagDesc" class="input flex-1" placeholder="描述（可选）" />
-          <button class="btn btn-primary" @click="createTag"><Plus :size="14" /> 创建</button>
-        </div>
-        <p v-if="tagError" class="text-[11px] text-[var(--danger)] mb-2">{{ tagError }}</p>
-
-        <div class="space-y-2">
-          <div v-for="tag in tagStore.allTags" :key="tag.id" class="border border-[var(--border)] p-3">
-            <div class="flex items-center gap-2">
-              <span class="font-medium">{{ tag.name }}</span>
-              <span v-if="tag.description" class="text-[11px] text-[var(--fg-dim)] truncate">{{ tag.description }}</span>
-              <span class="flex-1" />
-              <button class="btn text-[var(--danger)]" @click="deleteTag(tag.id)"><Trash2 :size="13" /></button>
-            </div>
-          </div>
-          <p v-if="tagStore.allTags.length === 0" class="text-[12px] text-[var(--fg-dim)]">暂无标签</p>
-        </div>
-        <p class="text-[11px] text-[var(--fg-dim)] mt-3">在各工作区的「标签」面板中声明使用。</p>
+        </dl>
       </section>
     </div>
   </div>

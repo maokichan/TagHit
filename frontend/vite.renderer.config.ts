@@ -3,14 +3,20 @@
  * 宿主由根目录 build/main.cjs 承担，经 TAGHIT_RENDERER_URL 连到这里（缺省 5173）。
  */
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 const here = dirname(fileURLToPath(import.meta.url))
+// 应用版本唯一归口 = 仓库根 package.json（frontend 双身份收敛前的诚实读法）
+const rootVersion = (JSON.parse(readFileSync(resolve(here, '../package.json'), 'utf8')) as { version: string }).version
 
 export default defineConfig({
   root: resolve(here, 'src/renderer'),
+  define: {
+    'import.meta.env.APP_VERSION': JSON.stringify(rootVersion),
+  },
   resolve: {
     alias: {
       '@renderer': resolve(here, 'src/renderer/src'),
