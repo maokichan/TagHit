@@ -7,8 +7,12 @@
  *   已消失目录（本次未访问）的节点行删除。
  * - 条目：file 条目按 sourceUri 全局唯一 upsert——存在则更新文件事实
  *   （哈希/大小/修改时间；缺失后再现恢复 active），缺则创建（title = 文件名）；
- *   新路径若与某 missing 条目同 contentHash（且其旧路径确已消失）→ **认领**：
+ *   新路径若与某条目同 contentHash（且其旧路径确已不在磁盘）→ **认领**：
  *   原条目改写路径并恢复 active（标签/作品成员随条目 id 原样保留，即"移动语义"）。
+ *   候选池收快照里**全部**带内容签名的条目（不只 missing）：移动发生在两次扫描之间时
+ *   原条目此刻还是 active，若只认 missing，它要等本次消失判定才标 missing，而新路径
+ *   那时已建成新条目——缺失与新增并存且不再收敛。认领时逐个验"旧路径确已不在"，
+ *   还活着的候选（同内容的另一份拷贝）验不过，天然落到"新建"。
  * - 消失策略（可配置，默认 keep）：文件/目录在磁盘消失 →
  *   keep = 条目标记 missing 保留（标签是用户资产）；discard = 删除条目及全部关联。
  *
@@ -61,6 +65,33 @@ type FileFacts =
   | { kind: 'ok'; hash: string; size: number | null; modifiedAt: string | null; width: number | null; height: number | null }
   | { kind: 'gone' }
   | { kind: 'unreadable'; message: string }
+
+/**
+ * 从同哈希候选组里取出第一个"旧路径确已不在磁盘"的条目（就地出列）。
+ * stat 失败按"不可认领"处理——读不到 ≠ 已消失，宁可新建也不让扫描失败（D24 同一保守原则）。
+ */
+async function takeClaimable(
+  candidates: FileItem[] | undefined,
+  claimedIds: Set<string>,
+  fs: FileSystem
+): Promise<FileItem | null> {
+  if (candidates == null) return null
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i]
+    if (candidate == null || claimedIds.has(candidate.id)) continue
+    let gone = false
+    try {
+      gone = !(await fs.stat(candidate.sourceUri)).exists
+    } catch {
+      gone = false
+    }
+    if (gone) {
+      candidates.splice(i, 1)
+      return candidate
+    }
+  }
+  return null
+}
 
 /**
  * 采集单文件事实（stat + 内容签名 + 图片固有尺寸）。
@@ -120,12 +151,15 @@ export async function scanWorkspace(
       if (hit.item.kind === 'file') itemByUri.set(hit.item.sourceUri, hit.item)
     }
   }
-  // 认领候选：快照中 missing 且有内容签名的条目按 contentHash 索引（同哈希取其一；认领后出列）
-  const missingByHash = new Map<string, FileItem>()
+  // 认领候选：快照中带内容签名的条目按 contentHash 分组（同哈希一组，认领时逐个验旧路径）。
+  // 只认 missing 会在"移动后单次扫描"场景失灵（见文件头注释），故 active 也入池——
+  // 安全性由认领时的旧路径检查保证：还活着的候选验不过。
+  const candidatesByHash = new Map<string, FileItem[]>()
   for (const item of itemByUri.values()) {
-    if (item.status === 'missing' && item.contentHash != null && !missingByHash.has(item.contentHash)) {
-      missingByHash.set(item.contentHash, item)
-    }
+    if (item.contentHash == null) continue
+    const group = candidatesByHash.get(item.contentHash)
+    if (group != null) group.push(item)
+    else candidatesByHash.set(item.contentHash, [item])
   }
   const claimedIds = new Set<string>()
 
@@ -180,10 +214,10 @@ export async function scanWorkspace(
         const { hash, size, modifiedAt, width, height } = facts
         const existing = itemByUri.get(path)
         if (!existing) {
-          // 认领：新路径与某 missing 条目同内容、且其旧路径确已不在 → 移动语义（id 不变，标签随行）
-          const claimable = missingByHash.get(hash)
-          if (claimable != null && !claimedIds.has(claimable.id) && !(await fs.stat(claimable.sourceUri)).exists) {
-            missingByHash.delete(hash)
+          // 认领（移动语义）：新路径与某条目同内容、且其旧路径确已不在磁盘 →
+          // 原条目改写路径并恢复 active（id 不变，标签/作品成员随行）
+          const claimable = await takeClaimable(candidatesByHash.get(hash), claimedIds, fs)
+          if (claimable != null) {
             claimedIds.add(claimable.id)
             await db.updateItem(claimable.id, {
               title: basename(path),

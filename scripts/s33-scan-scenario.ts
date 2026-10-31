@@ -207,6 +207,48 @@ export async function runScanScenario(store: Store): Promise<void> {
     '扫描③b：标签随条目 id 原样保留'
   )
 
+  // 扫描③c：**移动后单次扫描即认领**（修复场景）——文件在两次扫描之间被挪走时，
+  // 原条目扫描前还是 active；候选池若只收 missing，本幕会"缺失 + 新增"并存且不再收敛
+  // （下一轮新路径已有条目，认领永远轮不到）。认领候选须收全部带内容签名的条目。
+  await store.createWorkspace({ id: 'ws-move', name: '移动库', createdAt: T0 })
+  await mountWorkspaceRoot(svc, 'ws-move', 'R:/移动')
+  const fsM0: FileSystem = createMemoryFileSystem({
+    'R:/移动/clip.jpg': 'JPGDATA-MOVE-MMMMMMMMMMMMMMMM',
+  })
+  await scanWorkspace(svc, fsM0, 'ws-move')
+  const clip = asFile(await findItemByUri(store, 'R:/移动/clip.jpg'))
+  await store.createTag({ id: 'tag-move', name: '随行', createdAt: T0 })
+  await tagItem(svc, clip.id, ['tag-move'])
+  // 磁盘上把 clip.jpg 挪进新子目录 → 一次扫描完成"消失 + 出现"：应认领而非缺失/新增
+  const fsM1: FileSystem = createMemoryFileSystem({
+    'R:/移动/kept/clip.jpg': 'JPGDATA-MOVE-MMMMMMMMMMMMMMMM',
+  })
+  const sM: ScanSummary = await scanWorkspace(svc, fsM1, 'ws-move')
+  assertEqual(
+    sM,
+    {
+      scannedRoots: 1,
+      nodesCreated: 1, // kept 目录
+      nodesRemoved: 0,
+      itemsCreated: 0,
+      itemsRelocated: 1, // 单次扫描内认领：id 不变、标签随行
+      itemsUpdated: 0,
+      itemsMissing: 0,
+      itemsDiscarded: 0,
+      dirsUnreadable: 0,
+      filesUnreadable: 0,
+    },
+    '扫描③c：移动后单次扫描即认领（不缺失、不新增）'
+  )
+  const movedClip = asFile(await findItemByUri(store, 'R:/移动/kept/clip.jpg'))
+  assertEqual(movedClip.id, clip.id, '扫描③c：认领保持条目 id 不变')
+  assertEqual(movedClip.status, 'active', '扫描③c：认领条目保持 active')
+  assertEqual(
+    (await store.listAttachments({ tagId: 'tag-move' })).map((a) => a.itemId),
+    [clip.id],
+    '扫描③c：标签随条目 id 保留'
+  )
+
   // 另一工作区同根、discard 策略：消失的 video 直接删除（photo1 已被认领恢复 active，不受影响）
   await store.createWorkspace({ id: 'ws-discard', name: '丢弃库', createdAt: T0 })
   await mountWorkspaceRoot(svc, 'ws-discard', 'R:/库')
