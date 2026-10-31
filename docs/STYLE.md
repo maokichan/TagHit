@@ -81,6 +81,7 @@ TagHit 是**内容管理工具**：界面是内容的容器，视觉为浏览与
 | `.wb-seam` | 缝隙里的拖柄：底板从卡片间 6px 缝隙透出（明度差即分界），拖柄静默透明、悬停/拖拽亮 accent 线 | 工作台分割树（D41）枝内兄弟 |
 | `.wb-edge[data-on]` | 缘落点区（拖拽中出现的分割热区）：命中染 accent-soft + accent 描边 | 工作台拖 tab 到槽缘分割 |
 | `.marquee-box` | 框选矩形（几何走 `:style`，外观在这里） | ItemGrid 框选 |
+| `.filmstrip-box` / `.filmstrip` | 预览条：size 容器查询自适应——横容器横排、竖容器竖排，每格 `clamp(3.25rem, 50cq×, 8rem)` 随可用区域伸缩 | 详情页预览条 |
 | `.wordmark` | 起始页品牌字（字距是排印决策，唯一出现处） | StartScreen |
 | `.popup-fade-*` | 浮层显隐过渡（只做透明度，P5 无位移/缩放入场） | 搜索弹出面板等浮层 |
 | `.drag-region` / `.no-drag` | 无边框窗口拖拽区 | TabBar/窗口控制键/顶栏弹出面板 |

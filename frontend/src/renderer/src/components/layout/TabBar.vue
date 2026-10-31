@@ -96,8 +96,8 @@ function showIndicator(i: number): boolean {
   <!-- 无边框窗口（D17）：本条兼任标题栏——拖拽区归根部（空白处拖动/双击最大化），
        全部交互元素 no-drag；右上三键 = 自绘窗口控制键。
        顶栏直接坐在底板上（D44）：无自身底色，标签片本身就是底板上的卡；
-       下缘一根发丝线区分顶栏与内容（不画重缝）。 -->
-  <div class="flex items-center h-11 px-2 gap-1.5 border-b border-[var(--border-soft)] drag-region">
+       下缘一根发丝线区分顶栏与内容，两端内收不贴边（开发者定形）。 -->
+  <div class="relative flex items-center h-11 px-2 gap-1.5 drag-region">
     <!-- 标签（浏览器式：可拖拽、自动适应标签栏长度、主页为显式标签） -->
     <div class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
       <div
@@ -159,5 +159,8 @@ function showIndicator(i: number): boolean {
       <Settings :size="16" />
     </button>
     <WindowControls class="no-drag shrink-0" />
+
+    <!-- 下缘示意线：非交互元素，两端各内收一档 -->
+    <span class="absolute bottom-0 left-2 right-2 h-px bg-[var(--border-soft)]" />
   </div>
 </template>

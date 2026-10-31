@@ -45,11 +45,18 @@ const cells = computed(() =>
   props.items.map((view) => ({ view, thumb: thumbOf(view), icon: iconOf(view) }))
 )
 
-/** 当前格居中（翻页后自动跟随；不改变页面滚动位置——`inline: 'center'` + `block: 'nearest'`）。 */
+/** 当前格居中（翻页后自动跟随；不改变页面滚动位置）。方向随容器查询自适应：
+ *  横排居中于行内轴、竖排居中于块轴（读计算样式的 flex-direction，与样式表同源）。 */
 async function centerCurrent(): Promise<void> {
   await nextTick()
   const el = strip.value?.querySelector<HTMLElement>('[data-current="true"]')
-  el?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+  if (el == null) return
+  const vertical = strip.value != null && getComputedStyle(strip.value).flexDirection === 'column'
+  el?.scrollIntoView(
+    vertical
+      ? { block: 'center', inline: 'nearest', behavior: 'smooth' }
+      : { block: 'nearest', inline: 'center', behavior: 'smooth' }
+  )
 }
 
 watch(() => props.currentId, centerCurrent)
@@ -57,35 +64,35 @@ watch(() => props.items, centerCurrent)
 </script>
 
 <template>
-  <div
-    ref="strip"
-    class="flex items-center gap-1.5 overflow-x-auto px-2 py-2"
-    data-filmstrip
-  >
-    <button
-      v-for="cell in cells"
-      :key="cell.view.id"
-      :data-current="cell.view.id === currentId"
-      class="relative shrink-0 w-14 h-14 overflow-hidden border transition-colors"
-      :class="
-        cell.view.id === currentId
-          ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]'
-          : 'border-[var(--border)] hover:border-[var(--fg-dim)]'
-      "
-      :title="cell.view.title"
-      @click="emit('pick', cell.view.id)"
-    >
-      <img
-        v-if="cell.thumb != null"
-        :src="cell.thumb"
-        :alt="cell.view.title"
-        class="w-full h-full object-cover"
-        loading="lazy"
-        draggable="false"
-      />
-      <span v-else class="w-full h-full flex items-center justify-center text-[var(--fg-dim)]">
-        <component :is="cell.icon" :size="18" />
-      </span>
-    </button>
+  <!-- box = size 容器（容器查询不能样式化自身，故分两层）；条的方向与每格尺寸
+       （clamp 随可用区域伸缩，有上下限）都在样式表里随容器形态自适应。 -->
+  <div class="filmstrip-box">
+    <div ref="strip" class="filmstrip" data-filmstrip>
+      <button
+        v-for="cell in cells"
+        :key="cell.view.id"
+        :data-current="cell.view.id === currentId"
+        class="relative shrink-0 overflow-hidden border transition-colors"
+        :class="
+          cell.view.id === currentId
+            ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]'
+            : 'border-[var(--border)] hover:border-[var(--fg-dim)]'
+        "
+        :title="cell.view.title"
+        @click="emit('pick', cell.view.id)"
+      >
+        <img
+          v-if="cell.thumb != null"
+          :src="cell.thumb"
+          :alt="cell.view.title"
+          class="w-full h-full object-cover"
+          loading="lazy"
+          draggable="false"
+        />
+        <span v-else class="w-full h-full flex items-center justify-center text-[var(--fg-dim)]">
+          <component :is="cell.icon" :size="18" />
+        </span>
+      </button>
+    </div>
   </div>
 </template>

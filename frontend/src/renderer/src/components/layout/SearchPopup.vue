@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { GripVertical, RefreshCw, Search, X } from 'lucide-vue-next'
+import { File as FileIcon, GripVertical, RefreshCw, Search, Tag as TagIcon, X } from 'lucide-vue-next'
 import { useTabStore } from '../../stores/tab'
 import { useItemStore } from '../../stores/item'
 import { useWorkspaceStore } from '../../stores/workspace'
@@ -8,13 +8,17 @@ import { useTagStore } from '../../stores/tag'
 import { parseSearchInput } from '../../features/searchSyntax'
 import { api } from '@shared/api'
 import type { Id } from '@shared/contract'
-import { closeSearchPopup, openSearchPopup, useSearchPopupState } from './searchPopup'
+import { closeSearchPopup, toggleSearchPopup, useSearchPopupState } from './searchPopup'
 
 /**
  * 顶栏搜索簇（D44）：搜索图标钮 + 扫描图标钮 + 可拖拽的搜索弹出面板。
  * 搜索是横跨视图的动作，入口归顶栏（坐底板），面板按需弹出、可拖拽挪位（偏移仅本会话）；
  * 扫描 = 图标按钮，来源根缓存在 workspace store（挂载/卸载即失效）。
  * 显隐只做透明度过渡（P5）；无活动工作区时整簇禁用（item store 是全局单例，跨标签页无语义）。
+ *
+ * 输入建议（开发者定形）：词元补全 = 已声明标签（含 `-排除` 式），关键字补全 = 标题命中
+ * （titleContains 全局检索，kinds:['file'] 与既有检索入口同款防幽灵锚条目）。
+ * ↑↓ 选择、Enter 补全、Esc 先收建议再收面板；建议是筛选书写的增强，失败降级到仅标签候选。
  */
 const tabStore = useTabStore()
 const itemStore = useItemStore()
@@ -68,6 +72,89 @@ watch(parsed, (p) => {
   }
 })
 
+// ── 输入建议 ──
+interface Suggest {
+  kind: 'tag' | 'title'
+  /** 补全写进输入框的词元（不含 '-' 前缀，前缀按当前书写式回填）。 */
+  label: string
+  isExclude: boolean
+  title: string
+}
+const suggests = ref<Suggest[]>([])
+const suggestIndex = ref(0)
+
+const lastToken = computed(() => {
+  const tokens = itemStore.searchRaw.trim().split(/\s+/).filter((t) => t !== '')
+  return tokens[tokens.length - 1] ?? ''
+})
+
+function tagSuggests(): Suggest[] {
+  const token = lastToken.value
+  const isExclude = token.startsWith('-')
+  const q = token.slice(isExclude ? 1 : 0).toLowerCase()
+  if (q === '') return []
+  const out: Suggest[] = []
+  for (const t of tagStore.allTags) {
+    if (!declaredIds.value.has(t.id)) continue
+    const name = t.name.toLowerCase()
+    if (name.includes(q) && name !== q) {
+      out.push({ kind: 'tag', label: t.name, isExclude, title: t.name })
+      if (out.length >= 5) break
+    }
+  }
+  return out
+}
+
+function applySuggests(list: Suggest[]): void {
+  suggests.value = list
+  suggestIndex.value = 0
+}
+
+let suggestSeq = 0
+async function refreshSuggests(): Promise<void> {
+  if (!opened.value || lastToken.value === '') {
+    applySuggests([])
+    return
+  }
+  const tags = tagSuggests()
+  const token = lastToken.value
+  if (token.startsWith('-')) {
+    // 排除式只补全标签词元——`-标签` 是结构化筛选，标题不是排除对象
+    applySuggests(tags)
+    return
+  }
+  const seq = ++suggestSeq
+  let titles: Suggest[] = []
+  try {
+    const hits = await api.items.query({ titleContains: token, limit: 5, kinds: ['file'] })
+    if (seq !== suggestSeq) return
+    titles = hits
+      .filter((h) => h.item.kind === 'file' && h.item.title.toLowerCase() !== token.toLowerCase())
+      .slice(0, 5)
+      .map((h) => ({ kind: 'title' as const, label: h.item.title, isExclude: false, title: h.item.title }))
+  } catch {
+    // 建议是书写增强：检索失败降级为仅标签候选，不打断输入（条目查询本身另有失败可见性）
+  }
+  applySuggests([...tags, ...titles])
+}
+
+let suggestTimer: number | undefined
+watch(
+  () => itemStore.searchRaw,
+  () => {
+    window.clearTimeout(suggestTimer)
+    suggestTimer = window.setTimeout(() => void refreshSuggests(), 150)
+  }
+)
+
+function applySuggest(s: Suggest): void {
+  const trimmed = itemStore.searchRaw.replace(/\s+$/, '')
+  const idx = trimmed.lastIndexOf(' ')
+  const head = idx >= 0 ? trimmed.slice(0, idx + 1) : ''
+  itemStore.setSearchRaw(`${head}${s.isExclude ? '-' : ''}${s.label} `)
+  inputRef.value?.focus()
+}
+
 // ── 开合：打开即聚焦全选；活动工作区消失即收起（搜索是工作区作用域的动作） ──
 watch(opened, async (o) => {
   if (!o) return
@@ -81,6 +168,27 @@ watch(activeWsId, (id) => {
 
 function onInputFocus(): void {
   void refreshDeclared()
+}
+
+/** 键盘：↑↓ 选建议、Enter 补全、Esc 先收建议再收面板。 */
+function onInputKeydown(e: KeyboardEvent): void {
+  if (e.key === 'ArrowDown' && suggests.value.length > 0) {
+    e.preventDefault()
+    suggestIndex.value = (suggestIndex.value + 1) % suggests.value.length
+  } else if (e.key === 'ArrowUp' && suggests.value.length > 0) {
+    e.preventDefault()
+    suggestIndex.value = (suggestIndex.value - 1 + suggests.value.length) % suggests.value.length
+  } else if (e.key === 'Enter') {
+    const s = suggests.value[suggestIndex.value]
+    if (s != null) {
+      e.preventDefault()
+      applySuggest(s)
+    }
+  } else if (e.key === 'Escape') {
+    e.preventDefault()
+    if (suggests.value.length > 0) applySuggests([])
+    else closeSearchPopup()
+  }
 }
 
 // ── 扫描 ──
@@ -114,7 +222,7 @@ function onGripUp(): void {
       :class="opened ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : ''"
       :disabled="activeWsId == null"
       :title="activeWsId == null ? '搜索（工作区标签页可用，Ctrl+F）' : '搜索（Ctrl+F）'"
-      @click="opened ? closeSearchPopup() : openSearchPopup()"
+      @click="toggleSearchPopup()"
     >
       <Search :size="16" />
     </button>
@@ -128,7 +236,7 @@ function onGripUp(): void {
     </button>
   </div>
 
-  <!-- 搜索面板：一根长条（开发者定形）——左握持、中输入、右关闭；无多余说明文字。
+  <!-- 搜索面板：一根长条（开发者定形）——左握持、中输入、右关闭；无占位提示词。
        浮层（P3 阴影例外）；默认锚 = 顶栏下方居中，拖拽偏移叠加其上；
        no-drag 必须显式：面板在 DOM 里是顶栏（drag-region）的后代，app-region 会继承。 -->
   <Transition name="popup-fade">
@@ -152,16 +260,38 @@ function onGripUp(): void {
           ref="inputRef"
           :value="itemStore.searchRaw"
           class="input pl-8 w-full"
-          placeholder="搜索文件名或标签（-标签 排除）"
           data-shortcut="search"
           @input="itemStore.setSearchRaw(($event.target as HTMLInputElement).value)"
           @focus="onInputFocus"
-          @keydown.esc.stop.prevent="closeSearchPopup"
+          @keydown="onInputKeydown"
         />
       </div>
       <button class="icon-btn w-5 h-5 shrink-0" title="关闭（Esc / Ctrl+F）" @click="closeSearchPopup">
         <X :size="13" />
       </button>
+
+      <!-- 输入建议：标签词元补全 + 标题命中（面板带 transform，绝对定位锚定在面板上） -->
+      <div
+        v-if="suggests.length > 0"
+        class="absolute top-full left-0 right-0 mt-1 py-1 bg-[var(--bg-elev)] border border-[var(--border)] shadow-lg"
+      >
+        <button
+          v-for="(s, i) in suggests"
+          :key="`${s.kind}:${s.title}`"
+          class="w-full flex items-center gap-2 text-left px-2.5 py-1.5 text-[12px] cursor-pointer"
+          :class="
+            i === suggestIndex
+              ? 'bg-[var(--bg-hover)] text-[var(--fg)]'
+              : 'text-[var(--fg-dim)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)]'
+          "
+          @mouseenter="suggestIndex = i"
+          @click="applySuggest(s)"
+        >
+          <TagIcon v-if="s.kind === 'tag'" :size="12" class="shrink-0" />
+          <FileIcon v-else :size="12" class="shrink-0" />
+          <span class="truncate">{{ s.isExclude ? `-${s.title}` : s.title }}</span>
+        </button>
+      </div>
     </div>
   </Transition>
 </template>
