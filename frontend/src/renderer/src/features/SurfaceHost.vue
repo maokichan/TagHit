@@ -69,28 +69,36 @@ function openFullPage(): void {
 </script>
 
 <template>
-  <!-- 停靠面板外壳：宽度/滚动归壳（功能组件不得自定）；底色与外框归左卡（D44），
-       面板只是卡内的分节，与图标栏之间由图标栏的发丝线分界 -->
-  <div v-if="feature != null && surface === 'activityBar'" class="relative h-full min-h-0">
-    <aside class="w-[var(--panel-width)] h-full overflow-y-auto">
-      <FeatureBoundary :label="feature.manifest.title">
-        <component
-          :is="directComp ?? asyncComp"
-          v-if="implAvailable"
-          v-bind="componentProps"
-        />
-      </FeatureBoundary>
-    </aside>
-    <button
-      v-if="canOpenFullPage"
-      class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5
-             bg-[var(--bg)] border border-[var(--border)] text-[var(--fg-dim)]
-             hover:text-[var(--accent)] hover:border-[var(--accent-border)] transition-colors cursor-pointer"
-      :title="`打开「${feature.manifest.title}」全页`"
-      @click="openFullPage"
+  <!-- 停靠面板外壳：宽度/滚动归壳（功能组件不得自定）；底色与外框归左卡（D44）。
+       面板**常驻挂载**、宽度过渡开合（.panel-slide，P5）：内容定宽不回流，收起时宽度归零；
+       与图标栏之间的发丝线归 ActivityBar（面板展开时才画）。 -->
+  <div v-if="surface === 'activityBar'" class="h-full min-h-0">
+    <aside
+      class="panel-slide h-full overflow-hidden"
+      :class="feature != null ? 'w-[var(--panel-width)]' : 'w-0'"
     >
-      <SquareArrowOutUpRight :size="11" />
-    </button>
+      <div class="relative w-[var(--panel-width)] h-full">
+        <div class="h-full overflow-y-auto">
+          <FeatureBoundary v-if="feature != null" :label="feature.manifest.title">
+            <component
+              :is="directComp ?? asyncComp"
+              v-if="implAvailable"
+              v-bind="componentProps"
+            />
+          </FeatureBoundary>
+        </div>
+        <button
+          v-if="feature != null && canOpenFullPage"
+          class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5
+                 bg-[var(--bg)] border border-[var(--border)] text-[var(--fg-dim)]
+                 hover:text-[var(--accent)] hover:border-[var(--accent-border)] transition-colors cursor-pointer"
+          :title="`打开「${feature.manifest.title}」全页`"
+          @click="openFullPage"
+        >
+          <SquareArrowOutUpRight :size="11" />
+        </button>
+      </div>
+    </aside>
   </div>
 
   <!-- 全页外壳：占满内容区 + 页头 + **居中的版心容器**（功能组件只出内容，不自定版心/侧栏） -->

@@ -10,7 +10,7 @@ import { knownViews } from './detailWorkbench/views'
 import { resetWorkbenchLayout } from './detailWorkbench/store'
 import { itemRoute, routeOfTab } from './tabs'
 import { openPalette } from './palette'
-import { openSearchPopup } from '../components/layout/searchPopup'
+import { toggleSearchPopup } from '../components/layout/searchPopup'
 import { invalidatePathManagement } from './paths/usePathManagement'
 import { api } from '@shared/api'
 import type { ItemContext, NodeState } from '@shared/contract'
@@ -148,14 +148,14 @@ export function registerBuiltinCommands(): void {
   )
 
   // 搜索（Ctrl+F）：视图动作，无菜单项——只经快捷键触发（when: shell）。
-  // 活动标签为工作区 → 打开顶栏搜索弹出面板（面板自聚焦，D44）；
+  // 活动标签为工作区 → **切换**顶栏搜索弹出面板（呼出 ↔ 放回，D44）；
   // 其余标签保留 DOM 兜底（globalSearch 全页输入等仍在 DOM 里时聚焦它）。
   official(
     { id: 'shell.focusSearch', title: '搜索', when: { kind: 'targetIs', value: 'shell' } },
     () => {
       const tabStore = useTabStore()
       if (tabStore.activeWorkspaceId != null) {
-        openSearchPopup()
+        toggleSearchPopup()
         return
       }
       const input = document.querySelector<HTMLInputElement>('[data-shortcut="search"]')

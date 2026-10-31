@@ -95,8 +95,9 @@ function showIndicator(i: number): boolean {
 <template>
   <!-- 无边框窗口（D17）：本条兼任标题栏——拖拽区归根部（空白处拖动/双击最大化），
        全部交互元素 no-drag；右上三键 = 自绘窗口控制键。
-       顶栏直接坐在底板上（D44）：无自身底色与接缝，标签片本身就是底板上的卡。 -->
-  <div class="flex items-center h-11 px-2 gap-1.5 drag-region">
+       顶栏直接坐在底板上（D44）：无自身底色，标签片本身就是底板上的卡；
+       下缘一根发丝线区分顶栏与内容（不画重缝）。 -->
+  <div class="flex items-center h-11 px-2 gap-1.5 border-b border-[var(--border-soft)] drag-region">
     <!-- 标签（浏览器式：可拖拽、自动适应标签栏长度、主页为显式标签） -->
     <div class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
       <div

@@ -308,6 +308,18 @@ body {
     @apply fixed z-30 pointer-events-none border border-[var(--accent)];
     background: color-mix(in srgb, var(--accent) 14%, transparent);
   }
+  /* 停靠面板开合（SurfaceHost）：宽度过渡——"用户做了什么"要有可感的回应（P5 特许项）；
+     reduced-motion 下跳变不动画。 */
+  .panel-slide {
+    transition-property: width;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .panel-slide {
+      transition: none;
+    }
+  }
   /* 浮层显隐（搜索弹出面板等共用）：P5 只做透明度过渡，无位移/缩放入场。 */
   .popup-fade-enter-active,
   .popup-fade-leave-active {

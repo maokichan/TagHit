@@ -128,28 +128,25 @@ function onGripUp(): void {
     </button>
   </div>
 
-  <!-- 搜索面板：浮层（P3 阴影例外）；默认锚 = 顶栏下方居中，拖拽偏移叠加其上。
+  <!-- 搜索面板：一根长条（开发者定形）——左握持、中输入、右关闭；无多余说明文字。
+       浮层（P3 阴影例外）；默认锚 = 顶栏下方居中，拖拽偏移叠加其上；
        no-drag 必须显式：面板在 DOM 里是顶栏（drag-region）的后代，app-region 会继承。 -->
   <Transition name="popup-fade">
     <div
       v-if="opened"
-      class="fixed top-12 left-1/2 -ml-40 z-40 w-80 no-drag bg-[var(--bg-elev)] border border-[var(--border)] shadow-xl"
+      class="fixed top-12 left-1/2 -ml-40 z-40 w-80 no-drag flex items-center gap-1 px-1.5
+             bg-[var(--bg-elev)] border border-[var(--border)] shadow-xl"
       :style="{ transform: `translate(${offset.x}px, ${offset.y}px)` }"
     >
-      <div
-        class="flex items-center gap-1 px-2 h-8 border-b border-[var(--border-soft)] cursor-grab select-none"
+      <GripVertical
+        :size="14"
+        class="p-1 -ml-1 text-[var(--fg-dim)] shrink-0 cursor-grab select-none"
         @pointerdown="onGripDown"
         @pointermove="onGripMove"
         @pointerup="onGripUp"
         @pointercancel="onGripUp"
-      >
-        <GripVertical :size="12" class="text-[var(--fg-dim)] shrink-0" />
-        <span class="text-[11px] text-[var(--fg-dim)] flex-1">搜索</span>
-        <button class="icon-btn w-4 h-4" title="关闭（Esc）" @click="closeSearchPopup">
-          <X :size="12" />
-        </button>
-      </div>
-      <div class="relative m-2">
+      />
+      <div class="relative flex-1 min-w-0">
         <Search :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--fg-dim)]" />
         <input
           ref="inputRef"
@@ -162,6 +159,9 @@ function onGripUp(): void {
           @keydown.esc.stop.prevent="closeSearchPopup"
         />
       </div>
+      <button class="icon-btn w-5 h-5 shrink-0" title="关闭（Esc / Ctrl+F）" @click="closeSearchPopup">
+        <X :size="13" />
+      </button>
     </div>
   </Transition>
 </template>
