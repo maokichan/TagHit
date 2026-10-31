@@ -14,11 +14,12 @@ import {
   playbackPause,
   playbackSeek,
   playbackSetVolume,
+  playbackSetLoop,
   playbackSnapshot,
   playbackSubscribe
 } from './playback/playback'
 
-export const HOST_API_VERSION = '0.2.1'
+export const HOST_API_VERSION = '0.2.2'
 
 export const hostApi = {
   version: HOST_API_VERSION,
@@ -57,6 +58,7 @@ export const hostApi = {
     pause: playbackPause,
     seek: playbackSeek,
     setVolume: playbackSetVolume,
+    setLoop: playbackSetLoop,
     snapshot: playbackSnapshot,
     onChange: playbackSubscribe
   }

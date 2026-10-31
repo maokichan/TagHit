@@ -13,6 +13,7 @@ import { toItemView, type ItemView } from '../lib/viewModel'
 import { taghitFileUrl } from '../lib/media'
 import { useTabStore, type ItemTab } from '../stores/tab'
 import { itemRoute, resolveItemContext } from '../features/tabs'
+import { playbackPause, playbackSnapshot } from '../features/playback/playback'
 import { windowNav } from '../features/windowNav'
 import { registerDetailNav } from '../features/detailNav'
 import { showToast } from '../features/services/dialog'
@@ -83,9 +84,12 @@ async function loadWindow(): Promise<void> {
  * 翻页：在当前条目标签内换内容（**不新开标签**——翻十张就是十个标签），
  * 路由用 replace（同一次浏览不写历史；侧键返回回到来处的网格/搜索）。
  * 打标导致当前条目退出视图时**当前页不跳**：窗口只在翻页时按新集合重算。
+ * 播放生命周期（D43）：标签页与资源挂钩——翻页 = 本标签的资源被替换，正播的音频即停。
  */
 function go(target: ItemView | null): void {
   if (target == null) return
+  const snap = playbackSnapshot()
+  if (snap.itemId === props.id && snap.status === 'playing') playbackPause()
   tabStore.flipItemTab(props.id, target.id, target.title)
   void router.replace(itemRoute(target.id, context.value))
 }

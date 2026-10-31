@@ -23,6 +23,8 @@ export interface PlaybackSnapshot {
   currentTime: number
   duration: number
   volume: number
+  /** 单曲循环（audio.loop） */
+  loop: boolean
 }
 
 /** 换曲目标：身份 + 来源路径（引擎内部经 taghit-file 协议构造 URL） */
@@ -53,7 +55,7 @@ function createEngine(): EngineCore {
     ctx: null,
     filters: [],
     analyser: null,
-    state: ref<PlaybackSnapshot>({ itemId: null, status: 'idle', currentTime: 0, duration: 0, volume: 1 }),
+    state: ref<PlaybackSnapshot>({ itemId: null, status: 'idle', currentTime: 0, duration: 0, volume: 1, loop: false }),
     listeners: new Set(),
     rafId: 0
   }
@@ -159,6 +161,11 @@ function setVolume(core: EngineCore, v: number): void {
   core.state.value = { ...core.state.value, volume: vol }
 }
 
+function setLoop(core: EngineCore, loop: boolean): void {
+  core.audio.loop = loop
+  core.state.value = { ...core.state.value, loop }
+}
+
 // ---- 单例（HMR 幂等：Symbol.for 跨模块重执行共享） --------------------------------
 
 const ENGINE_KEY = Symbol.for('taghit.playback-engine')
@@ -194,6 +201,11 @@ export function playbackSeek(t: number): void {
 
 export function playbackSetVolume(v: number): void {
   setVolume(engine, v)
+}
+
+/** 单曲循环切换（audio.loop；ended 不再触发）。 */
+export function playbackSetLoop(loop: boolean): void {
+  setLoop(engine, loop)
 }
 
 /** 状态订阅（快照回调式），返回取消函数。 */
