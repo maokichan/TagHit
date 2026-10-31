@@ -35,7 +35,7 @@ function section(title: string, desc: string, blocks: Block[]): string {
 /* ── Token 色板 ── */
 const swatch = (name: string, css: string): string =>
   `<div class="w-36">
-    <div class="h-10 rounded-md border border-[var(--border)]" style="background:${css}"></div>
+    <div class="h-10 border border-[var(--border)]" style="background:${css}"></div>
     <div class="text-[11px] mt-1">${name}</div>
     <div class="text-[11px] text-[var(--fg-dim)] font-mono" style="user-select:text">${css.replace('var(', '').replace(')', '')}</div>
   </div>`
@@ -76,7 +76,7 @@ const tokenSection = section(
 )
 
 /* ── 阶梯 ── */
-const ladderSection = section('阶梯 · 字号与圆角', '字号白名单机检（≤10px 禁止）；圆角三级制。', [
+const ladderSection = section('阶梯 · 字号与轮廓', '字号白名单机检（≤10px 禁止）；全直角（D44：rounded-* 是禁区）。', [
   {
     label: '字号：11 说明与次要 · 12 正文与控件 · 13 输入与强调 · 14 空态主句 · 16 阅读面标题',
     body: `<div class="space-y-1.5">
@@ -89,11 +89,11 @@ const ladderSection = section('阶梯 · 字号与圆角', '字号白名单机�
     </div>`
   },
   {
-    label: '圆角三级制：4px chip · 6px 按钮/输入 · 8px 面板',
+    label: '直角：全界面不用圆角——轮廓感来自边框与明度差，不靠圆角软化',
     body: `<div class="flex gap-3 items-end">
-      <div class="w-16 h-10 bg-[var(--bg-hover)] rounded flex items-center justify-center text-[11px] text-[var(--fg-dim)]">4px</div>
-      <div class="w-16 h-10 bg-[var(--bg-hover)] rounded-md flex items-center justify-center text-[11px] text-[var(--fg-dim)]">6px</div>
-      <div class="w-16 h-10 bg-[var(--bg-hover)] rounded-lg flex items-center justify-center text-[11px] text-[var(--fg-dim)]">8px</div>
+      <div class="w-16 h-10 bg-[var(--bg-hover)] flex items-center justify-center text-[11px] text-[var(--fg-dim)]">chip</div>
+      <div class="w-16 h-10 bg-[var(--bg-hover)] border border-[var(--border)] flex items-center justify-center text-[11px] text-[var(--fg-dim)]">输入</div>
+      <div class="w-16 h-10 bg-[var(--bg-elev)] border border-[var(--border)] flex items-center justify-center text-[11px] text-[var(--fg-dim)]">卡片</div>
     </div>`
   }
 ])
@@ -125,15 +125,14 @@ const componentsSection = section(
       body: `<div class="flex gap-1.5 items-center text-[12px]">按 <span class="kbd">Ctrl+E</span> 切换编辑模式，<span class="kbd">Ctrl+Shift+P</span> 打开命令面板</div>`
     },
     {
-      label: '.chip 家族（形态即状态：六种词元形态对应六种语义）',
+      label: '.chip 家族（形态即状态：四种词元形态对应四种语义）',
       body: `<div class="flex gap-1.5 flex-wrap items-center">
         <span class="chip">静态只读</span>
         <button class="chip chip--action">可点（未挂载）</button>
         <button class="chip chip--on">挂载态（琥珀 soft）</button>
-        <button class="chip chip--solid">筛选激活（琥珀实心）</button>
-        <button class="chip chip--excluded">排除（-标签）</button>
         <button class="chip chip--text">去框词元（阅读态）</button>
-      </div>`
+      </div>
+      <p class="text-[11px] text-[var(--fg-dim)] mt-1.5">筛选与排除以搜索框词元的形态存在，不走 chip。</p>`
     },
     {
       label: '.panel / .panel-label / .divider / .section-head（点节头看折叠）',
@@ -179,7 +178,7 @@ const componentsSection = section(
     },
     {
       label: '.wb-tabstrip / .wb-tab / .wb-tab--on / .wb-seam / .wb-edge[data-on]（工作台：槽位 tab 栈 + 槽间接缝 + 缘落点）',
-      body: `<div class="max-w-md rounded-lg border border-[var(--border)] overflow-hidden flex">
+      body: `<div class="max-w-md border border-[var(--border)] overflow-hidden flex">
         <div class="flex-1 min-w-0">
           <div class="wb-tabstrip">
             <div class="wb-tab wb-tab--on">预览</div>
@@ -225,7 +224,7 @@ const p6Section = section(
     },
     {
       label: '正例：一整块连续表面，节头 + 发丝线分节，常显骨架 + 折叠长尾',
-      body: `<div class="max-w-md rounded-lg border border-[var(--border)] bg-[var(--bg-elev)]">
+      body: `<div class="max-w-md border border-[var(--border)] bg-[var(--bg-elev)]">
         <div class="px-3 py-2.5">
           <div class="flex items-baseline gap-2 mb-1.5">
             <span class="text-[13px] font-medium">海边日落.jpg</span>

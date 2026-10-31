@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 /* ── 主题变量：暗色默认，亮色可切换（CSS 变量驱动，对应 config.theme） ──
-   本文件是**样式的单一事实源**：颜色/字号/圆角/组件词汇只在这里定义，组件只挂类名；
+   本文件是**样式的单一事实源**：颜色/字号/组件词汇只在这里定义，组件只挂类名；
    样式表里没有的形态，先来这里加类，不许在组件里发明一次性样式（P1）。
    原则/阶梯/禁区/层级语法的唯一文本 = docs/STYLE.md（活样张 = `npm run style`）——
-   本文件只实现规则，不复述规则。 */
+   本文件只实现规则，不复述规则。全直角（D44）：不定义任何圆角词汇。 */
 :root {
   color-scheme: dark;
-  /* 明度阶梯档距（P6）：底最深、组件面最浅——暗色下大面积平面差感知极差，
-     档距必须一步到位（bg→elev 的 Weber 对比 ≈ 5×）；面板与面板相邻处平面语言
-     本就不适用，那里靠边缝（--border 高于两侧平面，1px 全强度接缝静态可见）。 */
+  /* 明度阶梯档距（P6）：底板最深、卡片最浅——暗色下大面积平面差感知极差，
+     档距必须一步到位（bg→elev 的 Weber 对比 ≈ 5×）；底板 + 卡片是全窗唯一的
+     版式语法（D44）：卡片浮在底板上，区域分层 = 明度差 + 距离，不画区域接缝。 */
   --bg: #07090d;
   --bg-elev: #1d232f;
   --bg-hover: #2a3242;
@@ -99,7 +99,6 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 6px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
@@ -114,7 +113,7 @@ body {
 /* ── 通用组件类 ── */
 @layer components {
   .panel {
-    @apply bg-[var(--bg-elev)] border border-[var(--border)] rounded-lg;
+    @apply bg-[var(--bg-elev)] border border-[var(--border)];
   }
   /* 面板小节标签（停靠面板/详情页右栏共用）：中文标签用正常字距，
      不做 uppercase（中文无大小写，拉开的字距只会显得松散）。 */
@@ -128,7 +127,7 @@ body {
   /* 可折叠节头（渐进披露）：小标签 + 展开箭头（箭头由调用方给 svg，data-open 管朝向——
      旋转是状态形态，不加过渡，P5 只许色变/透明度/按压缩放）。 */
   .section-head {
-    @apply flex items-center gap-1 rounded px-1 -mx-1 py-0.5 text-[11px] text-[var(--fg-dim)]
+    @apply flex items-center gap-1 px-1 -mx-1 py-0.5 text-[11px] text-[var(--fg-dim)]
       cursor-pointer hover:text-[var(--fg)];
     transition-property: color;
     transition-duration: 150ms;
@@ -139,19 +138,25 @@ body {
   }
   /* 去框词元（阅读态的标签词）：纯文本形态，悬停亮——形态即状态（不可改就不长盒子的样子）。 */
   .chip--text {
-    @apply rounded text-[12px] text-[var(--fg-dim)] cursor-pointer hover:text-[var(--fg)];
+    @apply text-[12px] text-[var(--fg-dim)] cursor-pointer hover:text-[var(--fg)];
     transition-property: color;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
-  .btn {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--fg-dim)]
-      hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] cursor-pointer
+  /* 按钮共有的反馈形态（focus 环 / 禁用 / 过渡）在这里一份，.btn 与 .icon-btn 只差
+     摆放与底色（P1：同一形态不写两份）。 */
+  .btn,
+  .icon-btn {
+    @apply inline-flex cursor-pointer text-[var(--fg-dim)] hover:text-[var(--fg)]
       disabled:opacity-40 disabled:cursor-not-allowed
       focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)];
     transition-property: color, background-color, border-color, opacity, transform;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .btn {
+    @apply items-center gap-1.5 px-2.5 py-1.5
+      hover:bg-[var(--bg-hover)];
   }
   .btn:not(:disabled):active {
     transform: scale(0.97);
@@ -161,18 +166,13 @@ body {
   }
   /* 纯图标按钮：无底色，命中区由调用方给尺寸；按压缩放用于即时反馈。 */
   .icon-btn {
-    @apply inline-flex items-center justify-center rounded cursor-pointer text-[var(--fg-dim)]
-      hover:text-[var(--fg)] disabled:opacity-40 disabled:cursor-not-allowed
-      focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)];
-    transition-property: color, opacity, transform;
-    transition-duration: 150ms;
-    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+    @apply items-center justify-center;
   }
   .icon-btn:not(:disabled):active {
     transform: scale(0.95);
   }
   .input {
-    @apply bg-[var(--bg)] border border-[var(--border)] rounded-md px-2.5 py-1.5
+    @apply bg-[var(--bg)] border border-[var(--border)] px-2.5 py-1.5
       text-[var(--fg)] outline-none focus:border-[var(--accent)] transition-colors
       disabled:opacity-50 disabled:cursor-not-allowed;
   }
@@ -181,13 +181,14 @@ body {
     opacity: 0.7;
   }
   .kbd {
-    @apply px-1 rounded bg-[var(--bg-hover)] border border-[var(--border)] text-[11px] text-[var(--fg-dim)];
+    @apply px-1 bg-[var(--bg-hover)] border border-[var(--border)] text-[11px] text-[var(--fg-dim)];
   }
   /* 标签 chip（词汇表"标签"的最小呈现单元）。三态：
      静态（只读展示）= .chip · 可点（未挂载，点了挂上）= .chip--action · 激活（已挂载/选中）= .chip--on。
-     搜索候选、筛选 chips、卡片标签都用这一套，不许另造。 */
+     打标候选、卡片标签、详情页标签区都用这一套，不许另造。
+     （筛选与排除以搜索框词元的形态存在，不走 chip——实心/排除 chip 随其消费面撤除。） */
   .chip {
-    @apply inline-flex items-center px-1.5 py-0.5 rounded text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)];
+    @apply inline-flex items-center px-1.5 py-0.5 text-[11px] bg-[var(--bg-hover)] text-[var(--fg-dim)];
   }
   .chip--action {
     @apply border border-[var(--border)] cursor-pointer select-none hover:text-[var(--fg)];
@@ -195,33 +196,20 @@ body {
   .chip--on {
     @apply bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-border)] cursor-pointer select-none;
   }
-  /* 实心 chip：筛选激活态（当前视图被什么切着，必须一眼可见）——与挂载态（soft）两种强度都是词汇表成员 */
-  .chip--solid {
-    @apply bg-[var(--accent)] text-white cursor-pointer hover:brightness-110;
-  }
-  /* 排除 chip（`-标签` 筛选激活态）：强度对标 solid，danger 色系表达"剔除"语义 */
-  .chip--excluded {
-    @apply text-[var(--danger)] border border-[var(--danger-border)] cursor-pointer hover:brightness-110;
-    background: color-mix(in srgb, var(--danger) 12%, transparent);
-  }
   /* 可点 chip：色变过渡 + 按压缩放（反馈，不是入场动画） */
   .chip--action,
-  .chip--on,
-  .chip--solid,
-  .chip--excluded {
-    transition-property: color, background-color, border-color, filter, transform;
+  .chip--on {
+    transition-property: color, background-color, border-color, transform;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
   }
   .chip--action:active,
-  .chip--on:active,
-  .chip--solid:active,
-  .chip--excluded:active {
+  .chip--on:active {
     transform: scale(0.97);
   }
   /* 失败提示条（面板内/页内的错误横幅）：唯一形态，✕ 关闭钮由组件自带。 */
   .error-note {
-    @apply px-2.5 py-1.5 rounded text-[11px] flex items-center gap-1;
+    @apply px-2.5 py-1.5 text-[11px] flex items-center gap-1;
     background: color-mix(in srgb, var(--danger) 12%, transparent);
     color: var(--danger);
   }
@@ -239,8 +227,13 @@ body {
   .data-row--selected {
     @apply bg-[var(--bg-elev)];
   }
-  .row-actions {
+  /* 行尾操作按需显形：表行与组卡同一套形态（P1 一份），只差间距档位。 */
+  .row-actions,
+  .group-card .card-actions {
     @apply flex items-center gap-1.5 opacity-0 pointer-events-none transition-opacity;
+  }
+  .group-card .card-actions {
+    @apply gap-1;
   }
   .data-row:focus-within .row-actions {
     @apply opacity-100 pointer-events-auto;
@@ -255,10 +248,6 @@ body {
     transition-property: color;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
-  }
-  /* 卡片（组卡）的行尾操作：与表行同一套按需显形 */
-  .group-card .card-actions {
-    @apply flex items-center gap-1 opacity-0 pointer-events-none transition-opacity;
   }
   .group-card:focus-within .card-actions {
     @apply opacity-100 pointer-events-auto;
@@ -281,10 +270,10 @@ body {
   }
   /* 分段控件（互斥视图切换） */
   .segmented {
-    @apply inline-flex items-center p-0.5 rounded-md bg-[var(--bg-elev)] border border-[var(--border)];
+    @apply inline-flex items-center p-0.5 bg-[var(--bg-elev)] border border-[var(--border)];
   }
   .segment {
-    @apply inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] text-[var(--fg-dim)] cursor-pointer;
+    @apply inline-flex items-center gap-1.5 px-2 py-1 text-[11px] text-[var(--fg-dim)] cursor-pointer;
     transition-property: color, background-color, transform;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
@@ -303,10 +292,10 @@ body {
   }
   /* 关系条带：轨道与填充的外观在这里，宽度是数据（:style） */
   .bar-track {
-    @apply h-1 rounded-full bg-[var(--bg-hover)] overflow-hidden;
+    @apply h-1 bg-[var(--bg-hover)] overflow-hidden;
   }
   .bar-fill {
-    @apply h-full rounded-full bg-[var(--accent)];
+    @apply h-full bg-[var(--accent)];
   }
   .bar-fill--dim {
     background: var(--fg-dim);
@@ -314,7 +303,7 @@ body {
   }
   /* 框选矩形（几何 left/top/width/height 是 :style 数据，外观在这里） */
   .marquee-box {
-    @apply fixed z-30 pointer-events-none rounded border border-[var(--accent)];
+    @apply fixed z-30 pointer-events-none border border-[var(--accent)];
     background: color-mix(in srgb, var(--accent) 14%, transparent);
   }
   /* 起始页品牌字：字距是排印决策，只在此处（组件不写 tracking-*） */
@@ -341,7 +330,7 @@ body {
     @apply flex items-center gap-0.5 px-1.5 h-8 shrink-0 border-b border-[var(--border-soft)];
   }
   .wb-tab {
-    @apply relative flex items-center gap-1 px-2 h-7 rounded-md text-[11px] text-[var(--fg-dim)]
+    @apply relative flex items-center gap-1 px-2 h-7 text-[11px] text-[var(--fg-dim)]
       cursor-pointer select-none hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] min-w-0;
     transition-property: color, background-color, opacity, transform;
     transition-duration: 150ms;
@@ -352,7 +341,7 @@ body {
   }
   .wb-tab--on::after {
     content: '';
-    @apply absolute top-0 left-1.5 right-1.5 h-[2px] rounded-full bg-[var(--accent)];
+    @apply absolute top-0 left-1.5 right-1.5 h-[2px] bg-[var(--accent)];
   }
   .wb-tab:active {
     transform: scale(0.97);
@@ -442,10 +431,10 @@ body {
     @apply list-decimal pl-5 my-2 space-y-1;
   }
   .doc code {
-    @apply px-1 rounded bg-[var(--bg-hover)] text-[12px] font-mono;
+    @apply px-1 bg-[var(--bg-hover)] text-[12px] font-mono;
   }
   .doc pre {
-    @apply p-2 rounded bg-[var(--bg-hover)] overflow-x-auto my-2;
+    @apply p-2 bg-[var(--bg-hover)] overflow-x-auto my-2;
   }
   .doc pre code {
     @apply p-0 bg-transparent;
