@@ -66,7 +66,7 @@ watch(() => props.items, centerCurrent)
       v-for="cell in cells"
       :key="cell.view.id"
       :data-current="cell.view.id === currentId"
-      class="relative shrink-0 w-14 h-14 rounded overflow-hidden border transition-colors"
+      class="relative shrink-0 w-14 h-14 overflow-hidden border transition-colors"
       :class="
         cell.view.id === currentId
           ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]'

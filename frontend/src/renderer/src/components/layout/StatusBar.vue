@@ -2,13 +2,18 @@
 import { computed } from 'vue'
 import { X } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
+import { useTabStore } from '../../stores/tab'
 import { openBatchTagDialog } from '../../features/services/batchTag'
 
 /**
- * 状态栏：多选状态与批量动作（选中即出现在这里，Esc 或 ✕ 退出）· 扫描状态 · 插件占位。
- * 选择状态放底边栏是壳级决定：搜索栏下不再出现随选择浮沉的操作条。
+ * 状态栏：多选状态与批量动作（选中即出现在这里，Esc 或 ✕ 退出）· 扫描状态 · 视图计数 · 插件占位。
+ * 选择状态放底边栏是壳级决定；视图计数（D44 自搜索栏迁来）——item store 是全局单例，
+ * 仅在活动标签为工作区时显示，否则是残留值。
  */
 const itemStore = useItemStore()
+const tabStore = useTabStore()
+
+const showCount = computed(() => tabStore.activeWorkspaceId != null)
 
 const PLUGIN_COUNT = 0
 const count = computed(() => itemStore.selectedIds.length)
@@ -42,7 +47,8 @@ const statusText = computed(() => {
 </script>
 
 <template>
-  <footer class="flex items-center gap-2 px-3 h-7 text-[11px] text-[var(--fg-dim)] border-t border-[var(--border)] bg-[var(--bg-elev)]">
+  <footer class="flex items-center gap-2 px-3 h-7 text-[11px] text-[var(--fg-dim)]">
+    <!-- 状态栏直接坐在底板上（D44）：无自身底色与接缝 -->
     <!-- 多选：状态 + 批量动作（原搜索栏下的操作条并入此处） -->
     <template v-if="count > 0">
       <span class="text-[var(--fg)] shrink-0">已选 {{ count }} 项</span>
@@ -61,8 +67,20 @@ const statusText = computed(() => {
     <span v-if="statusText" class="flex-1 truncate min-w-0" :title="statusText">{{ statusText }}</span>
     <span v-else class="flex-1" />
 
+    <!-- 视图计数：总数不受排序/分页影响 -->
+    <span
+      v-if="showCount"
+      class="shrink-0 tabular-nums"
+      :title="`成员总数 ${itemStore.total}；当前已渲染 ${itemStore.items.length}`"
+    >
+      <template v-if="itemStore.items.length < itemStore.total">
+        已显示 {{ itemStore.items.length }} / 共 {{ itemStore.total }} 项
+      </template>
+      <template v-else>共 {{ itemStore.total }} 项</template>
+    </span>
+
     <span class="flex items-center gap-1 shrink-0">
-      <span class="inline-block w-1.5 h-1.5 rounded-full"
+      <span class="inline-block w-1.5 h-1.5"
         :class="PLUGIN_COUNT > 0 ? 'bg-[var(--ok)]' : 'bg-[var(--border)]'"
       />
       {{ PLUGIN_COUNT }} 插件

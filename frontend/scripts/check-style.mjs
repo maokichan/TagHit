@@ -6,6 +6,7 @@
  *   3. 白名单外字号 text-[10px]（阶梯：11/12/13，14+ 仅空态主句）
  *   4. uppercase / tracking-*（中文界面不做大写与拉距；字距只允许 styles.css 定义）
  *   5. 静态内联 style="（:style 几何绑定是数据不是样式词汇，放行）
+ *   6. rounded-* 圆角类（全直角，D44——轮廓感来自边框与明度差）
  * 命中即非零退出，列明文件与行。新增禁区先改 STYLE.md 再来这里加一条。
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -22,6 +23,7 @@ const RULES = [
   { name: 'uppercase（中文界面不做大写）', re: /class="[^"]*\buppercase\b/ },
   { name: 'tracking-*（字距归 styles.css）', re: /class="[^"]*\btracking-/ },
   { name: '静态内联 style（几何 :style 除外）', re: /\sstyle="/ },
+  { name: 'rounded-*（全直角，D44）', re: /class="[^"]*\brounded(-[a-z0-9]+)?\b/ },
 ]
 
 const violations = []

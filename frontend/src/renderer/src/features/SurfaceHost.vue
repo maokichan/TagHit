@@ -6,7 +6,7 @@
  * → FeatureContext 注入。活动栏面板、显示面板块、内容区标签页共用本组件。
  *
  * **容器归壳**：外壳由呈现面决定，功能组件只出内容、不自绘宽度与边框——
- * - `activityBar` → 停靠面板外壳（壳级宽度 `--panel-width` + 左右边框 + 角标）
+ * - `activityBar` → 停靠面板外壳（壳级宽度 `--panel-width` + 角标；底色与外框归左卡，D44）
  * - `contentTab` → 全页外壳（页头 + 占满内容区，**不套窄面板**）
  * - `displayPanel` / `settings` → 无外壳（宿主面板/设置页自带分区容器）
  */
@@ -69,12 +69,10 @@ function openFullPage(): void {
 </script>
 
 <template>
-  <!-- 停靠面板外壳：宽度/边框/滚动归壳（功能组件不得自定） -->
-  <div v-if="feature != null && surface === 'activityBar'" class="relative h-full min-h-0 shrink-0">
-    <aside
-      class="w-[var(--panel-width)] h-full bg-[var(--bg-elev)] overflow-y-auto"
-      :class="side === 'right' ? 'border-l border-[var(--border)]' : 'border-r border-[var(--border)]'"
-    >
+  <!-- 停靠面板外壳：宽度/滚动归壳（功能组件不得自定）；底色与外框归左卡（D44），
+       面板只是卡内的分节，与图标栏之间由图标栏的发丝线分界 -->
+  <div v-if="feature != null && surface === 'activityBar'" class="relative h-full min-h-0">
+    <aside class="w-[var(--panel-width)] h-full overflow-y-auto">
       <FeatureBoundary :label="feature.manifest.title">
         <component
           :is="directComp ?? asyncComp"
@@ -85,7 +83,7 @@ function openFullPage(): void {
     </aside>
     <button
       v-if="canOpenFullPage"
-      class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5 rounded
+      class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5
              bg-[var(--bg)] border border-[var(--border)] text-[var(--fg-dim)]
              hover:text-[var(--accent)] hover:border-[var(--accent-border)] transition-colors cursor-pointer"
       :title="`打开「${feature.manifest.title}」全页`"

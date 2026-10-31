@@ -53,7 +53,7 @@ function open(featureId: string, title: string): void {
       <button
         v-for="f in contentTabs"
         :key="f.manifest.id"
-        class="w-full flex items-center gap-2 px-2 py-1.5 rounded bg-[var(--bg)] hover:bg-[var(--bg-hover)] text-[12px] cursor-pointer transition-colors"
+        class="w-full flex items-center gap-2 px-2 py-1.5 bg-[var(--bg)] hover:bg-[var(--bg-hover)] text-[12px] cursor-pointer transition-colors"
         @click="open(f.manifest.id, f.manifest.title)"
       >
         <span class="flex-1 text-left truncate">{{ f.manifest.title }}</span>
@@ -66,14 +66,14 @@ function open(featureId: string, title: string): void {
       <div
         v-for="p in installed"
         :key="p.manifest.id"
-        class="rounded border border-[var(--border)] px-2.5 py-2"
+        class="border border-[var(--border)] px-2.5 py-2"
         :class="p.enabled ? '' : 'opacity-60'"
       >
         <div class="flex items-center gap-2">
           <span class="flex-1 text-[12px] truncate">{{ p.manifest.title }}</span>
           <button
             type="button"
-            class="text-[11px] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+            class="text-[11px] px-1.5 py-0.5 cursor-pointer transition-colors"
             :class="p.enabled ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'bg-[var(--bg-hover)] text-[var(--fg-dim)]'"
             :title="p.enabled ? '停用（贡献摘除，内置预览兜底）' : '启用'"
             @click="toggle(p.manifest.id, !p.enabled)"

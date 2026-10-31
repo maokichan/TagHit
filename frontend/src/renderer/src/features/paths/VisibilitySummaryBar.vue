@@ -20,7 +20,7 @@ const { summary, scopeDirPath } = pm
     <!-- 可见性摘要：三类计数（与浏览共用同一份派生译文，故三者之和 = 根下条目总数） -->
     <div
       v-if="summary"
-      class="px-2 py-1.5 rounded text-[11px] leading-relaxed bg-[var(--bg)] border border-[var(--border)]"
+      class="px-2 py-1.5 text-[11px] leading-relaxed bg-[var(--bg)] border border-[var(--border)]"
     >
       <div class="flex items-center gap-2 flex-wrap">
         <span>可见 <b class="tabular-nums">{{ summary.visible }}</b></span>
@@ -48,7 +48,7 @@ const { summary, scopeDirPath } = pm
     <!-- 当前范围（只看某节点）：视图状态，不写库；一键退出 -->
     <div
       v-if="scopeDirPath"
-      class="flex items-center gap-1.5 px-2 py-1.5 rounded text-[11px] bg-[var(--accent-soft)] text-[var(--accent)]"
+      class="flex items-center gap-1.5 px-2 py-1.5 text-[11px] bg-[var(--accent-soft)] text-[var(--accent)]"
     >
       <Focus :size="11" class="shrink-0" />
       <span class="truncate flex-1" :title="scopeDirPath">只看：{{ pm.scopedName() }}</span>

@@ -95,7 +95,7 @@ function trashAll(): void {
 
     <template v-else>
       <!-- 选中清单 -->
-      <div class="rounded bg-[var(--bg)] px-2 py-1.5">
+      <div class="bg-[var(--bg)] px-2 py-1.5">
         <div class="text-[var(--fg-dim)] mb-1">已选 {{ selected.length }} 项</div>
         <div
           v-for="i in selected.slice(0, 8)"

@@ -20,7 +20,7 @@ const { roots, expanded, scopeDirPath } = pm
       <div v-for="r in roots" :key="r.path" class="text-[12px] py-1">
         <!-- 容器头：根目录（可见性同样可切换） -->
         <div
-          class="flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[var(--bg-hover)]"
+          class="flex items-center gap-1.5 px-2 py-1.5 hover:bg-[var(--bg-hover)]"
           data-ctx-target="node"
           :data-ctx-dir="r.path"
           :data-ctx-workspace="pm.workspaceId"

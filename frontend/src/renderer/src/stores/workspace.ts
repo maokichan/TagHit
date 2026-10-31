@@ -38,20 +38,53 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function remove(id: Id): Promise<void> {
     await api.workspaces.remove(id)
+    invalidateRoots(id)
     await refresh()
   }
 
   /** 挂来源根（递归收录，扫描时建视图）。 */
   async function addPath(workspaceId: Id, path: string): Promise<void> {
     await api.workspaces.mountRoot(workspaceId, path)
+    invalidateRoots(workspaceId)
   }
 
   async function removePath(workspaceId: Id, path: string): Promise<void> {
     await api.workspaces.unmountRoot(workspaceId, path)
+    invalidateRoots(workspaceId)
+  }
+
+  // ── 来源根缓存（渲染层单点真相）：顶栏扫描钮的 hasPaths 与来源根面板共用一份，
+  //    变更口只有 addPath/removePath/remove，失效收口在此，消费方读 rootsOf + rootsVersion。
+
+  const rootsCache = ref(new Map<Id, WorkspaceRoot[]>())
+  const rootsVersion = ref(0)
+
+  function invalidateRoots(workspaceId?: Id): void {
+    if (workspaceId == null) {
+      rootsCache.value = new Map()
+    } else {
+      const next = new Map(rootsCache.value)
+      next.delete(workspaceId)
+      rootsCache.value = next
+    }
+    rootsVersion.value += 1
   }
 
   async function listRoots(workspaceId: Id): Promise<WorkspaceRoot[]> {
-    return api.workspaces.listRoots(workspaceId)
+    const hit = rootsCache.value.get(workspaceId)
+    if (hit != null) return hit
+    const roots = await api.workspaces.listRoots(workspaceId)
+    rootsCache.value.set(workspaceId, roots)
+    return roots
+  }
+
+  /** 读时补拉（缓存缺失才发请求）：常驻消费方 watch rootsVersion 即可，无需各自编排刷新。 */
+  async function ensureRoots(workspaceId: Id): Promise<void> {
+    if (!rootsCache.value.has(workspaceId)) await listRoots(workspaceId)
+  }
+
+  function rootsOf(workspaceId: Id): WorkspaceRoot[] {
+    return rootsCache.value.get(workspaceId) ?? []
   }
 
   function byId(id: Id): Workspace | undefined {
@@ -68,6 +101,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     addPath,
     removePath,
     listRoots,
+    ensureRoots,
+    rootsOf,
+    rootsVersion,
     byId
   }
 })

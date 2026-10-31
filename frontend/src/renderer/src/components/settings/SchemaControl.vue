@@ -66,7 +66,7 @@ const shortcutRows = computed(() =>
     </div>
 
     <!-- shortcuts：只读键位表（壳级单一事实源：features/keyboardMouse/shortcuts.ts） -->
-    <div v-else-if="schema.type === 'shortcuts'" class="border border-[var(--border)] rounded-md overflow-hidden">
+    <div v-else-if="schema.type === 'shortcuts'" class="border border-[var(--border)] overflow-hidden">
       <table class="w-full text-[12px]">
         <thead class="bg-[var(--bg-elev)] text-[11px] text-[var(--fg-dim)]">
           <tr>

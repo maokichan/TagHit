@@ -47,7 +47,7 @@ const pos = computed(() => {
 <template>
   <div
     v-if="leaf"
-    class="fixed z-40 py-1 rounded-md border border-[var(--border)] bg-[var(--bg-elev)] shadow-lg"
+    class="fixed z-40 py-1 border border-[var(--border)] bg-[var(--bg-elev)] shadow-lg"
     :style="pos"
   >
     <div class="px-2.5 pt-1 pb-0.5 text-[11px] text-[var(--fg-dim)] opacity-70">加入此槽</div>

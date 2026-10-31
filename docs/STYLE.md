@@ -81,7 +81,8 @@ TagHit 是**内容管理工具**：界面是内容的容器，视觉为浏览与
 | `.wb-edge[data-on]` | 缘落点区（拖拽中出现的分割热区）：命中染 accent-soft + accent 描边 | 工作台拖 tab 到槽缘分割 |
 | `.marquee-box` | 框选矩形（几何走 `:style`，外观在这里） | ItemGrid 框选 |
 | `.wordmark` | 起始页品牌字（字距是排印决策，唯一出现处） | StartScreen |
-| `.drag-region` / `.no-drag` | 无边框窗口拖拽区 | TabBar/窗口控制键 |
+| `.popup-fade-*` | 浮层显隐过渡（只做透明度，P5 无位移/缩放入场） | 搜索弹出面板等浮层 |
+| `.drag-region` / `.no-drag` | 无边框窗口拖拽区 | TabBar/窗口控制键/顶栏弹出面板 |
 
 **几何与样式之分**：动态几何（缩放 transform、框选 left/top/width/height、瀑布流定位）是**数据**，
 走 `:style` 绑定，不进样式表；样式表管"长什么样"，不管"在哪"。
@@ -102,7 +103,7 @@ TagHit 是**内容管理工具**：界面是内容的容器，视觉为浏览与
 3. 白名单外字号（现阶段即 `text-[10px]` 及以下）。
 4. `uppercase` / `tracking-*` 类——中文界面不做大写；字距只允许样式表定义（`.wordmark`）。
 5. 静态内联 `style="`——几何走 `:style`。
-6. `rounded-*` 圆角类——全直角（§3）；存量组件的内联圆角随组件翻新清扫，清完即入机检。
+6. `rounded-*` 圆角类——全直角（§3），机检已启用（D44 落地时存量 44 处一并清零）。
 
 新增禁区：先改本文，再去 `scripts/check-style.mjs` 加一条。
 

@@ -84,7 +84,7 @@ async function run(entry: CommandEntry): Promise<void> {
     >
       <div
         ref="menuRef"
-        class="absolute min-w-[180px] max-w-[280px] py-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] shadow-xl select-none"
+        class="absolute min-w-[180px] max-w-[280px] py-1.5 border border-[var(--border)] bg-[var(--bg-elev)] shadow-xl select-none"
         :style="{ left: `${pos.left}px`, top: `${pos.top}px` }"
         @mousedown.stop
       >

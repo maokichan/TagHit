@@ -203,7 +203,7 @@ function openGlobalItem(item: ItemView): void {
               <FolderPlus :size="24" class="text-[var(--fg-dim)] opacity-40" />
               <span
                 v-if="rootCountByWs[ws.id] !== undefined"
-                class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-[var(--overlay-dim)] text-white text-[11px]"
+                class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-[var(--overlay-dim)] text-white text-[11px]"
               >
                 {{ rootCountByWs[ws.id] }} 来源根
               </span>

@@ -97,7 +97,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
     @dblclick="onDblClick"
   >
     <div class="flex items-center gap-3 px-3 py-2">
-      <div class="w-16 h-12 shrink-0 rounded-md bg-[var(--bg)] overflow-hidden flex items-center justify-center relative">
+      <div class="w-16 h-12 shrink-0 bg-[var(--bg)] overflow-hidden flex items-center justify-center relative">
         <img
           v-if="thumbUrl && !thumbFailed"
           :src="thumbUrl"
@@ -113,13 +113,13 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
         </div>
         <span
           v-if="selected"
-          class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full flex items-center justify-center bg-[var(--accent)] text-white"
+          class="absolute top-0.5 left-0.5 w-4 h-4 flex items-center justify-center bg-[var(--accent)] text-white"
         >
           <Check :size="12" :stroke-width="2.5" />
         </span>
         <span
           v-if="item.status === 'missing'"
-          class="absolute top-0.5 right-0.5 px-1 py-px rounded bg-[var(--danger)] text-white text-[9px]"
+          class="absolute top-0.5 right-0.5 px-1 py-px bg-[var(--danger)] text-white text-[9px]"
         >
           缺失
         </span>
@@ -198,13 +198,13 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
       </div>
       <span
         v-if="selected"
-        class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-[var(--accent)] text-white shadow"
+        class="absolute top-1.5 left-1.5 w-5 h-5 flex items-center justify-center bg-[var(--accent)] text-white shadow"
       >
         <Check :size="14" :stroke-width="2.5" />
       </span>
       <span
         v-if="item.status === 'missing'"
-        class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-[var(--danger)] text-white text-[11px]"
+        class="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-[var(--danger)] text-white text-[11px]"
       >
         缺失
       </span>

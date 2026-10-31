@@ -172,26 +172,29 @@ function onDragStart(e: DragEvent): void {
   <div class="h-full flex flex-col" @contextmenu="onContextMenu" @dragstart="onDragStart">
     <TabBar />
 
-    <div class="flex-1 flex min-h-0">
-      <!-- 左活动栏 + 工具面板（仅工作区标签页；内联条件以便模板类型收窄 activeWsId 为非空） -->
+    <!-- 中间区 = 底板上的浮动层（D44）：四周留白，左卡与主内容之间以间距分层，不画区域接缝 -->
+    <div class="flex-1 flex min-h-0 p-2 gap-2">
+      <!-- 左卡 = 活动栏 + 弹出面板同一张卡（仅工作区标签页；内联条件以便模板类型收窄 activeWsId 为非空） -->
       <template v-if="route.name === 'workspace' && activeWsId != null">
-        <ActivityBar
-          :tools="leftToolItems"
-          :active="uiStore.leftTool"
-          side="left"
-          @toggle="onToggleLeft"
-          @reorder="onReorder"
-        />
-        <SurfaceHost
-          :feature="activeLeftFeature"
-          surface="activityBar"
-          :workspace-id="activeWsId"
-          side="left"
-          :component-props="{ workspaceId: activeWsId, side: 'left' }"
-        />
+        <div class="flex shrink-0 min-h-0 bg-[var(--bg-elev)] border border-[var(--border)]">
+          <ActivityBar
+            :tools="leftToolItems"
+            :active="uiStore.leftTool"
+            side="left"
+            @toggle="onToggleLeft"
+            @reorder="onReorder"
+          />
+          <SurfaceHost
+            :feature="activeLeftFeature"
+            surface="activityBar"
+            :workspace-id="activeWsId"
+            side="left"
+            :component-props="{ workspaceId: activeWsId, side: 'left' }"
+          />
+        </div>
       </template>
 
-      <!-- 主内容区 -->
+      <!-- 主内容区：留在底板上（D44），与左卡靠明度差 + 间距分层 -->
       <main class="flex-1 min-w-0 min-h-0">
         <!-- 按完整路径 key，切换工作区/条目时组件正确重建（避免 WorkspaceTab 复用旧 workspaceId 快照） -->
         <router-view :key="route.fullPath" />

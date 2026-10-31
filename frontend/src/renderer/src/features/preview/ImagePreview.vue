@@ -101,7 +101,7 @@ function onPointerUp(e: PointerEvent): void {
       ref="mediaImg"
       :src="shownUrl"
       :alt="item.title"
-      class="max-w-full max-h-full object-contain rounded-md shadow-lg select-none"
+      class="max-w-full max-h-full object-contain shadow-lg select-none"
       :class="zoomed ? (panning ? 'cursor-grabbing' : 'cursor-grab') : ''"
       :style="zoomStyle"
       draggable="false"

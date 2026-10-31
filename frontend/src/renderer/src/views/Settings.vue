@@ -142,7 +142,7 @@ async function deleteTag(id: string): Promise<void> {
           暂无工作区
         </div>
         <div class="space-y-3">
-          <div v-for="ws in workspaceStore.workspaces" :key="ws.id" class="border border-[var(--border)] rounded-lg p-3">
+          <div v-for="ws in workspaceStore.workspaces" :key="ws.id" class="border border-[var(--border)] p-3">
             <div class="flex items-center gap-2">
               <span class="font-medium flex-1 truncate">{{ ws.name }}</span>
               <button class="btn text-[var(--danger)]" @click="deleteWorkspace(ws.id)"><Trash2 :size="13" /></button>
@@ -163,7 +163,7 @@ async function deleteTag(id: string): Promise<void> {
         <p v-if="tagError" class="text-[11px] text-[var(--danger)] mb-2">{{ tagError }}</p>
 
         <div class="space-y-2">
-          <div v-for="tag in tagStore.allTags" :key="tag.id" class="border border-[var(--border)] rounded-lg p-3">
+          <div v-for="tag in tagStore.allTags" :key="tag.id" class="border border-[var(--border)] p-3">
             <div class="flex items-center gap-2">
               <span class="font-medium">{{ tag.name }}</span>
               <span v-if="tag.description" class="text-[11px] text-[var(--fg-dim)] truncate">{{ tag.description }}</span>

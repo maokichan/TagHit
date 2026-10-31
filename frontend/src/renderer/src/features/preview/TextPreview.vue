@@ -43,7 +43,7 @@ watch(
       <div v-if="textContent.truncated" class="text-[11px] text-[var(--warn)] px-2 py-1">
         文件超过 2 MiB，仅显示前段内容
       </div>
-      <pre class="flex-1 min-h-0 overflow-auto text-[12px] leading-relaxed whitespace-pre-wrap break-all bg-[var(--bg)] rounded-md border border-[var(--border)] p-3">{{ textContent.text }}</pre>
+      <pre class="flex-1 min-h-0 overflow-auto text-[12px] leading-relaxed whitespace-pre-wrap break-all bg-[var(--bg)] border border-[var(--border)] p-3">{{ textContent.text }}</pre>
     </template>
     <div v-else class="flex-1 flex items-center justify-center text-[var(--fg-dim)] text-sm">
       {{ textUnavailable ? '文本读取失败（文件可能已移动或被占用）' : '读取中…' }}

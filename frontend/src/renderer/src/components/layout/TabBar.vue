@@ -5,6 +5,7 @@ import { Plus, Settings, X } from 'lucide-vue-next'
 import { useTabStore, type Tab } from '../../stores/tab'
 import { activateTab, closeTab } from '../../features/tabs'
 import WindowControls from './WindowControls.vue'
+import SearchPopup from './SearchPopup.vue'
 
 const route = useRoute()
 const tabStore = useTabStore()
@@ -93,15 +94,16 @@ function showIndicator(i: number): boolean {
 
 <template>
   <!-- 无边框窗口（D17）：本条兼任标题栏——拖拽区归根部（空白处拖动/双击最大化），
-       全部交互元素 no-drag；右上三键 = 自绘窗口控制键 -->
-  <div class="flex items-center h-11 px-2 gap-1.5 border-b border-[var(--border)] bg-[var(--bg-elev)] drag-region">
+       全部交互元素 no-drag；右上三键 = 自绘窗口控制键。
+       顶栏直接坐在底板上（D44）：无自身底色与接缝，标签片本身就是底板上的卡。 -->
+  <div class="flex items-center h-11 px-2 gap-1.5 drag-region">
     <!-- 标签（浏览器式：可拖拽、自动适应标签栏长度、主页为显式标签） -->
     <div class="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto">
       <div
         v-for="(tab, i) in tabStore.tabs"
         :key="tab.key"
         draggable="true"
-        class="group relative flex items-center gap-2 px-3 h-7 rounded text-[12px] cursor-pointer select-none no-drag
+        class="group relative flex items-center gap-2 px-3 h-7 text-[12px] cursor-pointer select-none no-drag
                border transition-colors
                flex-1 basis-0 min-w-20 max-w-56"
         :class="[
@@ -122,11 +124,11 @@ function showIndicator(i: number): boolean {
         <!-- 活动标签顶部指示条（高亮增强） -->
         <span
           v-if="tabStore.activeKey === tab.key"
-          class="absolute top-0 left-2 right-2 h-[2px] rounded-full bg-[var(--accent)]"
+          class="absolute top-0 left-2 right-2 h-[2px] bg-[var(--accent)]"
         />
         <span class="truncate flex-1 text-left">{{ tab.title }}</span>
         <button
-          class="opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)] rounded p-0.5 cursor-pointer shrink-0"
+          class="opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)] p-0.5 cursor-pointer shrink-0"
           :title="`关闭 ${tab.title}`"
           @click.stop="close(tab.key)"
         >
@@ -135,7 +137,7 @@ function showIndicator(i: number): boolean {
       </div>
 
       <button
-        class="shrink-0 flex items-center justify-center w-7 h-7 rounded text-[var(--fg-dim)] no-drag
+        class="shrink-0 flex items-center justify-center w-7 h-7 text-[var(--fg-dim)] no-drag
                hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] cursor-pointer"
         title="新建标签页（新主页）"
         @click="newTab"
@@ -144,9 +146,10 @@ function showIndicator(i: number): boolean {
       </button>
     </div>
 
-    <!-- 右侧：设置（作为标签页开/关）+ 自绘窗口控制键 -->
+    <!-- 右侧：搜索 + 扫描（D44：入口上顶栏，坐底板）+ 设置（作为标签页开/关）+ 自绘窗口控制键 -->
+    <SearchPopup />
     <button
-      class="flex items-center justify-center w-8 h-8 rounded text-[var(--fg-dim)] no-drag
+      class="flex items-center justify-center w-8 h-8 text-[var(--fg-dim)] no-drag
              hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] cursor-pointer shrink-0"
       :class="{ 'bg-[var(--accent-soft)] text-[var(--accent)]': route.name === 'settings' }"
       :title="route.name === 'settings' ? '关闭设置' : '打开设置'"

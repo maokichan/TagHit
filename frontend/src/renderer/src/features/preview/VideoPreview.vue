@@ -22,7 +22,7 @@ watch(
       :key="item.id"
       :src="taghitFileUrl(item.sourceUri)"
       controls
-      class="max-w-full max-h-full rounded-md shadow-lg bg-black"
+      class="max-w-full max-h-full shadow-lg bg-black"
       @error="failed = true"
     ></video>
     <div v-else class="flex flex-col items-center gap-2 text-[var(--fg-dim)]">

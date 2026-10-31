@@ -62,16 +62,18 @@ function showIndicator(i: number): boolean {
 </script>
 
 <template>
-  <!-- VSCode 式活动栏：竖向图标条，永久可见，点击开/关面板，可拖拽排序 -->
+  <!-- VSCode 式活动栏：竖向图标条，永久可见，点击开/关面板，可拖拽排序。
+       底色与外框归左卡（D44）：图标栏是卡内的一个分节，面板展开时与面板之间用发丝线分界
+       （面板关闭时整卡就是图标栏，发丝线会贴着卡边框成双线，故不画）。 -->
   <div
-    class="shrink-0 w-12 flex flex-col items-center py-2.5 gap-1.5 bg-[var(--bg-elev)]"
-    :class="side === 'left' ? 'border-r border-[var(--border)]' : 'border-l border-[var(--border)]'"
+    class="shrink-0 w-12 flex flex-col items-center py-2.5 gap-1.5"
+    :class="active != null ? (side === 'left' ? 'border-r border-[var(--border-soft)]' : 'border-l border-[var(--border-soft)]') : ''"
   >
     <button
       v-for="(tool, i) in tools"
       :key="tool.id"
       draggable="true"
-      class="w-9 h-9 flex items-center justify-center rounded-md transition-colors cursor-pointer border-t-2 border-transparent"
+      class="w-9 h-9 flex items-center justify-center transition-colors cursor-pointer border-t-2 border-transparent"
       :class="[
         active === tool.id
           ? 'bg-[var(--accent-soft)] text-[var(--accent)]'

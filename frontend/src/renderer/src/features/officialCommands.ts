@@ -10,6 +10,7 @@ import { knownViews } from './detailWorkbench/views'
 import { resetWorkbenchLayout } from './detailWorkbench/store'
 import { itemRoute, routeOfTab } from './tabs'
 import { openPalette } from './palette'
+import { openSearchPopup } from '../components/layout/searchPopup'
 import { invalidatePathManagement } from './paths/usePathManagement'
 import { api } from '@shared/api'
 import type { ItemContext, NodeState } from '@shared/contract'
@@ -146,10 +147,17 @@ export function registerBuiltinCommands(): void {
     (ctx) => setNodeSubtree(ctx, 'excluded')
   )
 
-  // 聚焦搜索框（Ctrl+F）：视图动作，无菜单项——只经快捷键触发（when: shell）
+  // 搜索（Ctrl+F）：视图动作，无菜单项——只经快捷键触发（when: shell）。
+  // 活动标签为工作区 → 打开顶栏搜索弹出面板（面板自聚焦，D44）；
+  // 其余标签保留 DOM 兜底（globalSearch 全页输入等仍在 DOM 里时聚焦它）。
   official(
-    { id: 'shell.focusSearch', title: '聚焦搜索框', when: { kind: 'targetIs', value: 'shell' } },
+    { id: 'shell.focusSearch', title: '搜索', when: { kind: 'targetIs', value: 'shell' } },
     () => {
+      const tabStore = useTabStore()
+      if (tabStore.activeWorkspaceId != null) {
+        openSearchPopup()
+        return
+      }
       const input = document.querySelector<HTMLInputElement>('[data-shortcut="search"]')
       if (input == null) return
       input.focus()
@@ -297,7 +305,7 @@ export function registerBuiltinCommands(): void {
     mod: true,
     allowInEditable: true,
     gate: { featureId: 'keyboardMouse', key: 'enableSearchShortcut', fallback: true },
-    label: '聚焦搜索框'
+    label: '搜索'
   })
   // Esc：清空多选集（含输入态——打字时按 Esc 也应当退出选择态）
   registerShortcut({ commandId: 'selection.clear', key: 'escape', label: '清空选择' })

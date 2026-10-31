@@ -23,7 +23,7 @@ const showUntracked = ref(false)
     <div
       v-for="row in mgmt.retired"
       :key="row.path"
-      class="px-2 py-1.5 rounded text-[12px] hover:bg-[var(--bg-hover)]"
+      class="px-2 py-1.5 text-[12px] hover:bg-[var(--bg-hover)]"
     >
       <div class="flex items-center gap-1.5">
         <Archive :size="12" class="shrink-0 text-[var(--fg-dim)]" />
@@ -50,7 +50,7 @@ const showUntracked = ref(false)
     </div>
 
     <!-- 无记录的历史残留（卸载记录机制落地前卸载的根） -->
-    <div v-if="mgmt.untrackedTotal" class="px-2 py-1.5 rounded text-[12px]">
+    <div v-if="mgmt.untrackedTotal" class="px-2 py-1.5 text-[12px]">
       <div class="flex items-center gap-1.5">
         <HelpCircle :size="12" class="shrink-0 text-[var(--fg-dim)]" />
         <span class="flex-1" title="有来源但没有任何来源根覆盖的条目：无卸载记录可归因（旧版遗留）">

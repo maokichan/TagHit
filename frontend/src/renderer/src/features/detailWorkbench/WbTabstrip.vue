@@ -36,7 +36,7 @@ const emit = defineEmits<{
     >
       <span class="truncate">{{ t.entry.title }}</span>
       <button
-        class="opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)] rounded p-0.5 cursor-pointer shrink-0"
+        class="opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)] p-0.5 cursor-pointer shrink-0"
         :title="`关闭 ${t.entry.title}`"
         @click.stop="emit('close', t.entry.id)"
       >

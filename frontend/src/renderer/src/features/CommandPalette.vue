@@ -120,7 +120,7 @@ function hoverRow(row: PaletteRow): void {
     <div v-if="opened" class="fixed inset-0 z-40 flex items-start justify-center pt-24" @mousedown="closePalette">
       <div class="absolute inset-0 bg-[var(--overlay-soft)]" />
       <div
-        class="relative w-[560px] max-w-[90vw] rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] shadow-2xl overflow-hidden"
+        class="relative w-[560px] max-w-[90vw] border border-[var(--border)] bg-[var(--bg-elev)] shadow-2xl overflow-hidden"
         @mousedown.stop
       >
         <input

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import SearchBar from '../components/search/SearchBar.vue'
 import ItemGrid from '../components/item/ItemGrid.vue'
 import { useItemStore } from '../stores/item'
 import { useTabStore } from '../stores/tab'
@@ -99,10 +98,7 @@ function selectItem(item: ItemView, intent: SelectIntent): void {
 
 <template>
   <div class="h-full flex flex-col min-h-0">
-    <!-- 搜索 + 计数 + 扫描（工作区名在标签页上已有，此处不再重复） -->
-    <SearchBar :workspace-id="workspaceId" />
-
-    <!-- 多选状态与批量动作在底边栏（StatusBar）：搜索栏下不再有随选择浮沉的操作条 -->
+    <!-- 搜索与扫描在顶栏（D44）；计数与批量动作在状态栏 -->
 
     <div
       v-if="itemStore.scanError"

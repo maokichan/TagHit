@@ -56,7 +56,7 @@ void onMounted(() => {
 
       <div
         v-if="itemStore.lastScanResult"
-        class="px-2.5 py-1.5 rounded text-[11px] text-[var(--fg-dim)] bg-[var(--bg-elev)]"
+        class="px-2.5 py-1.5 text-[11px] text-[var(--fg-dim)] bg-[var(--bg-elev)]"
       >
         上次扫描：+{{ itemStore.lastScanResult.itemsCreated }} 新增 /
         {{ itemStore.lastScanResult.itemsUpdated }} 更新 /

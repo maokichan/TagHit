@@ -108,8 +108,13 @@ provideWorkbenchApi(api)
 </script>
 
 <template>
-  <!-- 底板：工作台根走最深底色并留边距——槽位卡片附在其上（D41 卡片/底板模型） -->
-  <div v-if="layout" class="h-full w-full flex min-h-0 min-w-0 bg-[var(--bg)] p-1.5">
+  <!-- 底板：工作台根走最深底色并留边距——槽位卡片附在其上（D41 卡片/底板模型）。
+       显示范围上限（D44 配套）：专属版心 --detail-max-width 居中，槽位不贴窗口边缘；
+       权重是比例，容器宽窄不影响持久化语义。 -->
+  <div
+    v-if="layout"
+    class="h-full w-full flex min-h-0 min-w-0 mx-auto max-w-[var(--detail-max-width)] bg-[var(--bg)] p-3"
+  >
     <!-- 菜单的外点关闭遮罩（菜单本体 fixed，见 AddViewMenu） -->
     <div v-if="menu" class="fixed inset-0 z-30" @click="api.closeMenu()"></div>
     <WBNodeView :node="layout.tree" class="flex-1 min-w-0 min-h-0" />

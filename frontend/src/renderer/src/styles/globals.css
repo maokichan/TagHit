@@ -43,6 +43,8 @@
   --panel-width: 18rem;
   /* 全页内容容器：全页外壳把内容居中并限制最大宽度，功能组件不再各自决定版心。 */
   --page-max-width: 64rem;
+  /* 详情页工作台专属版心（D44 配套）：媒体仍是页面重心，上限比全页版心宽。 */
+  --detail-max-width: 80rem;
 }
 
 :root[data-theme='light'] {
@@ -305,6 +307,17 @@ body {
   .marquee-box {
     @apply fixed z-30 pointer-events-none border border-[var(--accent)];
     background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  /* 浮层显隐（搜索弹出面板等共用）：P5 只做透明度过渡，无位移/缩放入场。 */
+  .popup-fade-enter-active,
+  .popup-fade-leave-active {
+    transition-property: opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .popup-fade-enter-from,
+  .popup-fade-leave-to {
+    opacity: 0;
   }
   /* 起始页品牌字：字距是排印决策，只在此处（组件不写 tracking-*） */
   .wordmark {

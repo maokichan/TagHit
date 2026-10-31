@@ -86,7 +86,7 @@ const batchTitle = (): string => {
     @mousedown="answerConfirm(false)"
   >
     <div
-      class="w-80 max-w-[90vw] rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] p-4 shadow-2xl"
+      class="w-80 max-w-[90vw] border border-[var(--border)] bg-[var(--bg-elev)] p-4 shadow-2xl"
       @mousedown.stop
     >
       <div class="text-sm font-medium mb-2">{{ pending.title }}</div>
@@ -115,7 +115,7 @@ const batchTitle = (): string => {
     @mousedown="closeBatchTagDialog()"
   >
     <div
-      class="w-[380px] max-w-[92vw] rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] p-4 shadow-2xl"
+      class="w-[380px] max-w-[92vw] border border-[var(--border)] bg-[var(--bg-elev)] p-4 shadow-2xl"
       @mousedown.stop
     >
       <div class="text-sm font-medium mb-3">{{ batchTitle() }}</div>
@@ -125,12 +125,12 @@ const batchTitle = (): string => {
       </div>
       <div
         v-else
-        class="max-h-[260px] overflow-y-auto space-y-1 mb-4 border border-[var(--border)] rounded-md p-2"
+        class="max-h-[260px] overflow-y-auto space-y-1 mb-4 border border-[var(--border)] p-2"
       >
         <label
           v-for="tag in tagStore.tags"
           :key="tag.id"
-          class="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-[var(--bg-hover)] text-[12px]"
+          class="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-[var(--bg-hover)] text-[12px]"
         >
           <input
             type="checkbox"
@@ -169,7 +169,7 @@ const batchTitle = (): string => {
     <div
       v-for="t in toasts"
       :key="t.id"
-      class="px-3 py-2 rounded-md border text-[12px] shadow-lg bg-[var(--bg-elev)]"
+      class="px-3 py-2 border text-[12px] shadow-lg bg-[var(--bg-elev)]"
       :class="t.kind === 'error' ? 'border-[var(--danger-border)] text-[var(--danger)]' : 'border-[var(--border)] text-[var(--fg)]'"
     >
       {{ t.text }}

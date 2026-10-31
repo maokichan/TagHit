@@ -42,7 +42,7 @@ async function createTag(): Promise<void> {
       <span
         v-for="tag in tagStore.tags"
         :key="tag.id"
-        class="group inline-flex items-center gap-1 px-2 py-0.5 rounded text-[12px] bg-[var(--accent-soft)] text-[var(--accent)]"
+        class="group inline-flex items-center gap-1 px-2 py-0.5 text-[12px] bg-[var(--accent-soft)] text-[var(--accent)]"
         :title="tag.description ?? ''"
       >
         {{ tag.name }}
@@ -80,7 +80,7 @@ async function createTag(): Promise<void> {
         <button
           v-for="tag in undeclared"
           :key="tag.id"
-          class="px-2 py-0.5 rounded border border-dashed border-[var(--border)] text-[12px] text-[var(--fg-dim)]
+          class="px-2 py-0.5 border border-dashed border-[var(--border)] text-[12px] text-[var(--fg-dim)]
                  hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer transition-colors"
           :title="tag.description ?? ''"
           @click="tagStore.declare(props.workspaceId, tag.id)"
