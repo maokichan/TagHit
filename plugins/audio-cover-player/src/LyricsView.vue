@@ -1,17 +1,16 @@
 <script setup lang="ts">
 /**
- * 歌词工作台视图（detailView 贡献，D43）：条目歌词的阅读面——按声明常驻，
- * 与 detailPreview 正交；安置归工作台分割树（用户分配定终局）。
+ * 歌词页（播放器内部页签，D43 修订：插件内容集中在一个页面自组织）。
  * 数据 = readAudioMeta 的 lyrics（.lrc 伴生优先，宿主交付原文，fetchAudioMeta 缓存与播放器共享）；
  * 解析与呈现归插件（lrc.ts）。同步 = 引擎在播本条目时按进度高亮活动行并瞬时滚动。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useDetailWorkbenchContext } from '@renderer/features/contribution'
+import type { ItemView } from '@renderer/features/contribution'
 import { hostApi } from './context.ts'
 import { fetchAudioMeta } from './meta.ts'
 import { activeLrcIndex, parseLrc, type LrcLine } from './lrc.ts'
 
-const ctx = useDetailWorkbenchContext()
+const props = defineProps<{ item: ItemView }>()
 
 const lyricsText = ref<string | null>(null)
 const lines = ref<LrcLine[]>([])
@@ -31,23 +30,23 @@ onBeforeUnmount(() => {
 let loadSeq = 0
 async function load(): Promise<void> {
   const seq = ++loadSeq
-  const item = ctx.item
+  const item = props.item
   lyricsText.value = null
   lines.value = []
   const m = await fetchAudioMeta(item)
-  if (seq !== loadSeq || ctx.item.id !== item.id) return // 竞态守卫：翻页后丢弃过期响应
+  if (seq !== loadSeq || props.item.id !== item.id) return // 竞态守卫：翻页后丢弃过期响应
   if (m?.lyrics != null) {
     lyricsText.value = m.lyrics
     lines.value = parseLrc(m.lyrics)
   }
 }
 watch(
-  () => ctx.item.id,
+  () => props.item.id,
   () => void load(),
   { immediate: true }
 )
 
-const isCurrent = computed(() => snap.value.itemId === ctx.item.id)
+const isCurrent = computed(() => snap.value.itemId === props.item.id)
 /** 引擎在播本条目才同步高亮；播别的条目时本条目歌词静态全文展示 */
 const activeIdx = computed(() =>
   isCurrent.value && lines.value.length > 0 ? activeLrcIndex(lines.value, snap.value.currentTime) : -1

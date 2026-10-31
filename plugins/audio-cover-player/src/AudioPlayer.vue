@@ -1,20 +1,24 @@
 <script setup lang="ts">
 /**
- * 音频播放器（detailPreview 提供方实现）——遥控器 + 黑胶（D43）。
+ * 音频播放器（detailPreview 提供方实现）——遥控器 + 黑胶，内部页签自组织（D43 修订）。
  * 声音与播放状态归全局播放引擎（hostApi().playback），本组件只出界面：
  * 翻页/切标签页组件重挂即重新订阅快照，声音不断；换曲 = 对新条目点播放。
- * 黑胶转动 = 引擎有声音在响（不区分本条目）；封面/信息永远显示本条目。
+ * 黑胶 = 旋转体：封面圆裁填盘心、随盘一起转（开发者定形）；转动 = 引擎有声音在响。
  * 样式走壳 token（视觉与主题同语）；三方代码不受壳机检约束（D42）。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { ItemView } from '@renderer/features/contribution'
 import { hostApi } from './context.ts'
 import { fetchAudioMeta, type AudioMetaView } from './meta.ts'
+import LyricsView from './LyricsView.vue'
 
 const props = defineProps<{ item: ItemView }>()
 
 const meta = ref<AudioMetaView | null>(null)
 const snap = ref(hostApi().playback.snapshot())
+
+// ---- 内部页签（插件内容集中一页自组织，D43）：黑胶 | 歌词 ----
+const activeTab = ref<'disc' | 'lyrics'>('disc')
 
 let loadSeq = 0
 async function loadMeta(): Promise<void> {
@@ -62,7 +66,7 @@ const isCurrent = computed(() => snap.value.itemId === props.item.id)
 const isPlayingThis = computed(() => isCurrent.value && snap.value.status === 'playing')
 const failed = computed(() => isCurrent.value && snap.value.status === 'error')
 
-// ---- 黑胶转盘：角速度缓动（起转渐快、暂停自然减速）；reduce 下不转 ----
+// ---- 黑胶转盘：整个盘（含封面圆）是旋转体；角速度缓动；reduce 下不转 ----
 const discEl = ref<HTMLElement | null>(null)
 const MAX_OMEGA = 160 // °/s（33⅓rpm ≈ 200，略缓）
 const TAU = 0.55 // 速度时间常数：起转/减速的"电机感"
@@ -93,12 +97,15 @@ onBeforeUnmount(() => {
   mq = null
 })
 
+/** 盘面：半透明叠加（高光/细槽微反光/内亮外暗底），亮暗主题下都是干净黑盘 */
 const discStyle = computed(() => ({
-  inset: '-17%',
+  width: 'min(100cqw, 100cqh)',
+  aspectRatio: '1 / 1',
   background:
-    'radial-gradient(circle at 32% 28%, rgba(255,255,255,0.08), transparent 45%), ' +
-    'repeating-radial-gradient(circle at 50% 50%, #101014 0px, #101014 2px, #1b1b20 3px, #101014 4.5px)',
-  boxShadow: '0 10px 30px rgba(0,0,0,0.45)'
+    'radial-gradient(circle at 32% 28%, rgba(255,255,255,0.10), transparent 42%), ' +
+    'repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 3px), ' +
+    'radial-gradient(circle at 50% 50%, #1a1a1f 0%, #0e0e12 62%, #070709 100%)',
+  boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
 }))
 
 // ---- 传输控制（进度条自绘：拖拽本地预览、松手 commit；音量拖拽实时） ----
@@ -169,113 +176,130 @@ function formatTime(sec: number): string {
 </script>
 
 <template>
-  <div class="h-full w-full flex flex-col items-center justify-center gap-4 p-4 min-h-0">
-    <!-- 黑胶区：方形容器（取槽位最小边），盘同心探出、封面方形静置其上 -->
-    <div class="flex-1 min-h-0 w-full flex items-center justify-center" style="container-type: size">
-      <div class="relative" style="width: min(100cqw, 100cqh); aspect-ratio: 1 / 1">
-        <!-- 黑胶盘：胶纹 + 高光；转角由 rAF 直接写 transform -->
-        <div ref="discEl" class="absolute rounded-full will-change-transform" :style="discStyle">
+  <div class="h-full w-full flex flex-col min-h-0 p-2 gap-2">
+    <!-- 页签（PR 面板式）：插件内容集中一页自组织（D43 修订） -->
+    <div class="flex items-center gap-1 shrink-0">
+      <button
+        v-for="t in [
+          { id: 'disc', title: '黑胶' },
+          { id: 'lyrics', title: '歌词' }
+        ]"
+        :key="t.id"
+        type="button"
+        class="px-2.5 py-1 rounded text-[11px] cursor-pointer transition-colors"
+        :class="activeTab === t.id ? 'bg-[var(--bg-hover)] text-[var(--fg)]' : 'text-[var(--fg-dim)] hover:text-[var(--fg)]'"
+        @click="activeTab = t.id as 'disc' | 'lyrics'"
+      >
+        {{ t.title }}
+      </button>
+    </div>
+
+    <!-- 黑胶页：整个盘（含封面圆）随播放旋转 -->
+    <div v-show="activeTab === 'disc'" class="flex-1 min-h-0 flex flex-col items-center justify-center gap-4">
+      <div class="flex-1 min-h-0 w-full flex items-center justify-center" style="container-type: size">
+        <!-- 盘 = 旋转体：封面圆裁填盘心、中孔居中，随 rAF 一起转 -->
+        <div ref="discEl" class="relative rounded-full will-change-transform" :style="discStyle">
           <div
-            v-if="coverUrl == null"
-            class="absolute rounded-full overflow-hidden flex items-center justify-center"
-            style="width: 34%; height: 34%; left: 33%; top: 33%; background: var(--bg-hover)"
+            class="absolute rounded-full overflow-hidden"
+            style="width: 34%; height: 34%; left: 33%; top: 33%; box-shadow: 0 0 0 1px rgba(255,255,255,0.08)"
           >
-            <svg
-              viewBox="0 0 24 24"
-              width="40%"
-              height="40%"
-              fill="none"
-              stroke="var(--fg-dim)"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M9 18V5l12-2v13" />
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="16" r="3" />
-            </svg>
+            <img v-if="coverUrl" :key="item.id" :src="coverUrl" alt="专辑封面" class="w-full h-full object-cover" />
+            <div v-else class="w-full h-full flex items-center justify-center" style="background: var(--bg-hover)">
+              <svg
+                viewBox="0 0 24 24"
+                width="40%"
+                height="40%"
+                fill="none"
+                stroke="var(--fg-dim)"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+            </div>
           </div>
+          <!-- 中孔 -->
           <div class="absolute rounded-full" style="width: 3%; height: 3%; left: 48.5%; top: 48.5%; background: var(--bg)"></div>
         </div>
-        <!-- 封面：方形静置（媒体主图阴影例外） -->
-        <img
-          v-if="coverUrl"
-          :key="item.id"
-          :src="coverUrl"
-          alt="专辑封面"
-          class="absolute inset-0 z-10 w-full h-full object-cover rounded-[6px] shadow-lg"
-        />
       </div>
-    </div>
 
-    <!-- 元数据：内嵌标签优先，回退文件名 -->
-    <div class="w-full max-w-md text-center min-w-0">
-      <div class="text-[13px] truncate" :title="displayTitle">{{ displayTitle }}</div>
-      <div v-if="metaLine != null" class="text-[11px] text-[var(--fg-dim)] truncate" :title="metaLine">{{ metaLine }}</div>
-    </div>
+      <!-- 元数据：内嵌标签优先，回退文件名 -->
+      <div class="w-full max-w-md text-center min-w-0">
+        <div class="text-[13px] truncate" :title="displayTitle">{{ displayTitle }}</div>
+        <div v-if="metaLine != null" class="text-[11px] text-[var(--fg-dim)] truncate" :title="metaLine">{{ metaLine }}</div>
+      </div>
 
-    <!-- 传输控制（遥控器：状态与声音在引擎） -->
-    <div v-if="!failed && sourceUrl != null" class="w-full max-w-md flex flex-col gap-1.5">
-      <div class="flex items-center gap-2 text-[11px] text-[var(--fg-dim)] tabular-nums select-none">
-        <span class="w-10 text-right">{{ formatTime(seeking ? seekPreview : playTime) }}</span>
-        <div
-          ref="trackEl"
-          class="group relative flex-1 h-5 cursor-pointer"
-          @pointerdown="onSeekDown"
-          @pointermove="onSeekMove"
-          @pointerup="onSeekUp"
-          @pointercancel="onSeekCancel"
-        >
+      <!-- 传输控制（遥控器：状态与声音在引擎） -->
+      <div v-if="!failed && sourceUrl != null" class="w-full max-w-md flex flex-col gap-1.5 shrink-0">
+        <div class="flex items-center gap-2 text-[11px] text-[var(--fg-dim)] tabular-nums select-none">
+          <span class="w-10 text-right">{{ formatTime(seeking ? seekPreview : playTime) }}</span>
           <div
-            class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-[var(--bg-hover)] transition-transform origin-center group-hover:scale-y-[2.2]"
-          ></div>
-          <div
-            class="absolute left-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-[var(--accent)]"
-            :style="{ width: progressPct + '%' }"
-          ></div>
-          <div
-            v-if="seeking"
-            class="absolute top-0 -translate-x-1/2 -translate-y-full px-1.5 py-0.5 rounded bg-[var(--bg-elev)] border border-[var(--border)] text-[var(--fg)]"
-            :style="{ left: seekPct + '%' }"
+            ref="trackEl"
+            class="group relative flex-1 h-5 cursor-pointer"
+            @pointerdown="onSeekDown"
+            @pointermove="onSeekMove"
+            @pointerup="onSeekUp"
+            @pointercancel="onSeekCancel"
           >
-            {{ formatTime(seekPreview) }}
+            <div
+              class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-[var(--bg-hover)] transition-transform origin-center group-hover:scale-y-[2.2]"
+            ></div>
+            <div
+              class="absolute left-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-[var(--accent)]"
+              :style="{ width: progressPct + '%' }"
+            ></div>
+            <div
+              v-if="seeking"
+              class="absolute top-0 -translate-x-1/2 -translate-y-full px-1.5 py-0.5 rounded bg-[var(--bg-elev)] border border-[var(--border)] text-[var(--fg)]"
+              :style="{ left: seekPct + '%' }"
+            >
+              {{ formatTime(seekPreview) }}
+            </div>
+          </div>
+          <span class="w-10">{{ formatTime(duration) }}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer text-white active:scale-95 transition-transform"
+            :class="sourceUrl != null ? 'bg-[var(--accent)] hover:opacity-90' : 'bg-[var(--bg-hover)] text-[var(--fg-dim)] cursor-default'"
+            :title="isPlayingThis ? '暂停' : '播放'"
+            @click="onPlayClick"
+          >
+            <svg v-if="!isPlayingThis" viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
+              <path d="M4.5 2.5v11l9-5.5z" />
+            </svg>
+            <svg v-else viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
+              <path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" />
+            </svg>
+          </button>
+          <div
+            ref="volEl"
+            class="relative w-20 h-5 cursor-pointer"
+            @pointerdown="onVolDown"
+            @pointermove="onVolMove"
+            @pointerup="onVolUp"
+            @pointercancel="onVolUp"
+          >
+            <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-[var(--bg-hover)]"></div>
+            <div
+              class="absolute left-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-[var(--fg-dim)]"
+              :style="{ width: volPct + '%' }"
+            ></div>
           </div>
         </div>
-        <span class="w-10">{{ formatTime(duration) }}</span>
       </div>
-      <div class="flex items-center gap-3">
-        <button
-          type="button"
-          class="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer text-white active:scale-95 transition-transform"
-          :class="sourceUrl != null ? 'bg-[var(--accent)] hover:opacity-90' : 'bg-[var(--bg-hover)] text-[var(--fg-dim)] cursor-default'"
-          :title="isPlayingThis ? '暂停' : '播放'"
-          @click="onPlayClick"
-        >
-          <svg v-if="!isPlayingThis" viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
-            <path d="M4.5 2.5v11l9-5.5z" />
-          </svg>
-          <svg v-else viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
-            <path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" />
-          </svg>
-        </button>
-        <div
-          ref="volEl"
-          class="relative w-20 h-5 cursor-pointer"
-          @pointerdown="onVolDown"
-          @pointermove="onVolMove"
-          @pointerup="onVolUp"
-          @pointercancel="onVolUp"
-        >
-          <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-[var(--bg-hover)]"></div>
-          <div
-            class="absolute left-0 top-1/2 -translate-y-1/2 h-[3px] rounded-full bg-[var(--fg-dim)]"
-            :style="{ width: volPct + '%' }"
-          ></div>
-        </div>
-      </div>
+
+      <!-- 播放失败兜底（引擎 error 态；失败可见性不静默） -->
+      <div v-else-if="failed" class="error-note">音频无法内嵌播放</div>
     </div>
 
-    <!-- 播放失败兜底（引擎 error 态；失败可见性不静默） -->
-    <div v-else-if="failed" class="error-note">音频无法内嵌播放</div>
+    <!-- 歌词页 -->
+    <div v-show="activeTab === 'lyrics'" class="flex-1 min-h-0">
+      <LyricsView :item="item" />
+    </div>
   </div>
 </template>
