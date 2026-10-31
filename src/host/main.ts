@@ -21,6 +21,7 @@ import { openSqlite } from './sqliteDriver.ts'
 import { registerPrivilegedSchemes, registerTaghitFileProtocol } from './protocol.ts'
 import { invalidateAllowedRoots } from './pathGate.ts'
 import { startFileDrag } from './drag.ts'
+import { isAudioExt, readAudioMeta } from './media/audioMeta.ts'
 import {
   appendCollectionMember,
   browseWorkspace,
@@ -189,6 +190,42 @@ function registerHandlers(): void {
   )
   ipcMain.handle('item.readText', (_event, itemId: Id, maxBytes?: number) =>
     envelope(readItemText(services, nodeFs, itemId, maxBytes))
+  )
+
+  // ---- 音频元数据（宿主原生媒体能力，与视频抓帧同族）：标签 + 内嵌封面走缩略图通道 ----
+  // 封面落盘镜像 thumbnail.save 的闸门纪律（十六进制 contentHash、2MiB 上限）；幂等 =
+  // 该内容已有 previewUri 即跳过落盘（recordThumbnail 按哈希回写，同内容全部条目共享）。
+  ipcMain.handle('item.readAudioMeta', (_event, itemId: Id) =>
+    envelope(
+      (async () => {
+        const item = await services.store.getItem(itemId)
+        if (!item || item.kind !== 'file') throw new DomainError('NOT_FOUND', `文件条目不存在（${itemId}）`)
+        if (!isAudioExt(item.title)) return null
+        const stat = await nodeFs.stat(item.sourceUri)
+        if (!stat.exists || stat.kind !== 'file') {
+          throw new DomainError('NOT_FOUND', `文件已不在磁盘上（${item.sourceUri}）`)
+        }
+        const meta = await readAudioMeta(item.sourceUri)
+        if (meta == null) return null
+
+        let previewUri = item.previewUri ?? null
+        if (previewUri == null && meta.cover != null && item.contentHash != null &&
+            /^[0-9a-f]{64}$/.test(item.contentHash) &&
+            meta.cover.bytes.byteLength <= 2 * 1024 * 1024) {
+          const dir = join(app.getPath('userData'), 'thumbnails')
+          mkdirSync(dir, { recursive: true })
+          previewUri = join(dir, `${item.contentHash}.${meta.cover.ext}`)
+          writeFileSync(previewUri, meta.cover.bytes)
+          await recordThumbnail(services, {
+            contentHash: item.contentHash,
+            previewUri,
+            width: meta.cover.width,
+            height: meta.cover.height,
+          })
+        }
+        return { tags: meta.tags, previewUri }
+      })()
+    )
   )
 
   // ---- 缩略图：base64 落盘 {userData}/thumbnails/{contentHash}.jpg + 按哈希回写 ----

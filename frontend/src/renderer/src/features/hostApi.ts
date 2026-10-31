@@ -7,8 +7,9 @@
  */
 import { api } from '@shared/api'
 import { confirmDialog, showToast } from './services/dialog'
+import { taghitFileUrl } from '../lib/media'
 
-export const HOST_API_VERSION = '0.1.0'
+export const HOST_API_VERSION = '0.2.0'
 
 export const hostApi = {
   version: HOST_API_VERSION,
@@ -22,7 +23,12 @@ export const hostApi = {
     query: api.items.query,
     tag: api.items.tag,
     untag: api.items.untag,
-    readText: api.items.readText
+    readText: api.items.readText,
+    readAudioMeta: api.items.readAudioMeta
+  },
+  /** 媒体通道助手：taghit-file 协议 URL 构造（字节闸门渲染侧的唯一合法入口） */
+  media: {
+    fileUrl: taghitFileUrl
   },
   tags: {
     search: api.tags.search,

@@ -1,0 +1,25 @@
+/**
+ * 音频元数据获取（插件内）：contentHash 幂等缓存（宿主侧落盘本就幂等，这里省重复 IPC）。
+ * 缓存是插件自持状态——随插件卸载消失；缩略图产物在宿主通道，不受影响（D42）。
+ */
+
+import type { ItemView } from '@renderer/features/contribution'
+import { hostApi } from './context.ts'
+
+export interface AudioMetaView {
+  tags: { title: string | null; artist: string | null; album: string | null }
+  previewUri: string | null
+}
+
+const cache = new Map<string, AudioMetaView>()
+
+/** 拉取音频元数据；条目无内容签名（锚）/宿主判定不可解析 → null。 */
+export async function fetchAudioMeta(item: ItemView): Promise<AudioMetaView | null> {
+  const hash = item.contentHash
+  if (hash == null) return null
+  const hit = cache.get(hash)
+  if (hit != null) return hit
+  const meta = await hostApi().items.readAudioMeta(item.id)
+  if (meta != null) cache.set(hash, meta)
+  return meta
+}

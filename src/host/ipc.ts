@@ -123,6 +123,18 @@ export interface IpcContracts {
   'items.delete': { args: [itemId: Id]; result: null }
   /** 文本条目内容（字节闸门）：不可文本预览 → null；截断由 truncated 标记 */
   'item.readText': { args: [itemId: Id, maxBytes?: number]; result: { text: string; truncated: boolean } | null }
+  /**
+   * 音频元数据与内嵌封面（宿主原生媒体能力，与视频抓帧同族）：非音频/解析失败 → null。
+   * 封面经既有缩略图通道落盘（{userData}/thumbnails，contentHash 键，幂等：已有即跳过）
+   * 并按哈希回写 previewUri——网格/胶片条随 previewUri 自动呈现；无封面或超 2MiB → previewUri null。
+   */
+  'item.readAudioMeta': {
+    args: [itemId: Id]
+    result: {
+      tags: { title: string | null; artist: string | null; album: string | null }
+      previewUri: string | null
+    } | null
+  }
 
   // ---- 缩略图 thumbnail：视频帧抓取结果落盘 + 回写（主进程能力，字节进闸门一次） ----
   /** base64 JPEG（渲染层 canvas 抓帧）→ 宿主落盘 {userData}/thumbnails/{contentHash}.jpg + 按哈希回写 */
@@ -239,6 +251,7 @@ export interface TaghitRendererApi {
   untagItems(input: { itemIds: Id[]; tagIds: Id[] }): Promise<IpcResult<'items.untag'>>
   deleteItem(itemId: Id): Promise<IpcResult<'items.delete'>>
   readText(itemId: Id, maxBytes?: number): Promise<IpcResult<'item.readText'>>
+  readAudioMeta(itemId: Id): Promise<IpcResult<'item.readAudioMeta'>>
 
   saveThumbnail(input: {
     contentHash: string

@@ -44,15 +44,16 @@ const MAX_RATIO = 2.2
 
 /**
  * 瀑布流媒体宽高比。**比例只取实测值**：图片用扫描时解析的固有尺寸，视频用抓帧时回写的
- * 视频宽高（`video.videoWidth/Height`）；极端比例钳制在 [1/2.2, 2.2]（布局守护）。
+ * 视频宽高（`video.videoWidth/Height`），音频用封面提取回写的封面宽高（宿主原生能力，
+ * 与视频抓帧同族）；极端比例钳制在 [1/2.2, 2.2]（布局守护）。
  *
- * 实测值缺失（旧数据/未抓帧/解析失败）→ **中性 4:3 占位**，与文档/音频一致。
+ * 实测值缺失（旧数据/未抓帧/无封面/解析失败）→ **中性 4:3 占位**，与文档一致。
  * **不要**用 contentHash 派生"假比例"兜底（已裁定为缺陷源，勿回退，见 D26）：抓帧完成前按假比例
  * 出框、object-cover 一填就裁画面，而真实比例到达后反正要重排——假数据没有任何收益，
  * 宁可让它从占位跳到真值。
  */
 export function masonryRatioOf(view: { contentHash: string | null; mediaType: MediaType; width?: number | null; height?: number | null }): number {
-  if (view.mediaType !== 'image' && view.mediaType !== 'video') return 4 / 3
+  if (view.mediaType !== 'image' && view.mediaType !== 'video' && view.mediaType !== 'audio') return 4 / 3
   if (view.width != null && view.height != null && view.width > 0 && view.height > 0) {
     return Math.min(Math.max(view.width / view.height, 1 / MAX_RATIO), MAX_RATIO)
   }

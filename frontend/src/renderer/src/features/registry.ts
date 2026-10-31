@@ -119,6 +119,11 @@ export function listFeatures(mount: MountPoint): FeatureEntry[] {
   return [...registry.values()].filter((f) => f.manifest.mounts.includes(mount))
 }
 
+/** 全部 contributed 源组件（插件装载状态呈现面用；与挂载点无关——纯预览贡献方可以不挂任何停靠槽） */
+export function listContributedFeatures(): FeatureEntry[] {
+  return [...registry.values()].filter((f) => f.manifest.source === 'contributed')
+}
+
 /** 活动栏图标（渲染层关注点，不进 manifest；async 装载的图标经 loader 结果提供）。 */
 export function resolvedIcon(entry: FeatureEntry): Component | undefined {
   return entry.impl.type === 'direct' ? entry.impl.icon : undefined

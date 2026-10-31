@@ -17,12 +17,15 @@
     "paths": {
       "@renderer/*": ["src/renderer/src/*"],
       "@shared/*": ["src/shared/*"],
-      "@host/*": ["../src/host/*"]
+      "@host/*": ["../src/host/*"],
+      "@plugins/*": ["../plugins/*"],
+      "vue": ["node_modules/vue"]
     }
   },
   "include": [
     "src/renderer/src/**/*",
     "src/renderer/src/**/*.vue",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "../plugins/**/*"
   ]
 }

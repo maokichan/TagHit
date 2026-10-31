@@ -35,6 +35,7 @@ const api: TaghitRendererApi = {
   untagItems: (input) => invoke('items.untag', input),
   deleteItem: (itemId) => invoke('items.delete', itemId),
   readText: (itemId, maxBytes) => invoke('item.readText', itemId, maxBytes),
+  readAudioMeta: (itemId) => invoke('item.readAudioMeta', itemId),
 
   saveThumbnail: (input) => invoke('thumbnail.save', input),
 
