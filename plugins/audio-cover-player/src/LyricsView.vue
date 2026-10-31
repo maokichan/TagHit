@@ -84,7 +84,7 @@ watch(activeIdx, (idx) => {
         v-for="(l, i) in lines"
         :key="i"
         :ref="(el) => setLineRef(i, el)"
-        class="text-[13px] leading-relaxed transition-colors"
+        class="text-[14px] leading-relaxed transition-colors"
         :class="i === activeIdx ? 'text-[var(--fg)] font-medium' : 'text-[var(--fg-dim)]'"
       >{{ l.text }}</p>
       <div class="h-[38%] shrink-0" aria-hidden="true"></div>
@@ -92,17 +92,17 @@ watch(activeIdx, (idx) => {
   </div>
   <!-- 无时间轴：静态全文 -->
   <div v-else-if="lyricsText != null" class="h-full w-full overflow-y-auto px-4 py-6">
-    <div class="mx-auto max-w-md whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--fg)]">{{ lyricsText }}</div>
+    <div class="mx-auto max-w-md whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--fg)]">{{ lyricsText }}</div>
   </div>
   <!-- 无词：正在播放排版（条目事实的阅读面；专辑播放列表等 Collection 后并入本列） -->
   <div v-else class="h-full w-full overflow-y-auto px-6 py-8">
     <div class="mx-auto max-w-md">
-      <div class="text-[11px] text-[var(--fg-dim)] mb-4">正在播放</div>
+      <div class="text-[12px] text-[var(--fg-dim)] mb-4">正在播放</div>
       <div class="text-[16px] text-[var(--fg)] font-medium leading-snug">{{ nowTitle }}</div>
-      <div v-if="nowArtist != null" class="text-[13px] text-[var(--fg-dim)] mt-1.5">{{ nowArtist }}</div>
-      <div v-if="nowAlbum != null" class="text-[13px] text-[var(--fg-dim)]">{{ nowAlbum }}</div>
+      <div v-if="nowArtist != null" class="text-[14px] text-[var(--fg-dim)] mt-1.5">{{ nowArtist }}</div>
+      <div v-if="nowAlbum != null" class="text-[14px] text-[var(--fg-dim)]">{{ nowAlbum }}</div>
       <div class="divider my-5"></div>
-      <div class="text-[11px] text-[var(--fg-dim)] leading-relaxed break-all" :title="item.title">{{ item.title }}</div>
+      <div class="text-[12px] text-[var(--fg-dim)] leading-relaxed break-all" :title="item.title">{{ item.title }}</div>
     </div>
   </div>
 </template>

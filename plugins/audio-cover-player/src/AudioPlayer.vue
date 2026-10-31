@@ -232,13 +232,13 @@ function formatTime(sec: number): string {
 
       <!-- 元数据：内嵌标签优先，回退文件名 -->
       <div class="w-full max-w-md text-center min-w-0 shrink-0">
-        <div class="text-[13px] truncate" :title="displayTitle">{{ displayTitle }}</div>
-        <div v-if="metaLine != null" class="text-[11px] text-[var(--fg-dim)] truncate" :title="metaLine">{{ metaLine }}</div>
+        <div class="text-[14px] truncate" :title="displayTitle">{{ displayTitle }}</div>
+        <div v-if="metaLine != null" class="text-[12px] text-[var(--fg-dim)] truncate" :title="metaLine">{{ metaLine }}</div>
       </div>
 
       <!-- 传输控制（遥控器：状态与声音在引擎） -->
       <div v-if="!failed && sourceUrl != null" class="w-full max-w-md flex flex-col gap-1.5 shrink-0">
-        <div class="flex items-center gap-2 text-[11px] text-[var(--fg-dim)] tabular-nums select-none">
+        <div class="flex items-center gap-2 text-[12px] text-[var(--fg-dim)] tabular-nums select-none">
           <span class="w-10 text-right">{{ formatTime(seeking ? seekPreview : playTime) }}</span>
           <div
             ref="trackEl"
