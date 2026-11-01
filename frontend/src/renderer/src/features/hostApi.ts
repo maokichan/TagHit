@@ -9,6 +9,7 @@ import { api } from '@shared/api'
 import { computed, type Ref } from 'vue'
 import { confirmDialog, showToast } from './services/dialog'
 import { taghitFileUrl } from '../lib/media'
+import { toItemView, type ItemView } from '../lib/viewModel'
 import { useConfigStore } from '../stores/config'
 import {
   playbackPlay,
@@ -21,7 +22,7 @@ import {
   playbackSubscribe
 } from './playback/playback'
 
-export const HOST_API_VERSION = '0.2.3'
+export const HOST_API_VERSION = '0.2.4'
 
 const configStore = useConfigStore()
 
@@ -48,6 +49,12 @@ export const hostApi = {
       if (hit == null) throw new Error(`条目不存在（${itemId}）`)
       const { openItemTab } = await import('./tabs')
       openItemTab(hit.item.id, hit.item.title)
+    },
+    /** 条目视图模型（D47）：插件页面呈现条目所需（视图投影转换归宿主，插件不摸内部模块）。 */
+    get: async (itemId: string): Promise<ItemView | null> => {
+      const hits = await api.items.query({ ids: [itemId] })
+      const hit = hits[0]
+      return hit != null ? toItemView(hit) : null
     }
   },
   /** 媒体通道助手：taghit-file 协议 URL 构造（字节闸门渲染侧的唯一合法入口） */

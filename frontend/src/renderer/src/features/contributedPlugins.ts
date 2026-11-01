@@ -20,7 +20,9 @@ import { getFeature, registerContributedFeature, listContributedFeatures } from 
 import { createContributionContext, unregisterContributedCommands } from './contribution'
 import type { PluginActivate } from './contribution'
 import { useConfigStore } from '../stores/config'
+import { useTabStore } from '../stores/tab'
 import type { FeatureManifest } from '@shared/types/feature'
+import type { Component } from 'vue'
 
 const config = useConfigStore()
 
@@ -28,7 +30,8 @@ interface DevPluginEntry {
   dir: string
   /** 磁盘 manifest = FeatureManifest 去掉 source（source 由 registerContributedFeature 打 contributed） */
   loadManifest: () => Promise<Omit<FeatureManifest, 'source'>>
-  loadModule: () => Promise<{ activate: PluginActivate }>
+  /** 入口模块：activate 必有；`page` = 自开页组件（D47，manifest 声明 contentTab 才被绑定）。 */
+  loadModule: () => Promise<{ activate: PluginActivate; page?: Component }>
 }
 
 const DEV_PLUGINS: DevPluginEntry[] = [
@@ -53,13 +56,20 @@ export function listInstalledPlugins(): Array<{ manifest: FeatureManifest; enabl
   return listContributedFeatures().map((f) => ({ manifest: f.manifest, enabled: isPluginEnabled(f.manifest.id) }))
 }
 
-/** 启停开关：停用 = 调清理函数（贡献摘除）+ 按 owner 清扫命令（D46 兜底，停用不得残留）；启用 = 重新激活。 */
+/** 启停开关：停用 = 调清理函数（贡献摘除）+ 按 owner 清扫命令（D46 兜底，停用不得残留）
+ *  + 关闭已打开的自开页标签（D47，随停用失效）；启用 = 重新激活。 */
 export async function setPluginEnabled(featureId: string, enabled: boolean): Promise<void> {
   config.setValue('plugins', `enabled:${featureId}`, enabled)
   disposers.get(featureId)?.()
   disposers.delete(featureId)
   unregisterContributedCommands(featureId)
-  if (!enabled) return
+  if (!enabled) {
+    const store = useTabStore()
+    for (const t of [...store.tabs]) {
+      if (t.kind === 'feature' && t.featureId === featureId) store.close(t.key)
+    }
+    return
+  }
   const entry = getFeature(featureId)
   if (entry?.impl.type === 'async') await entry.impl.load()
 }
@@ -75,8 +85,9 @@ export async function loadContributedPlugins(): Promise<void> {
         const mod = await plugin.loadModule()
         const dispose = mod.activate(ctx)
         if (typeof dispose === 'function') disposers.set(manifest.id, dispose)
-        // 无停靠/全页实现：贡献面只有 detailPreview（按条目认领，非挂载点渲染）
-        return {}
+        // 自开页（D47）：manifest 声明 contentTab + 入口模块具名导出 page → 绑定为该插件的全页呈现
+        // （壳持标签项/单实例/错误隔离容器复用既有 contentTab 机制）；无声明即无实现。
+        return mod.page != null ? { fullPage: mod.page } : {}
       })
       if (!registered) continue // 重复 id：注册表已拒绝并报告
       if (!isPluginEnabled(manifest.id)) continue // 停用态：注册保底（面板可见），不激活

@@ -15,7 +15,7 @@ import {
   routeOfTab,
 } from '../features/routes'
 import type { ItemContext } from '@shared/contract'
-import type { ItemTab, PluginTab, TagTab, WorkspaceTabItem } from '../stores/tab'
+import type { ItemTab, TagTab, WorkspaceTabItem } from '../stores/tab'
 
 const CTX: ItemContext = {
   workspaceId: 'ws-1',
@@ -109,12 +109,5 @@ describe('标签 ↔ 路由', () => {
     expect(routeOfTab(tab)).toBe('/tag/t1')
     expect(routeMatchesTab(tab, '/tag/t1')).toBe(true)
     expect(routeMatchesTab(tab, '/tag/OTHER')).toBe(false)
-  })
-
-  it('插件详情页标签：路由是 pluginId 的投影（D46），整串命中', () => {
-    const tab = { key: 'plugin:p1', kind: 'plugin', pluginId: 'p1', title: '音频播放器' } as PluginTab
-    expect(routeOfTab(tab)).toBe('/plugin/p1')
-    expect(routeMatchesTab(tab, '/plugin/p1')).toBe(true)
-    expect(routeMatchesTab(tab, '/plugin/OTHER')).toBe(false)
   })
 })

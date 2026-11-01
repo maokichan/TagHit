@@ -22,17 +22,18 @@ source 由装载方打 contributed）+ 入口模块 `activate(ctx)`（返回清�
 
 ## 三、能力面（冻结契约）
 
-- **HostApi `0.2.3`**（additive 升级同样要升版本号）：
-  `workspaces`（list/listRoots/declaredTags/browse）· `items`（query/tag/untag/readText/**readAudioMeta**——标签+封面+歌词/**open**——打开条目详情）· `media.fileUrl`（taghit-file URL 唯一合法构造入口）· `tags`（search/create/declare/undeclare）· `config`（**只读**：value 快照 / ref 响应式——读 manifest.settings 声明项的值，写入面归宿主 UI，D46）· `ui`（confirm/toast）· `playback`（play/toggle/pause/seek/setVolume/setLoop/snapshot/onChange——**快照回调订阅式**，全局播放引擎的冻结子集）。
+- **HostApi `0.2.4`**（additive 升级同样要升版本号）：
+  `workspaces`（list/listRoots/declaredTags/browse）· `items`（query/tag/untag/readText/**readAudioMeta**——标签+封面+歌词/**open**——打开条目详情/**get**——条目视图模型，投影转换归宿主）· `media.fileUrl`（taghit-file URL 唯一合法构造入口）· `tags`（search/create/declare/undeclare）· `config`（**只读**：value 快照 / ref 响应式——读 manifest.settings 声明项的值，写入面归宿主 UI，D46）· `ui`（confirm/toast）· `playback`（play/toggle/pause/seek/setVolume/setLoop/snapshot/onChange——**快照回调订阅式**，全局播放引擎的冻结子集）。
 - **ContributionContext** = `{ hostApi, previews, commands }`：
   - `previews` = detailPreview 认领注册，id 约定 `<featureId>:<form>`，后注册覆盖先注册（D37）；
   - `commands` = 命令注册表贡献（D46）：id **强制** `<featureId>.` 前缀，自动打 contributed，**只进命令面板**（右键菜单保持官方策展）；清理函数里 unregister 是插件自己的责任，壳在停用时按 owner 兜底清扫。views 槽已随歌词视图撤回——多槽贡献等真实消费方再加。
+- **自开页（D47）**：插件在 manifest `mounts` 声明 `contentTab` + 入口模块**具名导出 `page`**（整页 Vue 组件）——壳绑定为该插件的全页呈现：插件管理页显形「打开页面」入口，点开即新标签页；**内容与交互完全归插件**，壳只提供容器（壳持标签项/单实例/FeatureBoundary 错误隔离）。插件不自行弹页（不能悄悄接管）；停用即随贡献摘除。
 - 契约类型唯一入口 = `@renderer/features/contribution`（type-only）。
 
 ## 四、装载与调试
 
 - **新增插件**：`frontend/src/renderer/src/features/contributedPlugins.ts` 的 `DEV_PLUGINS` 加字面量条目（动态 import 必须字面量——vite/rollup 静态分析前提）。
-- **启停/调试**：插件面板（左侧「插件」）卡片启停开关；卡片点击进**插件详情页**（贡献面清单/设置/启停）；启用态存 config（`plugins:enabled:<featureId>`）。
+- **启停/管理**：插件面板（左侧「插件」）卡片启停开关；**管理页**（面板角标进全页）= 每插件的身份/贡献面/设置/启停 + 自开页入口；启用态存 config（`plugins:enabled:<featureId>`）。
 - **真机**：`npm run dev`；**宿主侧改动（ipc/preload）必须重新 bundle 并重启应用**，渲染层与插件改动刷新窗口即可。
 
 ## 五、关键文件（按需读源码）
@@ -41,9 +42,9 @@ source 由装载方打 contributed）+ 入口模块 `activate(ctx)`（返回清�
 |---|---|
 | `frontend/src/renderer/src/features/contribution.ts` | 契约模块（插件 API 包的雏形） |
 | `frontend/src/renderer/src/features/hostApi.ts` | HostApi 冻结面 + 版本号 |
-| `frontend/src/renderer/src/features/contributedPlugins.ts` | dev 装载 + 启停（含命令清扫） |
+| `frontend/src/renderer/src/features/contributedPlugins.ts` | dev 装载 + 启停（含命令清扫、自开页 fullPage 绑定） |
 | `frontend/src/renderer/src/features/registry.ts` | 功能组件注册表 |
+| `frontend/src/renderer/src/features/plugins/PluginsFullPage.vue` | 插件管理页（全页呈现，D47） |
 | `frontend/src/renderer/src/features/detailPreview.ts` | detailPreview 认领解析（纯注册表） |
 | `frontend/src/renderer/src/features/preview/builtinPreviews.ts` | 内置四类预览的出厂注册（.vue 不进契约链） |
-| `frontend/src/renderer/src/views/PluginProfilePage.vue` | 插件详情页（管理/阅读面，D46） |
-| `plugins/audio-cover-player/` | 首插件样例（黑胶播放器：全局播放引擎的遥控器 + 黑胶 + 歌词页；设置声明制与 commands 槽的首个消费方） |
+| `plugins/audio-cover-player/` | 首插件样例（黑胶播放器：预览槽 + 命令 + 设置声明制 + 自开页「正在播放」——四个面的首个消费方） |

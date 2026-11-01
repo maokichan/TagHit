@@ -27,6 +27,7 @@ import DisplayPanel from '../components/workspace/DisplayPanel.vue'
 import FilesPanel from './files/FilesPanel.vue'
 import InfoPanel from '../components/layout/InfoPanel.vue'
 import PluginsPanel from '../components/layout/PluginsPanel.vue'
+import PluginsFullPage from './plugins/PluginsFullPage.vue'
 import { setupKeyboardMouse } from './keyboardMouse/setup'
 
 /** 行为注册钩子：返回清理函数则由壳在卸载时执行（事件订阅必须可退订）。 */
@@ -240,8 +241,8 @@ export function registerBuiltinFeatures(): void {
     { icon: Info, component: InfoPanel }
   )
   official(
-    { id: 'plugins', title: '插件', mounts: ['activityBar:left'] },
-    { icon: Puzzle, component: PluginsPanel }
+    { id: 'plugins', title: '插件', mounts: ['activityBar:left', 'contentTab'] },
+    { icon: Puzzle, component: PluginsPanel, fullPage: PluginsFullPage }
   )
 
   // ── 显示面板区块 ──

@@ -1,6 +1,6 @@
 import router from '../router'
 import { useTabStore, type Tab } from '../stores/tab'
-import { itemRoute, pluginRoute, routeOfTab, tagRoute } from './routes'
+import { itemRoute, routeOfTab, tagRoute } from './routes'
 import { playbackPause, playbackSnapshot } from './playback/playback'
 
 /**
@@ -22,7 +22,6 @@ import { playbackPause, playbackSnapshot } from './playback/playback'
 export {
   itemContextFromQuery,
   itemRoute,
-  pluginRoute,
   resolveItemContext,
   routeMatchesTab,
   routeOfTab,
@@ -86,13 +85,4 @@ export function openItemTab(itemId: string, title: string): void {
   const context = { workspaceId: null, order: 'createdAt', orderDir: 'desc' } as const
   useTabStore().openItem(itemId, null, title, context)
   void router.push(itemRoute(itemId, context))
-}
-
-/**
- * 打开插件详情页（**写历史**，同"打开一个视图"）：D46 的管理面入口，
- * 插件面板卡片点击进入；同一插件已有详情页 = 激活。
- */
-export function openPluginTab(pluginId: string, title: string): void {
-  useTabStore().openPlugin(pluginId, title)
-  void router.push(pluginRoute(pluginId))
 }

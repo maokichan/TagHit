@@ -4,6 +4,8 @@
  * 贡献：detailPreview 提供方认领音频条目（D37 ②后注册覆盖先注册 → 替换内置裸 <audio>）；
  * commands 槽（D46）注册「转到正在播放的条目」——全局播放切走不停播（D43）的回看缺口，
  * 命令进命令面板（右键菜单保持官方策展）。
+ * 自开页（D47）：manifest 声明 contentTab + 本模块具名导出 `page`（正在播放页——
+ * 全局播放的常驻控制面，无播放给空态）——壳经管理页入口以新标签页打开，内容归本插件。
  * 插件内容集中在一个页面里自组织（D43：黑胶播放 + 歌词页签），不做多槽散布。
  * 数据：音频元数据/封面/歌词是宿主原生能力（items.readAudioMeta，与视频抓帧同族）——封面
  * 缩略图经宿主落盘回写 previewUri 后，网格/胶片条原生呈现，本插件只是第一消费方，
@@ -16,6 +18,7 @@
 import type { ContributionContext, DetailPreviewProvider } from '@renderer/features/contribution'
 import { bindContext, hostApi } from './context.ts'
 import AudioPlayer from './AudioPlayer.vue'
+import PlayerPage from './PlayerPage.vue'
 
 const PROVIDER_ID = 'audioPlayer:audio'
 const REVEAL_COMMAND_ID = 'audioPlayer.revealPlaying'
@@ -48,3 +51,6 @@ export function activate(ctx: ContributionContext): () => void {
     ctx.commands.unregister(REVEAL_COMMAND_ID)
   }
 }
+
+/** 自开页（D47）：壳按 manifest 的 contentTab 声明绑定为本插件的全页呈现。 */
+export const page = PlayerPage

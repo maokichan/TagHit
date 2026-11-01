@@ -2,7 +2,7 @@
   "id": "audioPlayer",
   "title": "音频播放器",
   "description": "认领音频条目：黑胶播放、歌词同步、封面提取的第一消费方。",
-  "mounts": [],
+  "mounts": ["contentTab"],
   "surfaces": ["toast"],
   "settings": [
     {
