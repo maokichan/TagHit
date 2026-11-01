@@ -10,8 +10,9 @@ defineProps<{ side?: 'left' | 'right' }>()
 
 const tabStore = useTabStore()
 
-/** contentTab 贡献者清单：点击 = 打开/激活其内容标签页（单实例） */
-const contentTabs = listFeatures('contentTab')
+/** contentTab 贡献者清单：点击 = 打开/激活其内容标签页（单实例）。
+ *  仅官方——三方插件的自开页入口由管理页显形（D47），不在此重复列出。 */
+const contentTabs = listFeatures('contentTab').filter((f) => f.manifest.source === 'official')
 
 /** 已安装插件（manifest + 启用态；启停操作后经 refreshList 重取） */
 const installed = ref(listInstalledPlugins())
