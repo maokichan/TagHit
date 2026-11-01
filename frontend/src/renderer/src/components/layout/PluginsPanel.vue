@@ -2,10 +2,9 @@
 import { computed, ref } from 'vue'
 import { ExternalLink, Puzzle } from 'lucide-vue-next'
 import { listFeatures } from '../../features/registry'
-import { listDetailPreviews } from '../../features/detailPreview'
 import { listInstalledPlugins, setPluginEnabled } from '../../features/contributedPlugins'
 import { useTabStore } from '../../stores/tab'
-import { openFeatureTab } from '../../features/tabs'
+import { openFeatureTab, openPluginTab } from '../../features/tabs'
 
 defineProps<{ side?: 'left' | 'right' }>()
 
@@ -17,13 +16,6 @@ const contentTabs = listFeatures('contentTab')
 /** 已安装插件（manifest + 启用态；启停操作后经 refreshList 重取） */
 const installed = ref(listInstalledPlugins())
 
-/** 能力清单 = 该插件当前活跃的 detailPreview 认领面（停用即空，如实呈现）。 */
-function abilitiesOf(featureId: string): string[] {
-  return listDetailPreviews()
-    .filter((p) => p.id.startsWith(`${featureId}:`))
-    .map(() => '条目预览接管')
-}
-
 function refreshList(): void {
   installed.value = listInstalledPlugins()
 }
@@ -31,6 +23,11 @@ function refreshList(): void {
 async function toggle(featureId: string, next: boolean): Promise<void> {
   await setPluginEnabled(featureId, next)
   refreshList()
+}
+
+/** 进入插件详情页（D46：卡片 = 扫视面，理解与管理进详情页）。 */
+function openProfile(featureId: string, title: string): void {
+  openPluginTab(featureId, title)
 }
 
 const hasContributed = computed(() => installed.value.length > 0)
@@ -63,32 +60,26 @@ function open(featureId: string, title: string): void {
 
     <div v-if="hasContributed" class="space-y-2 mb-3">
       <div class="panel-label mb-2">已安装</div>
-      <div
+      <!-- 卡片 = 扫视面：只留名称 + 启停开关（D46）；id/简介进 hover，理解与管理进详情页 -->
+      <button
         v-for="p in installed"
         :key="p.manifest.id"
-        class="border border-[var(--border)] px-2.5 py-2"
+        type="button"
+        class="w-full flex items-center gap-2 border border-[var(--border)] px-2.5 py-2 bg-[var(--bg)] hover:bg-[var(--bg-hover)] text-left cursor-pointer transition-colors"
         :class="p.enabled ? '' : 'opacity-60'"
+        :title="`${p.manifest.id}${p.manifest.description != null ? `\n${p.manifest.description}` : ''}——点击进入详情页`"
+        @click="openProfile(p.manifest.id, p.manifest.title)"
       >
-        <div class="flex items-center gap-2">
-          <span class="flex-1 text-[12px] truncate">{{ p.manifest.title }}</span>
-          <button
-            type="button"
-            class="text-[11px] px-1.5 py-0.5 cursor-pointer transition-colors"
-            :class="p.enabled ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'bg-[var(--bg-hover)] text-[var(--fg-dim)]'"
-            :title="p.enabled ? '停用（贡献摘除，内置预览兜底）' : '启用'"
-            @click="toggle(p.manifest.id, !p.enabled)"
-          >
-            {{ p.enabled ? '启用中' : '已停用' }}
-          </button>
-        </div>
-        <div class="text-[11px] text-[var(--fg-dim)] mt-0.5">{{ p.manifest.id }}</div>
-        <div v-if="p.enabled" class="mt-1 space-y-0.5">
-          <div v-for="a in abilitiesOf(p.manifest.id)" :key="a" class="text-[11px] text-[var(--fg-dim)]">
-            · {{ a }}
-          </div>
-          <div v-if="abilitiesOf(p.manifest.id).length === 0" class="text-[11px] text-[var(--fg-dim)]">· （无活跃贡献）</div>
-        </div>
-      </div>
+        <span class="flex-1 min-w-0 text-[12px] truncate">{{ p.manifest.title }}</span>
+        <span
+          class="text-[11px] px-1.5 py-0.5 transition-colors"
+          :class="p.enabled ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'bg-[var(--bg-hover)] text-[var(--fg-dim)]'"
+          :title="p.enabled ? '停用（贡献摘除，内置预览兜底）' : '启用'"
+          @click.stop="toggle(p.manifest.id, !p.enabled)"
+        >
+          {{ p.enabled ? '启用中' : '已停用' }}
+        </span>
+      </button>
     </div>
 
     <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">三方插件尚未开放安装。</p>

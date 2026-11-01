@@ -11,6 +11,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { registerCommand, unregisterCommand, assembleMenu, getCommand, listCommands } from '../features/commands'
 import { assemblePalette, buildPalette, matchCommand, paletteCandidates } from '../features/palette'
+import { createContributionContext, unregisterContributedCommands } from '../features/contribution'
 import type { MenuContext, MenuGroup, WhenClause } from '@shared/types/command'
 
 const registered: string[] = []
@@ -120,10 +121,16 @@ describe('命令面板：行组装', () => {
     expect(rows[0]?.shortcut).toBe('Ctrl+F')
   })
 
-  it('buildPalette 一行取齐：注册表 → 候选上下文 → 行（只出官方）', () => {
+  it('buildPalette 一行取齐：注册表 → 候选上下文 → 行（official 与 contributed 都进面板，D46）', () => {
     cmd('node.onlyThis', { kind: 'targetIs', value: 'node' }, 'nav')
+    registerCommand({ id: 'plug.go', title: '插件跳转', source: 'contributed' }, () => {})
+    registered.push('plug.go')
     const rows = buildPalette('', { workspaceId: 'w1', selectionIds: [], targetItemId: null })
-    expect(rows.map((r) => [r.entry.manifest.id, r.applicable])).toEqual([['node.onlyThis', false]])
+    // 无 when 的 contributed 命令恒可用在前；node.onlyThis 在 shell 上下文不可用、沉底
+    expect(rows.map((r) => [r.entry.manifest.id, r.applicable])).toEqual([
+      ['plug.go', true],
+      ['node.onlyThis', false]
+    ])
   })
 
   it('现场事实参与可用性：详情页翻页没挂详情页时标不可用（不静默空操作）', () => {
@@ -140,5 +147,36 @@ describe('命令面板：行组装', () => {
       assemblePalette(listCommands(), paletteCandidates({ ...base, detailNavActive: true }), '', [])[0]
         ?.applicable
     ).toBe(true)
+  })
+})
+
+describe('commands 槽（contributed 命令的贡献通路，D46）', () => {
+  it('经 ctx 注册即进注册表（source=contributed）：面板可见，右键菜单保持官方策展', () => {
+    const ctx = createContributionContext('fakeplug')
+    ctx.commands.register({ id: 'fakeplug.go', title: '转到' }, () => {})
+    expect(getCommand('fakeplug.go')?.manifest.source).toBe('contributed')
+    const rows = buildPalette('', { workspaceId: 'w1', selectionIds: [], targetItemId: null })
+    expect(rows.some((r) => r.entry.manifest.id === 'fakeplug.go')).toBe(true)
+    const menuIds = assembleMenu(shellCtx).flatMap((s) => s.commands.map((c) => c.manifest.id))
+    expect(menuIds).not.toContain('fakeplug.go')
+    ctx.commands.unregister('fakeplug.go')
+  })
+
+  it('id 前缀强制：非本插件命名空间的注册被拒绝（不能借别人的域）', () => {
+    const ctx = createContributionContext('fakeplug')
+    ctx.commands.register({ id: 'otherDomain.go', title: '越权' }, () => {})
+    expect(getCommand('otherDomain.go')).toBeUndefined()
+    ctx.commands.register({ id: 'fakeplug.ok', title: '本域' }, () => {})
+    expect(getCommand('fakeplug.ok')).toBeDefined()
+    unregisterContributedCommands('fakeplug')
+  })
+
+  it('停用清扫：unregisterContributedCommands 摘走该插件全部命令（忘摘也不能残留）', () => {
+    const ctx = createContributionContext('fakeplug')
+    ctx.commands.register({ id: 'fakeplug.a', title: 'A' }, () => {})
+    ctx.commands.register({ id: 'fakeplug.b', title: 'B' }, () => {})
+    unregisterContributedCommands('fakeplug')
+    expect(getCommand('fakeplug.a')).toBeUndefined()
+    expect(getCommand('fakeplug.b')).toBeUndefined()
   })
 })

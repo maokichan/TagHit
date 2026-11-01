@@ -28,7 +28,9 @@ declare module 'node:fs' {
   export function existsSync(path: string): boolean
   export function readFileSync(path: string, encoding: 'utf8'): string
   export function mkdirSync(path: string, options?: { recursive?: boolean }): void
-  export function writeFileSync(path: string, data: Uint8Array): void
+  export function writeFileSync(path: string, data: string | Uint8Array): void
+  /** 同步写文件描述符（1 = stdout）：--diagnose 提前退出时防管道输出截断（D45）。 */
+  export function writeSync(fd: number, data: string): number
 }
 
 declare module 'node:stream' {

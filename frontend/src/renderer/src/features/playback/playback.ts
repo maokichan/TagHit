@@ -169,47 +169,63 @@ function setLoop(core: EngineCore, loop: boolean): void {
 // ---- 单例（HMR 幂等：Symbol.for 跨模块重执行共享） --------------------------------
 
 const ENGINE_KEY = Symbol.for('taghit.playback-engine')
-const engine: EngineCore = ((globalThis as unknown as Record<symbol, unknown>)[ENGINE_KEY] ??= createEngine()) as EngineCore
+
+/**
+ * 惰性建引擎：`new Audio()` 是浏览器侧能力，不能在模块顶层执行——否则凡 import 本模块
+ * 的纯逻辑测试（Vitest node 环境，D30）当场炸掉。首次真正使用时才创建；幂等键不变，
+ * HMR 重执行仍复用旧实例。
+ */
+let engineInstance: EngineCore | null = ((globalThis as unknown as Record<symbol, unknown>)[ENGINE_KEY] ??
+  null) as EngineCore | null
+
+function getEngine(): EngineCore {
+  if (engineInstance == null) {
+    engineInstance = createEngine()
+    ;(globalThis as unknown as Record<symbol, unknown>)[ENGINE_KEY] = engineInstance
+  }
+  return engineInstance
+}
 
 // ---- 壳内消费面（官方组件直接用模块函数；三方经 HostApi.playback 冻结子集） --------
 
 /** 响应式快照（壳内组件 reactive 消费；快照对象整体替换，直接读值也安全）。 */
 export function playbackState(): Readonly<Ref<PlaybackSnapshot>> {
-  return engine.state
+  return getEngine().state
 }
 
 export function playbackSnapshot(): PlaybackSnapshot {
-  return engine.state.value
+  return getEngine().state.value
 }
 
 /** 换曲即播（target 给定且非当前曲）；无 target = 续播/重播当前曲。 */
 export function playbackPlay(target?: PlaybackTarget): Promise<void> {
-  return play(engine, target)
+  return play(getEngine(), target)
 }
 
 export function playbackToggle(): void {
-  toggle(engine)
+  toggle(getEngine())
 }
 
 export function playbackPause(): void {
-  engine.audio.pause()
+  getEngine().audio.pause()
 }
 
 export function playbackSeek(t: number): void {
-  seek(engine, t)
+  seek(getEngine(), t)
 }
 
 export function playbackSetVolume(v: number): void {
-  setVolume(engine, v)
+  setVolume(getEngine(), v)
 }
 
 /** 单曲循环切换（audio.loop；ended 不再触发）。 */
 export function playbackSetLoop(loop: boolean): void {
-  setLoop(engine, loop)
+  setLoop(getEngine(), loop)
 }
 
 /** 状态订阅（快照回调式），返回取消函数。 */
 export function playbackSubscribe(cb: (s: PlaybackSnapshot) => void): () => void {
+  const engine = getEngine()
   engine.listeners.add(cb)
   return () => {
     engine.listeners.delete(cb)
@@ -218,10 +234,10 @@ export function playbackSubscribe(cb: (s: PlaybackSnapshot) => void): () => void
 
 /** 频谱机制口（D43：数据就绪，可视化押后）；从未播放（图未建）→ null。 */
 export function playbackAnalyser(): AnalyserNode | null {
-  return engine.analyser
+  return getEngine().analyser
 }
 
 /** EQ 机制口：8 段 peaking，写 gain 即调音（UI 面板押后，D43）；图未建 → []。 */
 export function playbackFilters(): readonly BiquadFilterNode[] {
-  return engine.filters
+  return getEngine().filters
 }

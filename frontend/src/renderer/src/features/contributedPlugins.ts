@@ -17,7 +17,7 @@
  */
 
 import { getFeature, registerContributedFeature, listContributedFeatures } from './registry'
-import { createContributionContext } from './contribution'
+import { createContributionContext, unregisterContributedCommands } from './contribution'
 import type { PluginActivate } from './contribution'
 import { useConfigStore } from '../stores/config'
 import type { FeatureManifest } from '@shared/types/feature'
@@ -34,7 +34,9 @@ interface DevPluginEntry {
 const DEV_PLUGINS: DevPluginEntry[] = [
   {
     dir: 'audio-cover-player',
-    loadManifest: async () => (await import('@plugins/audio-cover-player/manifest.json')).default,
+    // 磁盘 JSON 是边界：类型在此收窄（字段拼写/形状错误由 tsconfig.web 对 manifest 的
+    // 引用面与运行时表现暴露；结构化校验随分发形态的 manifest 装载一并立）
+    loadManifest: async () => (await import('@plugins/audio-cover-player/manifest.json')).default as Omit<FeatureManifest, 'source'>,
     loadModule: () => import('@plugins/audio-cover-player/src/index.ts')
   }
 ]
@@ -51,11 +53,12 @@ export function listInstalledPlugins(): Array<{ manifest: FeatureManifest; enabl
   return listContributedFeatures().map((f) => ({ manifest: f.manifest, enabled: isPluginEnabled(f.manifest.id) }))
 }
 
-/** 启停开关：停用 = 调清理函数（贡献摘除）；启用 = 清旧贡献后重新激活（重复激活防泄漏）。 */
+/** 启停开关：停用 = 调清理函数（贡献摘除）+ 按 owner 清扫命令（D46 兜底，停用不得残留）；启用 = 重新激活。 */
 export async function setPluginEnabled(featureId: string, enabled: boolean): Promise<void> {
   config.setValue('plugins', `enabled:${featureId}`, enabled)
   disposers.get(featureId)?.()
   disposers.delete(featureId)
+  unregisterContributedCommands(featureId)
   if (!enabled) return
   const entry = getFeature(featureId)
   if (entry?.impl.type === 'async') await entry.impl.load()
@@ -63,10 +66,11 @@ export async function setPluginEnabled(featureId: string, enabled: boolean): Pro
 
 /** 装载并激活全部 dev 插件（main.ts 启动期调用；在内置预览注册之后，保证后注册覆盖先注册）。 */
 export async function loadContributedPlugins(): Promise<void> {
-  const ctx = createContributionContext()
   for (const plugin of DEV_PLUGINS) {
     try {
       const manifest = await plugin.loadManifest()
+      // ctx 按插件独立创建（D46）：commands 槽的 id 前缀强制与 owner 记账以插件 id 为锚
+      const ctx = createContributionContext(manifest.id)
       const registered = registerContributedFeature(manifest, async () => {
         const mod = await plugin.loadModule()
         const dispose = mod.activate(ctx)

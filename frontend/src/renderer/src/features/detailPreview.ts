@@ -55,34 +55,5 @@ export function listDetailPreviews(): readonly DetailPreviewProvider[] {
   return providers
 }
 
-// ---- 内置默认提供方（D37）：四类形态，启动期与官方功能同批注册 ------------------
-
-import ImagePreview from './preview/ImagePreview.vue'
-import VideoPreview from './preview/VideoPreview.vue'
-import AudioPreview from './preview/AudioPreview.vue'
-import TextPreview from './preview/TextPreview.vue'
-import { isTextExtension } from '../lib/media'
-
-/** 注册四类内置预览（main.ts 启动期调用；三方动态注册天然更晚 → 认领可覆盖内置）。 */
-export function registerBuiltinDetailPreviews(): void {
-  registerDetailPreview({
-    id: 'builtin:text',
-    claims: (item) => isTextExtension(item.extension),
-    component: TextPreview
-  })
-  registerDetailPreview({
-    id: 'builtin:image',
-    claims: (item) => item.mediaType === 'image',
-    component: ImagePreview
-  })
-  registerDetailPreview({
-    id: 'builtin:video',
-    claims: (item) => item.mediaType === 'video',
-    component: VideoPreview
-  })
-  registerDetailPreview({
-    id: 'builtin:audio',
-    claims: (item) => item.mediaType === 'audio',
-    component: AudioPreview
-  })
-}
+// 内置默认提供方（D37）注册在 ./preview/builtinPreviews.ts——.vue 组件不得进契约链
+// （本文件是 contribution 的依赖，纯逻辑测试经它拉入；D30 纪律）。

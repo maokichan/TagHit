@@ -56,6 +56,8 @@ export interface FeatureManifest {
   /** 全局唯一 id，如 'layout' | 'sort' | 'paths' | 'workspaceInfo' */
   id: string
   title: string
+  /** 一句话简介（D46：插件卡片 hover 与插件详情页的身份事实；长文档随分发形态再议） */
+  description?: string
   source: FeatureSource
   /** 挂载点列表：'displayPanel' 与 'settings' 并存 = 面板与设置页共享同一份配置 */
   mounts: MountPoint[]

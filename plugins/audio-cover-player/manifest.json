@@ -1,6 +1,19 @@
 {
   "id": "audioPlayer",
   "title": "音频播放器",
+  "description": "认领音频条目：黑胶播放、歌词同步、封面提取的第一消费方。",
   "mounts": [],
-  "surfaces": []
+  "surfaces": ["toast"],
+  "settings": [
+    {
+      "key": "lyricsFontSize",
+      "type": "enum",
+      "label": "歌词字号",
+      "options": [
+        { "value": "standard", "label": "标准" },
+        { "value": "large", "label": "大" }
+      ],
+      "default": "standard"
+    }
+  ]
 }

@@ -11,7 +11,7 @@
  */
 
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, writeSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { DomainError } from '../domain/index.ts'
@@ -22,6 +22,7 @@ import { registerPrivilegedSchemes, registerTaghitFileProtocol } from './protoco
 import { invalidateAllowedRoots } from './pathGate.ts'
 import { startFileDrag } from './drag.ts'
 import { isAudioExt, readAudioMeta } from './media/audioMeta.ts'
+import { buildSnapshot, DiagnosticsEventLog, staticFacts } from './diagnostics.ts'
 import { TEXT_MAX_BYTES } from '../application/content.ts'
 import {
   appendCollectionMember,
@@ -85,12 +86,46 @@ function dbPath(): string {
   return process.env.TAGHIT_DB ?? `${app.getPath('userData')}/taghit.db`
 }
 
+/** 版本单一事实源 = package.json（ping 端点与诊断快照共用；字面量会随迭代过期）。 */
+const HOST_VERSION: string = JSON.parse(readFileSync(`${app.getAppPath()}/package.json`, 'utf8')).version
+
 // 开发态 userData 按库文件隔离：两个实例共用 userData 时 GPU/磁盘缓存锁冲突
 // （cache_util_win 拒绝访问 0x5），后启动者渲染层直接黑屏。按 TAGHIT_DB 派生
 // 目录键，不同库的多实例互不争锁；缩略图目录随实例走，与库内 previewUri 自洽。
 if (process.env.TAGHIT_RENDERER_URL != null) {
   const key = createHash('sha1').update(dbPath()).digest('hex').slice(0, 8)
   app.setPath('userData', `${app.getPath('userData')}-dev-${key}`)
+}
+
+// ---- --diagnose（D45）：打印自诊断快照即退。必须在单实例锁之前判定——
+// 应用运行中/锁被占时同样可用；无快照（从未跑起来过）给静态事实兜底。
+// 输出走 fs.writeSync(1)（同步落 stdout，防提前退出截断管道输出）。
+if (process.argv.includes('--diagnose')) {
+  const file = join(app.getPath('userData'), 'diagnostics.json')
+  let payload: string
+  try {
+    payload = readFileSync(file, 'utf8')
+  } catch {
+    payload = JSON.stringify(
+      staticFacts({
+        appVersion: HOST_VERSION,
+        electronVersion: process.versions.electron ?? '',
+        platform: process.platform,
+        isPackaged: app.isPackaged,
+        userData: app.getPath('userData'),
+        dbPath: dbPath(),
+      }),
+      null,
+      2
+    )
+  }
+  try {
+    writeSync(1, payload + '\n')
+  } catch {
+    /* stdout 不可写（EPIPE 等）→ 无能为力 */
+  }
+  console.error(`[host] 诊断快照来源：${file}`)
+  app.exit(0)
 }
 
 // 单实例锁（按 userData = 按库）：同库双开必撞缓存锁 → 后者干净退出并提示，
@@ -112,8 +147,65 @@ if (!gotLock) {
   app.quit()
 }
 
-/** 版本单一事实源 = package.json（ping 端点用；字面量会随迭代过期）。 */
-const HOST_VERSION: string = JSON.parse(readFileSync(`${app.getAppPath()}/package.json`, 'utf8')).version
+// ---- 自诊断快照（D45）：黑屏时外部 agent 可读的唯一事实源 ----
+// 形状与环形缓冲在 ./diagnostics.ts（纯模块，可直验）；这里只采集 electron 事实并节流落盘。
+const diagEvents = new DiagnosticsEventLog(() => new Date().toISOString())
+const diag = {
+  load: {
+    mode: app.isPackaged ? ('packaged' as const) : ('dev' as const),
+    target: '',
+    ok: false,
+    failCount: 0,
+    lastError: null as string | null,
+  },
+}
+
+const diagnosticsFile = (): string => join(app.getPath('userData'), 'diagnostics.json')
+
+function writeDiagnostics(): void {
+  try {
+    const target = diag.load.target
+    writeFileSync(
+      diagnosticsFile(),
+      JSON.stringify(
+        buildSnapshot({
+          appVersion: HOST_VERSION,
+          electronVersion: process.versions.electron ?? '',
+          platform: process.platform,
+          isPackaged: app.isPackaged,
+          paths: {
+            appPath: app.getAppPath(),
+            hostDir: __dirname,
+            userData: app.getPath('userData'),
+            dbPath: dbPath(),
+            rendererTarget: target,
+            rendererTargetExists: app.isPackaged && target !== '' ? existsSync(target) : null,
+          },
+          load: { ...diag.load },
+          events: diagEvents.list(),
+        }),
+        null,
+        2
+      )
+    )
+  } catch (error) {
+    console.error('[host] 诊断快照写入失败', error)
+  }
+}
+
+let writeTimer: ReturnType<typeof setTimeout> | null = null
+/** 事件入环 + 500ms 节流落盘（事件风暴合并为一次写；终态事件直接调 writeDiagnostics）。 */
+function recordEvent(kind: string, detail: string): void {
+  diagEvents.push(kind, detail)
+  if (writeTimer != null) return
+  writeTimer = setTimeout(() => {
+    writeTimer = null
+    writeDiagnostics()
+  }, 500)
+}
+
+/** 首次主帧加载失败的错误框只弹一次（重载风暴不刷屏；每次 app 运行重置）。 */
+let loadFailReported = false
 
 const services: AppServices = {
   store: createSqliteStoreFromDriver(openSqlite(dbPath())),
@@ -450,10 +542,44 @@ function createWindow(): void {
   })
   // 开发态走 dev server URL（TAGHIT_RENDERER_URL）；打包态渲染层静态产物随包
   // （asar 内 renderer-dist/，hash 路由 + base './' 使 file:// 可用），loadFile 直取
+  const rendererTarget = (): string =>
+    app.isPackaged ? join(__dirname, 'renderer-dist', 'index.html') : (process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173')
   const loadRenderer = (): Promise<void> => {
-    if (!app.isPackaged) return win.loadURL(process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173')
-    return win.loadFile(join(__dirname, 'renderer-dist', 'index.html'))
+    if (!app.isPackaged) return win.loadURL(rendererTarget())
+    return win.loadFile(rendererTarget())
   }
+  // 自诊断（D45）：本次加载的目标进快照（重建窗口时刷新目标，事件环保留）
+  diag.load.mode = app.isPackaged ? 'packaged' : 'dev'
+  diag.load.target = rendererTarget()
+  diag.load.ok = false
+  win.webContents.on('did-finish-load', () => {
+    diag.load.ok = true
+    recordEvent('load-ok', '渲染层加载完成')
+    writeDiagnostics()
+  })
+  win.webContents.on('did-fail-load', (_e, errorCode, errorDesc, validatedURL, isMainFrame) => {
+    // 子帧失败不动主状态；-3 = ERR_ABORTED（加载被新加载打断的导航竞态），属正常扰动
+    if (!isMainFrame || errorCode === -3) return
+    diag.load.ok = false
+    diag.load.failCount++
+    diag.load.lastError = `did-fail-load ${errorCode} ${errorDesc}（${validatedURL}）`
+    recordEvent('load-fail', diag.load.lastError)
+    // 首次主帧失败给原生错误框：黑屏必须给出可行动的反馈（D45），不是可接受的终态
+    if (!loadFailReported) {
+      loadFailReported = true
+      try {
+        dialog.showErrorBox(
+          'TagHit 界面加载失败',
+          `界面没有加载出来：${errorDesc}（错误码 ${errorCode}）。\n\n` +
+            `诊断快照已写入：${diagnosticsFile()}\n` +
+            '把该文件交给能读它的助手/代理即可定位问题；也可在终端运行 TagHit.exe --diagnose 查看。'
+        )
+      } catch {
+        /* 对话框不可用（无 GUI 会话）→ 快照与日志仍在 */
+      }
+    }
+    writeDiagnostics()
+  })
   // 外链（标签主页等处）：应用内不弹新窗口，http(s) 交系统浏览器——Electron 默认行为是
   // 开新 BrowserWindow，那会把应用变成浏览器，必须拦下。
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -462,13 +588,18 @@ function createWindow(): void {
   })
   // 渲染层控制台转发：warning 以上打到主进程 stdout（渲染层早崩/黑屏的唯一诊断窗口）
   win.webContents.on('console-message', (_e, level, message, line, sourceId) => {
-    if (level >= 2) console.log(`[renderer] ${message} (${sourceId}:${line})`)
+    if (level >= 2) {
+      console.log(`[renderer] ${message} (${sourceId}:${line})`)
+      recordEvent('renderer-console', `${message} (${sourceId}:${line})`.slice(0, 300))
+    }
   })
   // 渲染进程崩溃自恢复（黑屏 = 渲染层死亡露出窗口底色）：记日志并重载，连崩则停手
   let reloads = 0
   win.webContents.on('render-process-gone', (_e, details) => {
     console.error(`[host] 渲染进程退出：reason=${details.reason} exitCode=${details.exitCode}`)
+    recordEvent('renderer-gone', `reason=${details.reason} exitCode=${details.exitCode}`)
     if (details.reason === 'clean-exit') return
+    writeDiagnostics() // 崩溃是终态事件，立即落盘（不走节流）
     if (reloads >= 3) {
       console.error('[host] 渲染进程连续崩溃，停止自动重载')
       return
@@ -478,7 +609,17 @@ function createWindow(): void {
       if (!win.isDestroyed()) void loadRenderer().catch((e) => console.error('[host] 重载失败', e))
     }, 1000)
   })
-  void loadRenderer()
+  // 首次加载补 catch（原为未处理 rejection，黑屏不可见）：did-fail-load 通常先记录，
+  // 这里兜底 reject 情形（如目标 URL 非法）
+  loadFailReported = false
+  void loadRenderer().catch((e) => {
+    const message = e instanceof Error ? e.message : String(e)
+    console.error('[host] 首次加载失败', e)
+    diag.load.ok = false
+    diag.load.lastError = message
+    recordEvent('load-reject', message)
+    writeDiagnostics()
+  })
 }
 
 // 字节闸门（媒体侧）：taghit-file:// 特权 scheme 必须在 ready 前注册
@@ -487,6 +628,9 @@ registerPrivilegedSchemes()
 registerHandlers()
 
 app.whenReady().then(() => {
+  // 自诊断基线（D45）：app-ready 是事件环的第一颗锚点，快照从此刻起就存在
+  recordEvent('app-ready', `v${HOST_VERSION} electron ${process.versions.electron ?? ''}`)
+  writeDiagnostics()
   // 去掉 Electron 默认应用菜单（File/Edit/View…）；快捷键随菜单一并失效
   Menu.setApplicationMenu(null)
   registerTaghitFileProtocol(services)
@@ -500,6 +644,13 @@ app.whenReady().then(() => {
     .catch((e) => console.error('[host] 历史路径修复失败（不影响启动）', e))
   createWindow()
   app.on('activate', () => createWindow())
+})
+
+// 宿主子进程（GPU/utility）退出：黑屏/渲染异常的宿主侧旁证（本项目已知 userData
+// 缓存锁冲突会表现为后启动者黑屏，D45 事件环给这类问题留现场）
+app.on('child-process-gone', (_e, details) => {
+  recordEvent('child-process-gone', `${details.type} reason=${details.reason} exitCode=${details.exitCode}`)
+  writeDiagnostics()
 })
 
 app.on('window-all-closed', () => app.quit())

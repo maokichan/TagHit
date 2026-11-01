@@ -33,6 +33,19 @@ declare module 'electron' {
         listener: (event: unknown, level: number, message: string, line: number, sourceId: string) => void
       ): void
       on(event: 'render-process-gone', listener: (event: unknown, details: { reason: string; exitCode: number }) => void): void
+      /** 渲染层加载完成（自诊断 load-ok 事实源，D45）。 */
+      on(event: 'did-finish-load', listener: (event: unknown) => void): void
+      /** 渲染层加载失败：主帧失败 = 界面没加载出来（黑屏的实锤，D45）。 */
+      on(
+        event: 'did-fail-load',
+        listener: (
+          event: unknown,
+          errorCode: number,
+          errorDesc: string,
+          validatedURL: string,
+          isMainFrame: boolean
+        ) => void
+      ): void
       /** 窗口打开拦截：应用内不弹新窗口，http(s) 外链交系统浏览器（返回 deny）。 */
       setWindowOpenHandler(handler: (details: { url: string }) => { action: 'deny' | 'allow' }): void
     }
@@ -86,7 +99,14 @@ declare module 'electron' {
   export const app: {
     whenReady(): Promise<void>
     quit(): void
+    /** 立即退出（不经 ready/窗口生命周期）：--diagnose 打印快照后用（D45）。 */
+    exit(code?: number): void
     on(event: 'window-all-closed' | 'activate', listener: () => void): void
+    /** 宿主子进程（GPU/utility 等）退出：黑屏/渲染异常的宿主侧旁证（D45）。 */
+    on(
+      event: 'child-process-gone',
+      listener: (event: unknown, details: { type: string; reason: string; exitCode: number }) => void
+    ): void
     /** 打包态（electron-builder 产物）为 true：渲染层走随包静态产物而非 dev server。 */
     isPackaged: boolean
     getAppPath(): string
@@ -127,6 +147,7 @@ declare const process: {
   env: Record<string, string | undefined>
   platform: string
   argv: string[]
+  versions: { electron?: string }
   exit(code?: number): never
 }
 

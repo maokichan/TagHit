@@ -1,6 +1,6 @@
 import router from '../router'
 import { useTabStore, type Tab } from '../stores/tab'
-import { routeOfTab, tagRoute } from './routes'
+import { itemRoute, pluginRoute, routeOfTab, tagRoute } from './routes'
 import { playbackPause, playbackSnapshot } from './playback/playback'
 
 /**
@@ -22,6 +22,7 @@ import { playbackPause, playbackSnapshot } from './playback/playback'
 export {
   itemContextFromQuery,
   itemRoute,
+  pluginRoute,
   resolveItemContext,
   routeMatchesTab,
   routeOfTab,
@@ -74,4 +75,24 @@ export function openFeatureTab(
 export function openTagTab(tagId: string, title: string, workspaceId: string | null): void {
   useTabStore().openTag(tagId, title, workspaceId)
   void router.push(tagRoute(tagId))
+}
+
+/**
+ * 打开条目详情（**写历史**，同"打开一个视图"）：无工作区上下文的打开路径——
+ * HostApi `items.open`（D46，插件"转到某条目"）的落点，与官方双击同语义
+ * （顺序上下文缺省；条目已在标签页 = 激活既有标签）。
+ */
+export function openItemTab(itemId: string, title: string): void {
+  const context = { workspaceId: null, order: 'createdAt', orderDir: 'desc' } as const
+  useTabStore().openItem(itemId, null, title, context)
+  void router.push(itemRoute(itemId, context))
+}
+
+/**
+ * 打开插件详情页（**写历史**，同"打开一个视图"）：D46 的管理面入口，
+ * 插件面板卡片点击进入；同一插件已有详情页 = 激活。
+ */
+export function openPluginTab(pluginId: string, title: string): void {
+  useTabStore().openPlugin(pluginId, title)
+  void router.push(pluginRoute(pluginId))
 }

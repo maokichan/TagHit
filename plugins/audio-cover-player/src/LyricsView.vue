@@ -60,6 +60,10 @@ const activeIdx = computed(() =>
   isCurrent.value && lines.value.length > 0 ? activeLrcIndex(lines.value, snap.value.currentTime) : -1
 )
 
+// 歌词字号：manifest.settings 声明制（D46），值经 HostApi config 只读域取（响应式，宿主详情页改动即生效）
+const fontSizeSetting = hostApi().config.ref<string>('audioPlayer', 'lyricsFontSize', 'standard')
+const lineClass = computed(() => (fontSizeSetting.value === 'large' ? 'text-[16px]' : 'text-[14px]'))
+
 // 活动行滚动到容器 38% 高度处（瞬时，无平滑——行进进给是高频连续动作）
 const scrollEl = ref<HTMLElement | null>(null)
 const lineEls = new Map<number, HTMLElement>()
@@ -84,15 +88,15 @@ watch(activeIdx, (idx) => {
         v-for="(l, i) in lines"
         :key="i"
         :ref="(el) => setLineRef(i, el)"
-        class="text-[14px] leading-relaxed transition-colors"
-        :class="i === activeIdx ? 'text-[var(--fg)] font-medium' : 'text-[var(--fg-dim)]'"
+        class="leading-relaxed transition-colors"
+        :class="[lineClass, i === activeIdx ? 'text-[var(--fg)] font-medium' : 'text-[var(--fg-dim)]']"
       >{{ l.text }}</p>
       <div class="h-[38%] shrink-0" aria-hidden="true"></div>
     </div>
   </div>
   <!-- 无时间轴：静态全文 -->
   <div v-else-if="lyricsText != null" class="h-full w-full overflow-y-auto px-4 py-6">
-    <div class="mx-auto max-w-md whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--fg)]">{{ lyricsText }}</div>
+    <div class="mx-auto max-w-md whitespace-pre-wrap leading-relaxed text-[var(--fg)]" :class="lineClass">{{ lyricsText }}</div>
   </div>
   <!-- 无词：正在播放排版（条目事实的阅读面；专辑播放列表等 Collection 后并入本列） -->
   <div v-else class="h-full w-full overflow-y-auto px-6 py-8">

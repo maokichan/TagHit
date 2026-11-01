@@ -17,7 +17,7 @@
    - **大库窗口成本**：当前"全量 id 扫描 + 窗口内 hydrate"，大库要换 keyset（排序键 + id 复合游标）或缓存；
    - 与上述相关：浏览视图的虚拟滚动、键盘焦点导航（见「前端·壳/键鼠」）。
 6. **pdf 阅读插件与 pdf 封面**（插件首批实战已落：音频播放器三方首插件验证机制面，D42；D43 起契约面含 views 槽与 playback 域）——押后项：槽已定形，接入即 pdf.js（渲第一页 → 缩略图通道与详情页提供方同源）。
-7. **三方插件发现/分发**：机制（声明/装载/隔离/权限面）全部就绪；待裁决目录扫描、安装、启停管理的分发形态。
+7. **三方插件发现/分发**：机制（声明/装载/隔离/权限面）全部就绪；待裁决目录扫描、安装、启停管理的分发形态。插件详情页（D46）已备管理面——**版本与说明文档（Markdown 正文）、安装/更新动作**随分发形态一并落。
 8. **维度**（tag 的属性轴，与「组」分家——组 = 池管理篮子【批量声明/入组，不出现在条目呈现面】；维度 = 条目呈现与检索的属性轴【作者/人物/曲风……由领域自定，图片关注内容、音乐按曲风】）：新实体 `{id, name, order}`（order 决定详情页分区顺序）+ tag 加 `dimensionId` 可空列（核心事实走真列，与 D38 边界一致；迁移 = 加可空列）；**一签一维度**（空 = 未分类，详情页归「其他」档）；管理归标签全页（维度分区增删改名排序 + 赋值走批选批量栏）；消费面：详情页标签区按维度分区呈现（与「内容页版式」样板同批，P6 语法的第一批真实消费者）、标签主页左栏、池总表列与筛选。命名用「维度」——「类别」已被媒体类别占用（D36）。**动前先立裁决**（落笔前拍板：order 归谁管、维度能否为空名、按维度检索的语法形态）。
 
 ## 远期 / 架构级
@@ -60,7 +60,7 @@
 - **TagsPanel / 标签**：**tag 修饰**（parked：语义与形态均未讨论，用户裁定先不做）。
 - **对统计的可视化**（共现/互斥）：首轮为分段视图 + 条带（共现条 = 相对强度；互斥条 = 两侧条目量，不伪造共现值），口径 = 工作区成员——形态继续与开发者逐轮调；数据面 = `tags.stats` / `tags.pairStats`（s32 校准）。
 - **ItemDetail（条目详情）**：骨架 + 工作台（D39；顶栏裁撤 D40；布局 = 分割树 D41）。余——**预览条的地位待专门讨论**（开发者提出：有时并不需要它——出厂默认是否常驻、与顺序上下文翻页的关系、可否整体撤除，动前先立裁决）；插件动态装卸的即时反映（注册表挂载期解析一次，随三方分发接入再收）；槽 tab 右键聚合「移到某槽 / 分割」命令（拖放与菜单之外的第三条路径）。版式微调归远期「内容页布局与功能调整」。
-- **FilesPanel（文件管理）**：见主线 4（pickDirectory 移动目标、新建文件/目录）；全页另议。
+- **FilesPanel（文件管理）**：见主线 4（pickDirectory 移动目标、新建文件/目录）；全页另议。**批量删除/移动的容错交互**（随本组件重构一并做）：缺失条目混入批选时逐个 `fs.trash`，磁盘 stat 不过即抛 NOT_FOUND、前端循环遇错即停——排前者已真删、排后者未尝试，且出错路径不刷新视图不清选择，所见与库不一致。方向：预检分堆（缺失条目走 `items.delete` 只清记录，端点已在、UI 无消费方）+ 逐项记账收尾汇总成败 + 无论成败都刷新视图；批量移动同款循环形状一并算；拖拽预检（「N 项文件已缺失」拒交付）是现成先例。
 - **StartScreen**：内联搜索收敛到 globalSearch 功能组件（消除双实现）。
 - **媒体**：封面提取升级（缩略图落库就绪，可自动截取首帧之外的封面）；**md 渲染**——txt/md/markdown 已在文本预览白名单（纯文本直读可用），md 按排版渲染待确认形态后做。
 
@@ -77,9 +77,9 @@
 
 - **LICENSE**：未定未加。
 - **frontend/package.json 双身份收敛**：已清（0.3.0 打包随行）——死脚本（build:win/release:win 指向丢失的 ps1、build:mac/linux、electron-vite dev/start/build、postinstall）与 `main`/`version`/`license` 字段撤除，版本与 LICENSE 归口根 package.json；frontend 定位收敛为"渲染层 + 工具链宿主"。
-- **启动失败可见性**（两处静默失败，黑屏不是可接受的终态）：① 单实例锁拒绝新启动时只在**新进程的终端**里说话——用户看到的旧窗口照旧黑着、新启动像没发生；应在宿主拒退出前 `dialog.showMessageBox` 说清"已有实例在运行"。② 渲染进程崩溃自恢复的 3 次上限用尽后**停在黑屏**——应用尽时渲染一张错误页（"渲染进程反复崩溃，请重启应用"）。
+- **启动失败可见性**（黑屏不是可接受的终态）：渲染进程崩溃自恢复的 3 次上限用尽后**停在黑屏**——应用尽时渲染一张错误页（"渲染进程反复崩溃，请重启应用"）。（单实例锁的原生错误框已在宿主实现；首载失败的错误框 + 诊断快照 + `--diagnose` 已随 D45 落地。）
 
-- **打包分发（便携 zip）**：装配线已落地（0.3.0）——`npm run pack` = bundle:host → vite 构建（base './'，hash 路由使 file:// 可用）→ renderer-dist 归置 → electron-builder（`electron-builder.yml`：zip target、asarUnpack better-sqlite3、files 只收编译产物 + 三件套；插件经 @plugins 字面量 import 静态入渲染层 bundle，不单独携带）；库定位 userData 早已就绪（host dbPath 缺省分支，dev 经 TAGHIT_DB 隔离）。余：**无 Node 机器真机验证**（ABI 坑只有真机兜得住）；**随包一句话说明**（SmartScreen 弹窗走"更多信息 → 仍要运行"；要免提示再上签名，Azure Trusted Signing 类月费方案，用户群扩大后再议）。
+- **打包分发（便携 zip）**：装配线已落地（0.3.0）——`npm run pack` = bundle:host → vite 构建（base './'，hash 路由使 file:// 可用）→ renderer-dist 归置 → electron-builder（`electron-builder.yml`：zip target、asarUnpack better-sqlite3、files 只收编译产物 + 三件套；插件经 @plugins 字面量 import 静态入渲染层 bundle，不单独携带）；库定位 userData 早已就绪（host dbPath 缺省分支，dev 经 TAGHIT_DB 隔离）。余：**打包态渲染层路径错位**（真机首轮实测抓出）：打包入口 `build/main.cjs` 在 asar 内 `__dirname = app.asar/build`，宿主 loadFile 取 `build/renderer-dist/index.html`（main.ts），而 files 配置把 renderer-dist 打在 asar 根——路径永对不上；表现为进程/窗口照起、界面全黑"打不开"、无崩溃记录（系统日志查不到）。修法二选一：loadFile 改锚 `app.getAppPath()`（asar 根），或 files/pack.mjs 把 renderer-dist 归到与 main.cjs 同侧（真机手工修复即此法；0.3.0 原包重装必复发）；**本机验证判据要补"界面真渲染"**（0.3.0 当时只核到进程与库落位）；修后真机复验。ABI 首轮已过（better-sqlite3 在真机正常装载），样本仅一台。**随包一句话说明**（SmartScreen 弹窗走"更多信息 → 仍要运行"；要免提示再上签名，Azure Trusted Signing 类月费方案，用户群扩大后再议）。
 
 - **远端 CI（GitHub Actions）**：待仓库有远端再接——Node 24 + 只装 frontend 依赖（校准走 node:sqlite，不需要编译 better-sqlite3）；本地门见 CONTEXT §五。
 - **测试三件套**（方案裁决：成熟工具为主，自研只留场景；渲染层断言归 Vitest，见 D30）：

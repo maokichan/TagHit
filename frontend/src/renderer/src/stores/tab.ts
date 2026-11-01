@@ -70,7 +70,18 @@ export interface FeatureTab {
   workspaceId: string | null
 }
 
-export type Tab = HomeTab | WorkspaceTabItem | SettingsTab | ItemTab | TagTab | FeatureTab
+/**
+ * 插件详情页标签页（D46）：插件作为一级实体的管理/阅读面（词条式）。
+ * 单实例（重复打开 = 激活既有标签）；无工作区上下文（管理面是全局口径）。
+ */
+export interface PluginTab {
+  key: string
+  kind: 'plugin'
+  pluginId: string
+  title: string
+}
+
+export type Tab = HomeTab | WorkspaceTabItem | SettingsTab | ItemTab | TagTab | FeatureTab | PluginTab
 
 let homeSeq = 0
 
@@ -237,6 +248,23 @@ export const useTabStore = defineStore('tab', () => {
     activeKey.value = key
   }
 
+  /**
+   * 打开插件详情页：单实例；重复打开 = 激活既有标签。
+   * （插件详情与标签主页同为"打开一个视图"，导航语义见 features/tabs.ts。）
+   */
+  function openPlugin(pluginId: string, title: string): void {
+    const key = `plugin:${pluginId}`
+    const existing = tabs.value.find((t): t is PluginTab => t.kind === 'plugin' && t.pluginId === pluginId)
+    if (existing) {
+      existing.title = title
+      activeKey.value = key
+      return
+    }
+    const tab: PluginTab = { key, kind: 'plugin', pluginId, title }
+    tabs.value.push(tab)
+    activeKey.value = key
+  }
+
   function setActive(key: string): void {
     if (tabs.value.some((t) => t.key === key)) activeKey.value = key
   }
@@ -296,6 +324,7 @@ export const useTabStore = defineStore('tab', () => {
     flipItemTab,
     openFeature,
     openTag,
+    openPlugin,
     openSettings,
     setActive,
     cycleActive,

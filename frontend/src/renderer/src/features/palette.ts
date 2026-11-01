@@ -146,10 +146,10 @@ export function assemblePalette(
 }
 
 /**
- * 面板一次完整装配：取注册表（只出官方——三方装载未接线，与右键菜单同一口径）→ 组装行。
+ * 面板一次完整装配：取注册表全量（D46：contributed 命令也进面板——面板 = 注册表的视图，
+ * "能搜到什么"恒等于"注册了什么"；右键菜单保持官方策展，另一条口径）→ 组装行。
  * 壳体（CommandPalette.vue）只负责取上下文与渲染。
  */
 export function buildPalette(query: string, base: PaletteBase): PaletteRow[] {
-  const entries = listCommands().filter((e) => e.manifest.source === 'official')
-  return assemblePalette(entries, paletteCandidates(base), query)
+  return assemblePalette(listCommands(), paletteCandidates(base), query)
 }

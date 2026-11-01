@@ -6,8 +6,10 @@
  * 破坏性变更必须升 HOST_API_VERSION。命令注册表与权限清单以此为底座。
  */
 import { api } from '@shared/api'
+import { computed, type Ref } from 'vue'
 import { confirmDialog, showToast } from './services/dialog'
 import { taghitFileUrl } from '../lib/media'
+import { useConfigStore } from '../stores/config'
 import {
   playbackPlay,
   playbackToggle,
@@ -19,7 +21,9 @@ import {
   playbackSubscribe
 } from './playback/playback'
 
-export const HOST_API_VERSION = '0.2.2'
+export const HOST_API_VERSION = '0.2.3'
+
+const configStore = useConfigStore()
 
 export const hostApi = {
   version: HOST_API_VERSION,
@@ -34,7 +38,17 @@ export const hostApi = {
     tag: api.items.tag,
     untag: api.items.untag,
     readText: api.items.readText,
-    readAudioMeta: api.items.readAudioMeta
+    readAudioMeta: api.items.readAudioMeta,
+    /** 打开条目详情（D46）：与官方双击同语义（条目已在标签页 = 激活；写历史）。
+     *  tabs（含 router）动态引入：本门面是插件契约模块的依赖，静态引入会把 router
+     *  拖进契约链——渲染层纯逻辑测试就再也跑不动了（D30 纪律）。 */
+    open: async (itemId: string): Promise<void> => {
+      const hits = await api.items.query({ ids: [itemId] })
+      const hit = hits[0]
+      if (hit == null) throw new Error(`条目不存在（${itemId}）`)
+      const { openItemTab } = await import('./tabs')
+      openItemTab(hit.item.id, hit.item.title)
+    }
   },
   /** 媒体通道助手：taghit-file 协议 URL 构造（字节闸门渲染侧的唯一合法入口） */
   media: {
@@ -45,6 +59,19 @@ export const hostApi = {
     create: api.tags.create,
     declare: api.tags.declare,
     undeclare: api.tags.undeclare
+  },
+  /**
+   * 配置只读域（D46）：插件声明的设置项值（manifest.settings）由此读——
+   * 存储键 = `featureId:key`，**写入面只归宿主 UI**（插件详情页的 SchemaControl），
+   * 插件只读。ref = 响应式读（插件是 Vue 组件，设置改动即时生效）。
+   */
+  config: {
+    value<T>(featureId: string, key: string, fallback: T): T {
+      return configStore.value(featureId, key, fallback)
+    },
+    ref<T>(featureId: string, key: string, fallback: T): Ref<T> {
+      return computed(() => configStore.value(featureId, key, fallback))
+    }
   },
   /** 服务面（dialog/toast）：经壳统一渲染，manifest.surfaces 声明后使用 */
   ui: {
