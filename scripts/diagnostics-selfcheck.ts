@@ -39,6 +39,7 @@ const snapshot = buildSnapshot({
     dbPath: '/u/taghit.db',
     rendererTarget: '/app/build/renderer-dist/index.html',
     rendererTargetExists: false,
+    pluginRoots: ['/u/plugins'],
   },
   load: { mode: 'packaged', target: '/x', ok: false, failCount: 1, lastError: 'did-fail-load' },
   events: log.list(),

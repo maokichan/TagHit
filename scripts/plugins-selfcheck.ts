@@ -7,16 +7,16 @@
  * 只为给 installZip 喂真 zip；路径穿越夹具用 `../evil.txt` 条目（yauzl 文件名校验应拒）。
  */
 
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import type { PluginManifestFile } from '../src/host/ipc.ts'
 import {
   apiVersionAtMost,
   installZip,
   listInstalls,
   peekZip,
   uninstallPlugin,
-  type PluginManifestFile,
 } from '../src/host/plugins.ts'
 
 // ---- 断言小件（手写 assert 累计，与校准场景同款） ----
@@ -167,7 +167,7 @@ try {
   ])
   const peekB = await peekZip(otherZip, installsRoot)
   assert(peekB.conflict === false, 'peek：新 id 无冲突')
-  const noLeak = await readFile(join(installsRoot, 'otherPlugin', 'manifest.json')).then(() => false).catch(() => true)
+  const noLeak = await stat(join(installsRoot, 'otherPlugin')).then(() => false).catch(() => true)
   assert(noLeak, 'peek：不落位')
 
   // ④ 缺 version（zip 分发必填）
@@ -213,7 +213,7 @@ try {
 
   // ⑩ 卸载：存在 → 删除；不存在 → 报错
   await uninstallPlugin('selfcheckPlugin', installsRoot)
-  const gone = await readFile(join(installsRoot, 'selfcheckPlugin', 'manifest.json')).then(() => false).catch(() => true)
+  const gone = await stat(join(installsRoot, 'selfcheckPlugin')).then(() => false).catch(() => true)
   assert(gone, '卸载：目录已删除')
   await assertThrows('卸载未知插件报错', () => uninstallPlugin('selfcheckPlugin', installsRoot), '未安装')
   await assertThrows('卸载非法 id 报错', () => uninstallPlugin('../escape', installsRoot), '非法插件 id')

@@ -108,7 +108,7 @@ function moduleUrl(entry: PluginInstallEntry, m: NonNullable<PluginInstallEntry[
   if (entry.form === 'dev-source') {
     return `${location.origin}/@fs/${entry.dir.replaceAll('\\', '/')}/src/index.ts`
   }
-  return `taghit-plugin:///${m.id}/${m.main ?? 'index.js'}`
+  return `taghit-plugin://${m.id}/${m.main ?? 'index.js'}`
 }
 
 /** 完整摘除一个插件的运行时存在（卸载/重装前置）：清理函数 + 命令清扫 + 注册表移除。

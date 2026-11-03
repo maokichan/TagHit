@@ -1,14 +1,21 @@
 # AGENTS — 插件开发上下文（plugins/ 唯一入口）
 
 > 写或改任何插件之前必读。本文件只放插件侧的**纪律红线与能力面**；机制论证与裁决在
-> DECISIONS（D42/D43/D46）、架构在 ARCHITECTURE §二——需要时按此下探，不在此复制。
+> DECISIONS（D42/D43/D46/D48）、架构在 ARCHITECTURE §二——需要时按此下探，不在此复制。
 
 ## 一、插件是什么
 
-`plugins/<dir>/` 独立目录 = 磁盘 `manifest.json`（id/title/description/settings/surfaces，
-source 由装载方打 contributed）+ 入口模块 `activate(ctx)`（返回清理函数，启停的机制承载）。
-当前模拟三方形态：发现/分发未接入，装载 = dev 硬编码清单（`DEV_PLUGINS`），**启动期主动激活
-是刻意的**（纯预览贡献方不挂停靠面，惰性装载对它永不触发）。
+`plugins/<dir>/` 独立目录 = 磁盘 `manifest.json`（id/title/description/version/author/
+apiVersion/settings/surfaces/mounts，source 由装载方打 contributed）+ 入口模块
+`activate(ctx)`（返回清理函数，启停的机制承载）。**启动期主动激活是刻意的**（纯预览
+贡献方不挂停靠面，惰性装载对它永不触发）。
+
+**装载（D48）**：宿主端点驱动的运行时装载（`DEV_PLUGINS` 手工清单已退役）——开发目录
+经 dev 态清单直入（源码走 vite `/@fs/` 编译，改完刷新窗口即生效）；**zip 分发**（
+`node scripts/pack-plugin.mjs <目录名>` 打包）→ 管理页「安装插件」→ `{userData}/plugins/<id>/`
+落位 → bundle 经 `taghit-plugin://` 协议装载。zip 包 = manifest.json + 预构建 ESM bundle
+（`index.js`，vue import 已重写到宿主共享模块）；manifest 必填 `version`/`apiVersion`
+（宿主安装校验，apiVersion 超宿主现值即拒装）。
 
 ## 二、纪律红线
 
@@ -32,19 +39,23 @@ source 由装载方打 contributed）+ 入口模块 `activate(ctx)`（返回清�
 
 ## 四、装载与调试
 
-- **新增插件**：`frontend/src/renderer/src/features/contributedPlugins.ts` 的 `DEV_PLUGINS` 加字面量条目（动态 import 必须字面量——vite/rollup 静态分析前提）。
-- **启停/管理**：插件面板（左侧「插件」）卡片启停开关；**管理页**（面板角标进全页）= 每插件的身份/贡献面/设置/启停 + 自开页入口；启用态存 config（`plugins:enabled:<featureId>`）。
-- **真机**：`npm run dev`；**宿主侧改动（ipc/preload）必须重新 bundle 并重启应用**，渲染层与插件改动刷新窗口即可。
+- **开发调试**：插件目录放 `plugins/`（dev 态自动进清单）——`npm run dev`，**渲染层与插件改动刷新窗口即可**（源码经 vite 即时编译）；**宿主侧改动（ipc/preload/协议）必须重启应用**（dev 启动会自动重新打包宿主）。
+- **zip 分发**：`node scripts/pack-plugin.mjs <目录名>` → `build/plugins/<id>-<version>.zip`（vite lib 构建 + vue 导入重写到宿主共享模块 + SFC 样式内联）→ 管理页「安装插件」导入；同 id 重装 = 覆盖升级，卸载 = 管理页危险确认。bare 依赖只允许 vue（打包时重写），其余一律 bundle 内联；契约模块 type-only 引用。
+- **启停/管理**：插件面板（左侧「插件」）卡片启停开关；**管理页**（面板角标进全页）= 每插件的身份/贡献面/设置/启停/卸载 + 安装入口 + 自开页入口；启用态存 config（`plugins:enabled:<featureId>`）；装载失败（清单/激活/HostApi 版本）在管理页错误卡呈现。
+- **安装位自检**：`node scripts/plugins-selfcheck.ts`（zip 安装/覆盖/校验拒绝/卸载/清单，node 直验）。
 
 ## 五、关键文件（按需读源码）
 
 | 文件 | 职责 |
 |---|---|
-| `frontend/src/renderer/src/features/contribution.ts` | 契约模块（插件 API 包的雏形） |
+| `frontend/src/renderer/src/features/contribution.ts` | 契约模块（插件 API 包的雏形；previews/commands owner 记账与清扫） |
 | `frontend/src/renderer/src/features/hostApi.ts` | HostApi 冻结面 + 版本号 |
-| `frontend/src/renderer/src/features/contributedPlugins.ts` | dev 装载 + 启停（含命令清扫、自开页 fullPage 绑定） |
+| `frontend/src/renderer/src/features/contributedPlugins.ts` | 运行时装载（宿主清单驱动、形态分派、启停/卸载/重装、loadErrors） |
 | `frontend/src/renderer/src/features/registry.ts` | 功能组件注册表 |
-| `frontend/src/renderer/src/features/plugins/PluginsFullPage.vue` | 插件管理页（全页呈现，D47） |
+| `frontend/src/renderer/src/features/plugins/PluginsFullPage.vue` | 插件管理页（安装/卸载/启停/设置/错误呈现，D47+D48） |
 | `frontend/src/renderer/src/features/detailPreview.ts` | detailPreview 认领解析（纯注册表） |
 | `frontend/src/renderer/src/features/preview/builtinPreviews.ts` | 内置四类预览的出厂注册（.vue 不进契约链） |
-| `plugins/audio-cover-player/` | 首插件样例（黑胶播放器：预览槽 + 命令 + 设置声明制 + 自开页「正在播放」——四个面的首个消费方） |
+| `src/host/plugins.ts` | 安装位纯逻辑（zip 校验/安装/卸载/清单；宿主 = 装载事实权威） |
+| `src/host/pluginProtocol.ts` | `taghit-plugin://` 模块协议（bundle 装载通道 + `__vendor/vue` 共享模块） |
+| `scripts/pack-plugin.mjs` | 插件 zip 打包（参考实现） |
+| `plugins/audio-cover-player/` | 首插件样例（黑胶播放器：预览槽 + 命令 + 设置声明制 + 自开页「正在播放」——四个面的首个消费方；已可 zip 分发） |

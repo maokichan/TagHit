@@ -31,10 +31,13 @@ export function registerPrivilegedSchemes(): void {
       privileges: { secure: true, supportFetchAPI: true, stream: true, corsEnabled: true },
     },
     {
-      // 插件模块协议（D48）：同款 opaque 形态——动态 import 的模块脚本按 CORS 抓取，
-      // 需要 corsEnabled + handler 回 ACAO:*（见 pluginProtocol.ts）。
+      // 插件模块协议（D48）：**standard 必须开**——ES 模块动态 import 只认标准 scheme
+      // （opaque 形态报 Failed to fetch，真机 dev 实测）；与 taghit-file 的 opaque 结论
+      // 不冲突：那个失败场景是空 host URL（taghit-file:///C%3A/...），本协议寻址段在
+      // host 位（taghit-plugin://<id>/<path>），路由正常。非特殊 scheme 不做 host 小写化，
+      // 插件 id 大小写保住；相对导入解析（bundle 内部 chunk）也依赖 standard。
       scheme: TAGHIT_PLUGIN_SCHEME,
-      privileges: { secure: true, supportFetchAPI: true, stream: true, corsEnabled: true },
+      privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true },
     },
   ])
 }

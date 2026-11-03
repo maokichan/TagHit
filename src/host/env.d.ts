@@ -28,6 +28,13 @@ declare module 'electron' {
     close(): void
     isDestroyed(): boolean
     readonly webContents: {
+      /** 最小面（TEMP 网络探针用）：会话级请求观测。 */
+      readonly session: {
+        webRequest: {
+          onErrorOccurred(listener: (details: { url: string; error: string }) => void): void
+          onCompleted(listener: (details: { url: string; statusCode: number }) => void): void
+        }
+      }
       on(
         event: 'console-message',
         listener: (event: unknown, level: number, message: string, line: number, sourceId: string) => void
@@ -137,7 +144,7 @@ declare module 'electron' {
   export const protocol: {
     registerSchemesAsPrivileged(schemes: {
       scheme: string
-      privileges: { secure?: boolean; supportFetchAPI?: boolean; stream?: boolean; corsEnabled?: boolean }
+      privileges: { standard?: boolean; secure?: boolean; supportFetchAPI?: boolean; stream?: boolean; corsEnabled?: boolean }
     }[]): void
     handle(scheme: string, handler: (request: Request) => Response | Promise<Response>): void
   }

@@ -500,7 +500,9 @@ function registerHandlers(): void {
   })
 
   // ---- 插件装载（D48）：宿主是装载事实权威（zip 校验/安装位）；激活在渲染层 ----
-  ipcMain.handle('plugins.list', () => envelope(listInstalls(pluginRoots())))
+  ipcMain.handle('plugins.list', () =>
+    envelope(listInstalls(pluginRoots()).then((installs) => ({ installs })))
+  )
   ipcMain.handle('plugins.peek', (_event, zipPath: string) =>
     envelope(peekZip(String(zipPath), userDataPluginsDir()))
   )
