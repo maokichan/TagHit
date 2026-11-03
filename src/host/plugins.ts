@@ -23,6 +23,7 @@
 import { mkdir, readdir, readFile, rename, rm, stat } from 'node:fs/promises'
 import { join, normalize, relative, sep } from 'node:path'
 import { open as yauzlOpen } from 'yauzl'
+import type { InstallForm, PluginInstallEntry, PluginManifestFile } from './ipc.ts'
 
 /** 与渲染层 features/hostApi.ts 的 HOST_API_VERSION 同值互指（additive 升级两处同升）。 */
 export const HOST_PLUGIN_API_VERSION = '0.2.4'
@@ -38,36 +39,6 @@ const SURFACES = ['dialog', 'toast'] as const
 
 /** id = 目录名 = 协议寻址段：字符集即安全边界；`__vendor` 保留（下划线开头非法）。 */
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/
-
-/** 磁盘 manifest 的宿主侧形状（校验权威在此；渲染层映射为 FeatureManifest 消费）。 */
-export interface PluginManifestFile {
-  id: string
-  title: string
-  description?: string
-  /** zip 分发必填（安装时校验）：分发没有仓库上下文，身份事实必须自带（D48）。 */
-  version?: string
-  author?: string
-  /** 声明面向的 HostApi 版本；缺省视为 dev（兼容现值），超出宿主现值即拒绝。 */
-  apiVersion?: string
-  /** 预构建 ESM 入口（相对包根，仅 bundle 形态消费）；缺省 index.js。 */
-  main?: string
-  mounts?: string[]
-  surfaces?: string[]
-  settings?: unknown[]
-}
-
-export type InstallForm = 'dev-source' | 'bundle'
-
-/** 清单条目：manifest 为 null / error 非 null = 装载不了的目录（用户可见，不静默吞）。 */
-export interface PluginInstallEntry {
-  /** 目录名（可能未通过 manifest 校验——错误条目也如实呈现）。 */
-  id: string
-  /** 绝对路径（dev-source 的模块获取要用）。 */
-  dir: string
-  form: InstallForm
-  manifest: PluginManifestFile | null
-  error: string | null
-}
 
 // ---- manifest 校验（readInstalls 与 installZip 共用同一条规则，不各写一份） ----
 

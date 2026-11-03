@@ -23,8 +23,6 @@ export default defineConfig({
     alias: {
       '@renderer': resolve(here, 'src/renderer/src'),
       '@shared': resolve(here, 'src/shared'),
-      // 三方插件目录（仓库根 plugins/，在 frontend 之外）：dev 装载与构建产物都需要它能解析
-      '@plugins': resolve(here, '../plugins'),
       // 插件目录向上找不到 frontend/node_modules（仓库根 node_modules 只有 ABI 依赖）——
       // 把 vue 钉到壳的同一份运行时（插件与壳共享一个 Vue 实例，SFC 编译产物才能落地）
       'vue': resolve(here, 'node_modules/vue'),
@@ -32,6 +30,18 @@ export default defineConfig({
   },
   plugins: [vue()],
   clearScreen: false,
+  build: {
+    rollupOptions: {
+      output: {
+        // vue-vendor：打包态插件协议按确定名直出（taghit-plugin:///__vendor/vue →
+        // renderer-dist/assets/vue-vendor.js）——三方 bundle 的 vue import 与壳同实例
+        manualChunks: {
+          'vue-vendor': ['vue'],
+        },
+        chunkFileNames: (chunk) => (chunk.name === 'vue-vendor' ? 'assets/vue-vendor.js' : 'assets/[name]-[hash].js'),
+      },
+    },
+  },
   server: {
     port: 5173,
     strictPort: true,

@@ -70,4 +70,10 @@ export interface FeatureManifest {
   surfaces?: Array<'dialog' | 'toast'>
   /** 选项的数据驱动源（预留：类别列表从 fileFormatMap、字段从 metadata-schema 生成；v0 未消费，语义落地前三方勿用） */
   dataSource?: 'fileFormatMap' | 'metadataSchema' | 'sortKeys' | null
+  /** 插件版本（zip 分发必填，D48；dev 清单可缺）。 */
+  version?: string
+  /** 作者（分发身份事实，D48）。 */
+  author?: string
+  /** 声明面向的 HostApi 版本：装载时与宿主 HOST_API_VERSION 比较，超出即拒绝激活（D48）。 */
+  apiVersion?: string
 }

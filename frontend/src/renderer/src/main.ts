@@ -5,7 +5,7 @@ import router from './router'
 import { useUiStore } from './stores/ui'
 import { registerBuiltinFeatures, setupFeatureBehaviors } from './features/registry'
 import { registerBuiltinDetailPreviews } from './features/preview/builtinPreviews'
-import { loadContributedPlugins } from './features/contributedPlugins'
+import { reloadPlugins } from './features/contributedPlugins'
 import { registerBuiltinDetailViews } from './features/detailWorkbench/views'
 import { registerBuiltinCommands } from './features/officialCommands'
 import './styles/globals.css'
@@ -21,9 +21,9 @@ async function bootstrap(): Promise<void> {
   registerBuiltinCommands()
   // 内置详情页预览提供方（detailPreview 槽的默认提供者，D37）
   registerBuiltinDetailPreviews()
-  // 三方插件装载（dev 接线，发现/分发未接入）：必须在内置预览**之后**——
-  // 后注册覆盖先注册，插件对同类条目的认领替换内置默认（D37 ②）
-  void loadContributedPlugins()
+  // 三方插件装载（D48：宿主清单端点驱动，zip 安装与 dev 源码同一条管线）：必须在内置
+  // 预览**之后**——后注册覆盖先注册，插件对同类条目的认领替换内置默认（D37 ②）
+  void reloadPlugins()
   // 内置详情页工作台视图（detailView 面的出厂分配：中心/右/底，D39）
   registerBuiltinDetailViews()
   app.mount('#app')

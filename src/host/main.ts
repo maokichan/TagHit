@@ -81,7 +81,8 @@ import type { AppServices, ItemContext, ScanOptions } from '../application/index
 import type { Id, TagProfile } from '../domain/index.ts'
 import type { ItemsQuery } from '../ports/index.ts'
 import type { DomainErrorCode } from '../domain/index.ts'
-import { installZip, listInstalls, uninstallPlugin, type InstallForm } from './plugins.ts'
+import { installZip, listInstalls, uninstallPlugin } from './plugins.ts'
+import type { InstallForm } from './ipc.ts'
 import { registerTaghitPluginProtocol } from './pluginProtocol.ts'
 
 function dbPath(): string {

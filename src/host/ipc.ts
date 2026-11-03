@@ -47,7 +47,6 @@ import type {
   VisibilitySummary,
 } from '../application/index.ts'
 import type { ScanOptions, ScanSummary } from '../application/index.ts'
-import type { PluginInstallEntry, PluginManifestFile } from './plugins.ts'
 
 /** 渲染层常用形状随契约一并交付（frontend 经 shared/contract.ts type-only 引用）。 */
 export type {
@@ -93,11 +92,38 @@ export type Result<T> = Ok<T> | Err
 /** 壳级窗口动作（无边框窗口的自绘控制键）。 */
 export type WindowAction = 'minimize' | 'toggleMaximize' | 'close'
 
-/**
- * 插件装载面（D48）：形状权威在 src/host/plugins.ts（纯模块，校验规则唯一实现）。
- * 此处 re-export 供渲染层 type-only 引用（shared/contract.ts 同款通道）。
- */
-export type { PluginInstallEntry, InstallForm, PluginManifestFile } from './plugins.ts'
+// ---- 插件装载面形状（D48）：契约形状归 ipc.ts（单一事实源），实现与校验在 plugins.ts ----
+
+/** 磁盘 manifest 的形状（校验权威在 plugins.ts；渲染层映射为 FeatureManifest 消费）。 */
+export interface PluginManifestFile {
+  id: string
+  title: string
+  description?: string
+  /** zip 分发必填（安装时校验）：分发没有仓库上下文，身份事实必须自带（D48）。 */
+  version?: string
+  author?: string
+  /** 声明面向的 HostApi 版本；缺省视为 dev（兼容现值），超出宿主现值即拒绝。 */
+  apiVersion?: string
+  /** 预构建 ESM 入口（相对包根，仅 bundle 形态消费）；缺省 index.js。 */
+  main?: string
+  mounts?: string[]
+  surfaces?: string[]
+  settings?: unknown[]
+}
+
+/** 安装位形态：dev-source = 仓库开发目录（vite /@fs/ 源码编译）；bundle = zip 安装位（插件协议）。 */
+export type InstallForm = 'dev-source' | 'bundle'
+
+/** 清单条目：manifest 为 null / error 非 null = 装载不了的目录（用户可见，不静默吞）。 */
+export interface PluginInstallEntry {
+  /** 目录名（可能未通过 manifest 校验——错误条目也如实呈现）。 */
+  id: string
+  /** 绝对路径（dev-source 的模块获取要用）。 */
+  dir: string
+  form: InstallForm
+  manifest: PluginManifestFile | null
+  error: string | null
+}
 
 /** 端点契约：args → result。新增端点在此加一行即获得两端类型。 */
 export interface IpcContracts {
