@@ -10,8 +10,9 @@
 
 import { afterEach, describe, expect, it } from 'vitest'
 import { registerCommand, unregisterCommand, assembleMenu, getCommand, listCommands } from '../features/commands'
+import { listDetailPreviews } from '../features/detailPreview'
 import { assemblePalette, buildPalette, matchCommand, paletteCandidates } from '../features/palette'
-import { createContributionContext, unregisterContributedCommands } from '../features/contribution'
+import { createContributionContext, sweepContributions } from '../features/contribution'
 import type { MenuContext, MenuGroup, WhenClause } from '@shared/types/command'
 
 const registered: string[] = []
@@ -168,15 +169,17 @@ describe('commands 槽（contributed 命令的贡献通路，D46）', () => {
     expect(getCommand('otherDomain.go')).toBeUndefined()
     ctx.commands.register({ id: 'fakeplug.ok', title: '本域' }, () => {})
     expect(getCommand('fakeplug.ok')).toBeDefined()
-    unregisterContributedCommands('fakeplug')
+    sweepContributions('fakeplug')
   })
 
-  it('停用清扫：unregisterContributedCommands 摘走该插件全部命令（忘摘也不能残留）', () => {
+  it('停用清扫：sweepContributions 摘走该插件全部贡献（命令+预览，忘摘也不能残留）', () => {
     const ctx = createContributionContext('fakeplug')
     ctx.commands.register({ id: 'fakeplug.a', title: 'A' }, () => {})
     ctx.commands.register({ id: 'fakeplug.b', title: 'B' }, () => {})
-    unregisterContributedCommands('fakeplug')
+    ctx.previews.register({ id: 'fakeplug:file', claims: () => false, component: { render: () => null } })
+    sweepContributions('fakeplug')
     expect(getCommand('fakeplug.a')).toBeUndefined()
     expect(getCommand('fakeplug.b')).toBeUndefined()
+    expect(listDetailPreviews().some((p) => p.id === 'fakeplug:file')).toBe(false)
   })
 })

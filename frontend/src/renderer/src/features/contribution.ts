@@ -49,35 +49,51 @@ export interface ContributionContext {
 /** 插件模块激活钩子：返回清理函数则由装载方存档（启停/卸载的机制承载） */
 export type PluginActivate = (ctx: ContributionContext) => void | (() => void)
 
-/** owner 记账：插件 id → 其经 ctx 注册过的命令 id（清扫的依据；重复 register 幂等）。 */
+/** owner 记账：插件 id → 其经 ctx 注册过的贡献 id（previews/commands 各一账；清扫与呈现的依据）。 */
+const previewsByOwner = new Map<string, Set<string>>()
 const commandsByOwner = new Map<string, Set<string>>()
 
+function ownerSet(map: Map<string, Set<string>>, featureId: string): Set<string> {
+  let set = map.get(featureId)
+  if (set == null) {
+    set = new Set()
+    map.set(featureId, set)
+  }
+  return set
+}
+
 /**
- * 停用清扫（contributedPlugins 的 setPluginEnabled(false) 调用）：摘除该插件的
- * 全部命令——插件自己的清理函数是第一道（previews 同款惯例），这里是兜底，
- * 插件忘摘也不能残留（不能悄悄接管）。
+ * 停用/卸载清扫（contributedPlugins 的 setPluginEnabled(false)/removePluginRuntime 调用）：
+ * 摘除该插件经 ctx 注册的**全部贡献**（previews + commands）——插件自己的清理函数是
+ * 第一道，这里是按 owner 的兜底，插件忘摘也不能残留（不能悄悄接管）。
  */
-export function unregisterContributedCommands(featureId: string): void {
-  const ids = commandsByOwner.get(featureId)
-  if (ids == null) return
-  for (const id of ids) unregisterCommand(id)
+export function sweepContributions(featureId: string): void {
+  for (const id of previewsByOwner.get(featureId) ?? []) unregisterDetailPreview(id)
+  previewsByOwner.delete(featureId)
+  for (const id of commandsByOwner.get(featureId) ?? []) unregisterCommand(id)
   commandsByOwner.delete(featureId)
 }
 
-export function createContributionContext(featureId: string): ContributionContext {
-  const tracked = (): Set<string> => {
-    let set = commandsByOwner.get(featureId)
-    if (set == null) {
-      set = new Set()
-      commandsByOwner.set(featureId, set)
-    }
-    return set
+/** 某插件当前经 ctx 注册的贡献 id 清单（管理页呈现用；停用清扫后即空——如实呈现）。 */
+export function contributionsOf(featureId: string): { previews: string[]; commands: string[] } {
+  return {
+    previews: [...previewsByOwner.get(featureId) ?? []],
+    commands: [...commandsByOwner.get(featureId) ?? []],
   }
+}
+
+export function createContributionContext(featureId: string): ContributionContext {
   return {
     hostApi,
     previews: {
-      register: registerDetailPreview,
-      unregister: unregisterDetailPreview
+      register(provider) {
+        registerDetailPreview(provider)
+        ownerSet(previewsByOwner, featureId).add(provider.id)
+      },
+      unregister(id) {
+        unregisterDetailPreview(id)
+        previewsByOwner.get(featureId)?.delete(id)
+      }
     },
     commands: {
       register(manifest, run) {
@@ -88,7 +104,7 @@ export function createContributionContext(featureId: string): ContributionContex
         }
         try {
           registerCommand({ ...manifest, source: 'contributed' }, run)
-          tracked().add(manifest.id)
+          ownerSet(commandsByOwner, featureId).add(manifest.id)
         } catch (error) {
           console.error(`[plugins] 命令注册被拒绝（重复 id）：${manifest.id}`, error)
         }

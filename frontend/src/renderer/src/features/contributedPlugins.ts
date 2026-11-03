@@ -28,7 +28,7 @@
 
 import { ref } from 'vue'
 import { getFeature, registerContributedFeature, listContributedFeatures, unregisterFeature } from './registry'
-import { createContributionContext, unregisterContributedCommands } from './contribution'
+import { createContributionContext, sweepContributions } from './contribution'
 import type { PluginActivate } from './contribution'
 import { HOST_API_VERSION } from './hostApi'
 import { useConfigStore } from '../stores/config'
@@ -117,7 +117,7 @@ function moduleUrl(entry: PluginInstallEntry, m: NonNullable<PluginInstallEntry[
 function removePluginRuntime(featureId: string): void {
   disposers.get(featureId)?.()
   disposers.delete(featureId)
-  unregisterContributedCommands(featureId)
+  sweepContributions(featureId)
   unregisterFeature(featureId)
   const store = useTabStore()
   for (const t of [...store.tabs]) {
@@ -183,7 +183,7 @@ export async function setPluginEnabled(featureId: string, enabled: boolean): Pro
   config.setValue('plugins', `enabled:${featureId}`, enabled)
   disposers.get(featureId)?.()
   disposers.delete(featureId)
-  unregisterContributedCommands(featureId)
+  sweepContributions(featureId)
   if (!enabled) {
     const store = useTabStore()
     for (const t of [...store.tabs]) {

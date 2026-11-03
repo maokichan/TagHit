@@ -17,8 +17,8 @@
 import { computed, ref } from 'vue'
 import { ExternalLink, PackageOpen, Trash2 } from 'lucide-vue-next'
 import { getFeature, declaresFullPage } from '../registry'
-import { listDetailPreviews } from '../detailPreview'
 import { listCommands } from '../commands'
+import { contributionsOf } from '../contribution'
 import {
   isPluginEnabled,
   listInstallErrors,
@@ -139,14 +139,15 @@ async function confirmInstall(): Promise<void> {
   }
 }
 
-// ---- 贡献面清单（注册表现取，如实呈现；停用即空） ------------------------------
+// ---- 贡献面清单（owner 记账现取，如实呈现；停用清扫后即空。D48④：不再按 id 前缀推导） ----
 function previewsOf(featureId: string): string[] {
-  return listDetailPreviews().filter((p) => p.id.startsWith(`${featureId}:`)).map((p) => p.id)
+  return contributionsOf(featureId).previews
 }
 function commandsOf(featureId: string): Array<{ id: string; title: string }> {
-  return listCommands()
-    .filter((e) => e.manifest.source === 'contributed' && e.manifest.id.startsWith(`${featureId}.`))
-    .map((e) => ({ id: e.manifest.id, title: e.manifest.title }))
+  const commands = new Map(listCommands().map((e) => [e.manifest.id, { id: e.manifest.id, title: e.manifest.title }]))
+  return contributionsOf(featureId).commands
+    .map((id) => commands.get(id))
+    .filter((c): c is { id: string; title: string } => c != null)
 }
 function hasContributions(featureId: string): boolean {
   return previewsOf(featureId).length > 0 || commandsOf(featureId).length > 0
