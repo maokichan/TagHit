@@ -23,7 +23,6 @@ import {
   isPluginEnabled,
   listInstallErrors,
   reloadPlugins,
-  removePlugin,
   setPluginEnabled,
 } from '../contributedPlugins'
 import { useConfigStore } from '../../stores/config'
@@ -99,7 +98,9 @@ async function uninstall(row: PluginRow): Promise<void> {
   error.value = null
   try {
     await api.plugins.uninstall(row.id)
-    removePlugin(row.id)
+    // 重同步而非只摘除：同 id 的开发目录条目（dev 态并存）共享一个注册表位，
+    // 只摘除会把仍应存在的它连带带走——reloadPlugins 按宿主清单重建运行时
+    await reloadPlugins()
     await refresh()
   } catch (e) {
     error.value = message(e)

@@ -103,12 +103,14 @@ function manifestOf(m: NonNullable<PluginInstallEntry['manifest']>): Omit<Featur
   }
 }
 
-/** 模块地址：dev-source 走 vite /@fs/ 源码编译（仅 dev 态，宿主只在此形态给仓库目录）；bundle 走插件协议。 */
+/** 模块地址：dev-source 走 vite /@fs/ 源码编译（仅 dev 态，宿主只在此形态给仓库目录）；
+ *  bundle 走插件协议——URL 带版本查询串：浏览器按 URL 缓存模块，同 URL 的覆盖安装
+ *  会命中旧模块缓存（重启才生效），版本变化即新 URL，覆盖立即生效。 */
 function moduleUrl(entry: PluginInstallEntry, m: NonNullable<PluginInstallEntry['manifest']>): string {
   if (entry.form === 'dev-source') {
     return `${location.origin}/@fs/${entry.dir.replaceAll('\\', '/')}/src/index.ts`
   }
-  return `taghit-plugin://${m.id}/${m.main ?? 'index.js'}`
+  return `taghit-plugin://${m.id}/${m.main ?? 'index.js'}?v=${encodeURIComponent(m.version ?? '0')}`
 }
 
 /** 完整摘除一个插件的运行时存在（卸载/重装前置）：清理函数 + 命令清扫 + 注册表移除。
@@ -177,8 +179,8 @@ export async function reloadPlugins(): Promise<void> {
   }
 }
 
-/** 启停开关：停用 = 调清理函数（贡献摘除）+ 按 owner 清扫命令（D46 兜底，停用不得残留）
- *  + 关闭已打开的自开页标签（注册保留，面板仍可见）；启用 = 重新激活。 */
+/** 启停开关：停用 = 调清理函数（贡献摘除）+ 按 owner 清扫贡献（注册保留，面板可见）
+ *  + 关闭已打开的自开页标签；启用 = 重新激活。卸载后的运行时重建走 reloadPlugins。 */
 export async function setPluginEnabled(featureId: string, enabled: boolean): Promise<void> {
   config.setValue('plugins', `enabled:${featureId}`, enabled)
   disposers.get(featureId)?.()
@@ -193,9 +195,4 @@ export async function setPluginEnabled(featureId: string, enabled: boolean): Pro
   }
   const entry = getFeature(featureId)
   if (entry?.impl.type === 'async') await entry.impl.load()
-}
-
-/** 卸载的渲染层侧：完整摘除运行时存在（磁盘删除由宿主端点完成）。 */
-export function removePlugin(featureId: string): void {
-  removePluginRuntime(featureId)
 }
