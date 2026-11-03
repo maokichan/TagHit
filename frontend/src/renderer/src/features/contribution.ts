@@ -104,10 +104,18 @@ export function createContributionContext(featureId: string): ContributionContex
         }
         try {
           registerCommand({ ...manifest, source: 'contributed' }, run)
-          ownerSet(commandsByOwner, featureId).add(manifest.id)
-        } catch (error) {
-          console.error(`[plugins] 命令注册被拒绝（重复 id）：${manifest.id}`, error)
+        } catch {
+          // 重复 id = 重激活残留（模块缓存的旧命令未被清干净）：替换而非拒绝——
+          // 重激活语义是"这家插件的这一版贡献生效"，卡死在旧账会让贡献面残缺
+          try {
+            unregisterCommand(manifest.id)
+            registerCommand({ ...manifest, source: 'contributed' }, run)
+          } catch (error) {
+            console.error(`[plugins] 命令注册失败：${manifest.id}`, error)
+            return
+          }
         }
+        ownerSet(commandsByOwner, featureId).add(manifest.id)
       },
       unregister(id) {
         unregisterCommand(id)

@@ -109,6 +109,8 @@ declare module 'electron' {
     /** 立即退出（不经 ready/窗口生命周期）：--diagnose 打印快照后用（D45）。 */
     exit(code?: number): void
     on(event: 'window-all-closed' | 'activate', listener: () => void): void
+    /** TEMP 退出路径探针用（验证后撤）。 */
+    on(event: 'before-quit', listener: (event: { preventDefault(): void }) => void): void
     /** 宿主子进程（GPU/utility 等）退出：黑屏/渲染异常的宿主侧旁证（D45）。 */
     on(
       event: 'child-process-gone',
@@ -156,6 +158,8 @@ declare const process: {
   argv: string[]
   versions: { electron?: string }
   exit(code?: number): never
+  /** TEMP 退出路径探针用（验证后撤）。 */
+  on(event: 'exit', listener: (code: number) => void): void
 }
 
 declare interface Window {
