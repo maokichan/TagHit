@@ -540,10 +540,11 @@ function createWindow(): void {
       nodeIntegration: false,
     },
   })
-  // 开发态走 dev server URL（TAGHIT_RENDERER_URL）；打包态渲染层静态产物随包
-  // （asar 内 renderer-dist/，hash 路由 + base './' 使 file:// 可用），loadFile 直取
+  // 开发态走 dev server URL（TAGHIT_RENDERER_URL）；打包态渲染层静态产物随包在 asar 根
+  // renderer-dist/（files 配置归置在根，而本文件在 asar 内 build/——锚 app.getAppPath()
+  // 即 asar 根，与 preload 同法；不锚 __dirname。hash 路由 + base './' 使 file:// 可用）
   const rendererTarget = (): string =>
-    app.isPackaged ? join(__dirname, 'renderer-dist', 'index.html') : (process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173')
+    app.isPackaged ? join(app.getAppPath(), 'renderer-dist', 'index.html') : (process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173')
   const loadRenderer = (): Promise<void> => {
     if (!app.isPackaged) return win.loadURL(rendererTarget())
     return win.loadFile(rendererTarget())

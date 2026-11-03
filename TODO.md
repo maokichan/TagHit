@@ -66,7 +66,7 @@
 
 ## 前后端边界 / 契约
 
-- **全局搜索的入口归属**：现挂在「插件」面板的全页入口清单名下（名录里 plugins = 入口清单）——官方功能借用插件清单当入口是权宜。要正经解决需裁决：名录给 globalSearch 定位（活动栏工具？保留现状？），动名录先改 ARCHITECTURE。
+- **全局搜索的入口归属与形态**（整体未裁决，思路只记录）：①归属——现挂在「插件」面板的全页入口清单名下（名录里 plugins = 入口清单），官方功能借用插件清单当入口是权宜；正经解决需裁决名录给 globalSearch 定位（活动栏工具？保留现状？），动名录先改 ARCHITECTURE。②入口形态候选——在现搜索按钮处**向左弹胶囊页**，有标签页时标签页避让。③深层问题（暂无处理思路）——搜索改变的是**提交到页面上的内容**，其作用域与生命周期牵动功能组件的显示与挂载根。④冲突方向——详情页的搜索交互语义应是**编辑模式内搜索待选标签**，需深度处理。
 - **单向端点的边界**：`IpcSendContracts` 无回程，凡新增此类端点都必须自带"渲染层预检"（否则失败静默）。目前只有 `drag.start` 一个消费方；出现第二个时再考虑统一的回执面（事件面见 D6）。
 - **TEXT_EXTS 双表收敛**：文本预览白名单若频繁变动，契约加拉取端点（现为双表硬编码）。音频扩展名表同款双表（宿主 audioMeta 闸门 vs 渲染层默认类别映射，D42——类别映射是用户可配置项，宿主只对齐默认表），漂移只影响封面提取覆盖面，随本条一并收敛。
 - **格式映射变更后的已加载视图**（D36 已知边界）：类别 → 扩展名映射改动即生效于新查询，但已加载的条目视图（卡片的类别图标/详情预览形态）要到下次查询才重推导；若要即时，需映射变更触发一次失效重查。
@@ -79,7 +79,7 @@
 - **frontend/package.json 双身份收敛**：已清（0.3.0 打包随行）——死脚本（build:win/release:win 指向丢失的 ps1、build:mac/linux、electron-vite dev/start/build、postinstall）与 `main`/`version`/`license` 字段撤除，版本与 LICENSE 归口根 package.json；frontend 定位收敛为"渲染层 + 工具链宿主"。
 - **启动失败可见性**（黑屏不是可接受的终态）：渲染进程崩溃自恢复的 3 次上限用尽后**停在黑屏**——应用尽时渲染一张错误页（"渲染进程反复崩溃，请重启应用"）。（单实例锁的原生错误框已在宿主实现；首载失败的错误框 + 诊断快照 + `--diagnose` 已随 D45 落地。）
 
-- **打包分发（便携 zip）**：装配线已落地（0.3.0）——`npm run pack` = bundle:host → vite 构建（base './'，hash 路由使 file:// 可用）→ renderer-dist 归置 → electron-builder（`electron-builder.yml`：zip target、asarUnpack better-sqlite3、files 只收编译产物 + 三件套；插件经 @plugins 字面量 import 静态入渲染层 bundle，不单独携带）；库定位 userData 早已就绪（host dbPath 缺省分支，dev 经 TAGHIT_DB 隔离）。余：**打包态渲染层路径错位**（真机首轮实测抓出）：打包入口 `build/main.cjs` 在 asar 内 `__dirname = app.asar/build`，宿主 loadFile 取 `build/renderer-dist/index.html`（main.ts），而 files 配置把 renderer-dist 打在 asar 根——路径永对不上；表现为进程/窗口照起、界面全黑"打不开"、无崩溃记录（系统日志查不到）。修法二选一：loadFile 改锚 `app.getAppPath()`（asar 根），或 files/pack.mjs 把 renderer-dist 归到与 main.cjs 同侧（真机手工修复即此法；0.3.0 原包重装必复发）；**本机验证判据要补"界面真渲染"**（0.3.0 当时只核到进程与库落位）；修后真机复验。ABI 首轮已过（better-sqlite3 在真机正常装载），样本仅一台。**随包一句话说明**（SmartScreen 弹窗走"更多信息 → 仍要运行"；要免提示再上签名，Azure Trusted Signing 类月费方案，用户群扩大后再议）。
+- **打包分发（便携 zip）**：装配线已落地（0.3.0）——`npm run pack` = bundle:host → vite 构建（base './'，hash 路由使 file:// 可用）→ renderer-dist 归置 → electron-builder（`electron-builder.yml`：zip target、asarUnpack better-sqlite3、files 只收编译产物 + 三件套；插件经 @plugins 字面量 import 静态入渲染层 bundle，不单独携带）；库定位 userData 早已就绪（host dbPath 缺省分支，dev 经 TAGHIT_DB 隔离）。余：**打包态路径修复的真机复验**（打包态渲染层路径错位已修——宿主 loadFile 改锚 `app.getAppPath()` 即 asar 根，渲染层产物本就打在根；修复前打的 0.3.0 zip（已外流或存档的）为错位包**作废勿再分发**；`release/` 现存同名 zip 已是修复后重打）——真机验证判据要补**"界面真渲染"**（0.3.0 当时只核到进程与库落位；复验由开发者执行）。ABI 首轮已过（better-sqlite3 在真机正常装载），样本仅一台。**随包一句话说明**（SmartScreen 弹窗走"更多信息 → 仍要运行"；要免提示再上签名，Azure Trusted Signing 类月费方案，用户群扩大后再议）。
 
 - **远端 CI（GitHub Actions）**：待仓库有远端再接——Node 24 + 只装 frontend 依赖（校准走 node:sqlite，不需要编译 better-sqlite3）；本地门见 CONTEXT §五。
 - **测试三件套**（方案裁决：成熟工具为主，自研只留场景；渲染层断言归 Vitest，见 D30）：
