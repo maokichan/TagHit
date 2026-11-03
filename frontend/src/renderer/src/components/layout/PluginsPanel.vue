@@ -77,6 +77,6 @@ function open(featureId: string, title: string): void {
       </div>
     </div>
 
-    <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">三方插件尚未开放安装。</p>
+    <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">安装插件（zip 包）请进管理页。</p>
   </div>
 </template>

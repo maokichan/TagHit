@@ -14,6 +14,7 @@ import {
   apiVersionAtMost,
   installZip,
   listInstalls,
+  peekZip,
   uninstallPlugin,
   type PluginManifestFile,
 } from '../src/host/plugins.ts'
@@ -155,6 +156,19 @@ try {
   ])
   const r3 = await installZip(nested, installsRoot)
   assert(r3.replaced === true && r3.manifest.version === '3.0.0', '单层目录包根定位')
+
+  // ③b peek：读包不落位（conflict 判定 + 不留目录）
+  const peekA = await peekZip(zipPath, installsRoot)
+  assert(peekA.conflict === true && peekA.manifest.version === '2.0.0', 'peek：同 id 冲突判定')
+  const otherZip = zip('other.zip')
+  await writeFixtureZip(otherZip, [
+    { name: 'manifest.json', data: manifestJson({ id: 'otherPlugin', version: '1.0.0' }) },
+    { name: 'index.js', data: '' },
+  ])
+  const peekB = await peekZip(otherZip, installsRoot)
+  assert(peekB.conflict === false, 'peek：新 id 无冲突')
+  const noLeak = await readFile(join(installsRoot, 'otherPlugin', 'manifest.json')).then(() => false).catch(() => true)
+  assert(noLeak, 'peek：不落位')
 
   // ④ 缺 version（zip 分发必填）
   const noVersion = zip('no-version.zip')

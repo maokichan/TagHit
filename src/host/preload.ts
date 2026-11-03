@@ -50,6 +50,7 @@ const api: TaghitRendererApi = {
   pickZip: () => invoke('dialog.pickZip'),
 
   listPlugins: () => invoke('plugins.list'),
+  peekPlugin: (zipPath) => invoke('plugins.peek', zipPath),
   installPlugin: (zipPath) => invoke('plugins.install', zipPath),
   uninstallPlugin: (id) => invoke('plugins.uninstall', id),
 

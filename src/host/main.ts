@@ -81,7 +81,7 @@ import type { AppServices, ItemContext, ScanOptions } from '../application/index
 import type { Id, TagProfile } from '../domain/index.ts'
 import type { ItemsQuery } from '../ports/index.ts'
 import type { DomainErrorCode } from '../domain/index.ts'
-import { installZip, listInstalls, uninstallPlugin } from './plugins.ts'
+import { installZip, listInstalls, peekZip, uninstallPlugin } from './plugins.ts'
 import type { InstallForm } from './ipc.ts'
 import { registerTaghitPluginProtocol } from './pluginProtocol.ts'
 
@@ -501,6 +501,9 @@ function registerHandlers(): void {
 
   // ---- 插件装载（D48）：宿主是装载事实权威（zip 校验/安装位）；激活在渲染层 ----
   ipcMain.handle('plugins.list', () => envelope(listInstalls(pluginRoots())))
+  ipcMain.handle('plugins.peek', (_event, zipPath: string) =>
+    envelope(peekZip(String(zipPath), userDataPluginsDir()))
+  )
   ipcMain.handle('plugins.install', (_event, zipPath: string) =>
     envelope(installZip(String(zipPath), userDataPluginsDir()))
   )

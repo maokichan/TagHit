@@ -197,6 +197,7 @@ export interface IpcContracts {
 
   // ---- 插件装载 plugins：zip 安装 / 清单 / 卸载（D48；装载激活在渲染层，宿主是装载事实权威） ----
   'plugins.list': { args: []; result: { installs: PluginInstallEntry[] } }
+  'plugins.peek': { args: [zipPath: string]; result: { manifest: PluginManifestFile; conflict: boolean } }
   'plugins.install': { args: [zipPath: string]; result: { manifest: PluginManifestFile; replaced: boolean } }
   'plugins.uninstall': { args: [id: string]; result: null }
 
@@ -318,6 +319,7 @@ export interface TaghitRendererApi {
   pickZip(): Promise<IpcResult<'dialog.pickZip'>>
 
   listPlugins(): Promise<IpcResult<'plugins.list'>>
+  peekPlugin(zipPath: string): Promise<IpcResult<'plugins.peek'>>
   installPlugin(zipPath: string): Promise<IpcResult<'plugins.install'>>
   uninstallPlugin(id: string): Promise<IpcResult<'plugins.uninstall'>>
 

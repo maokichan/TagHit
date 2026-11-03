@@ -300,6 +300,10 @@ export const api = {
     async list(): Promise<{ installs: PluginInstallEntry[] }> {
       return unwrap(await bridge().listPlugins())
     },
+    /** 预检读包（不落位）：安装确认页在用户拍板前展示身份事实；conflict = 同 id 已装。 */
+    async peek(zipPath: string): Promise<{ manifest: PluginManifestFile; conflict: boolean }> {
+      return unwrap(await bridge().peekPlugin(zipPath))
+    },
     /** 安装 zip 插件包（更新 = 同 id 覆盖）；返回落位 manifest 与是否覆盖。 */
     async install(zipPath: string): Promise<{ manifest: PluginManifestFile; replaced: boolean }> {
       return unwrap(await bridge().installPlugin(zipPath))

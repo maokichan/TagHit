@@ -184,7 +184,60 @@ export async function listInstalls(roots: Array<{ root: string; form: InstallFor
   return entries
 }
 
-// ---- zip 安装 ----
+/** 解包到临时目录并定位包根 + 按 zip 分发口径校验 manifest（install 与 peek 共用，不各写一份）。
+ *  临时目录随返回值交调用方清理（peek 读完即删、install rename 后清余壳）。 */
+async function extractAndValidate(zipPath: string, installsRoot: string): Promise<{ tmp: string; pkgRoot: string; manifest: PluginManifestFile }> {
+  await stat(zipPath).catch(() => {
+    throw new Error(`插件包不存在（${zipPath}）`)
+  })
+  await precheckZip(zipPath)
+  await mkdir(installsRoot, { recursive: true })
+  const tmp = join(installsRoot, `.tmp-install-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+  await rm(tmp, { recursive: true, force: true })
+  try {
+    await extractZip(zipPath, tmp)
+    // 包根定位：manifest.json 在解包根；或唯一一级目录内有 manifest.json（打包器常套一层目录）
+    let pkgRoot = tmp
+    if (!(await stat(join(tmp, 'manifest.json')).catch(() => null))?.isFile()) {
+      const children = (await readdir(tmp, { withFileTypes: true })).filter((d) => !d.name.startsWith('.'))
+      const dirs = children.filter((d) => d.isDirectory())
+      if (dirs.length === 1 && (await stat(join(tmp, dirs[0].name, 'manifest.json')).catch(() => null))?.isFile()) {
+        pkgRoot = join(tmp, dirs[0].name)
+      } else {
+        throw new Error('插件包根缺 manifest.json——包内应有 manifest.json（或包成单层目录）')
+      }
+    }
+    let manifestRaw: unknown
+    try {
+      manifestRaw = JSON.parse(await readFile(join(pkgRoot, 'manifest.json'), 'utf8'))
+    } catch (error) {
+      throw new Error(`manifest.json 不是合法 JSON（${error instanceof Error ? error.message : String(error)}）`)
+    }
+    const manifest = validateManifest(manifestRaw, true)
+    if (!apiVersionAtMost(manifest.apiVersion ?? HOST_PLUGIN_API_VERSION, HOST_PLUGIN_API_VERSION)) {
+      throw new Error(`插件要求 HostApi ${manifest.apiVersion}，当前宿主 ${HOST_PLUGIN_API_VERSION}——请升级 TagHit 后再安装`)
+    }
+    const entryStat = await stat(join(pkgRoot, manifest.main ?? 'index.js')).catch(() => null)
+    if (entryStat == null || !entryStat.isFile()) {
+      throw new Error(`入口模块缺失（${manifest.main ?? 'index.js'}）——zip 需包含预构建的 ESM bundle`)
+    }
+    return { tmp, pkgRoot, manifest }
+  } catch (error) {
+    await rm(tmp, { recursive: true, force: true }).catch(() => {})
+    throw error
+  }
+}
+
+/** 预检读包（不落位）：安装确认页在用户拍板前展示身份事实；conflict = 同 id 已安装（将覆盖）。 */
+export async function peekZip(zipPath: string, installsRoot: string): Promise<{ manifest: PluginManifestFile; conflict: boolean }> {
+  const { tmp, manifest } = await extractAndValidate(zipPath, installsRoot)
+  try {
+    const conflict = (await stat(join(installsRoot, manifest.id)).catch(() => null))?.isDirectory() === true
+    return { manifest, conflict }
+  } finally {
+    await rm(tmp, { recursive: true, force: true }).catch(() => {})
+  }
+}
 
 /** yauzl 中央目录预检：条目数/解压总量上限 + 文件名合法性（`\`、`..` 段、绝对路径、盘符在此拒绝）。 */
 function precheckZip(zipPath: string): Promise<void> {
@@ -234,40 +287,8 @@ async function extractZip(zipPath: string, dir: string): Promise<void> {
  * 目标已存在则先删 → rename 落位。返回 { manifest, replaced }。
  */
 export async function installZip(zipPath: string, installsRoot: string): Promise<{ manifest: PluginManifestFile; replaced: boolean }> {
-  await stat(zipPath).catch(() => {
-    throw new Error(`插件包不存在（${zipPath}）`)
-  })
-  await precheckZip(zipPath)
-  await mkdir(installsRoot, { recursive: true })
-  const tmp = join(installsRoot, `.tmp-install-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
-  await rm(tmp, { recursive: true, force: true })
+  const { tmp, pkgRoot, manifest } = await extractAndValidate(zipPath, installsRoot)
   try {
-    await extractZip(zipPath, tmp)
-    // 包根定位：manifest.json 在解包根；或唯一一级目录内有 manifest.json（打包器常套一层目录）
-    let pkgRoot = tmp
-    if (!(await stat(join(tmp, 'manifest.json')).catch(() => null))?.isFile()) {
-      const children = (await readdir(tmp, { withFileTypes: true })).filter((d) => !d.name.startsWith('.'))
-      const dirs = children.filter((d) => d.isDirectory())
-      if (dirs.length === 1 && (await stat(join(tmp, dirs[0].name, 'manifest.json')).catch(() => null))?.isFile()) {
-        pkgRoot = join(tmp, dirs[0].name)
-      } else {
-        throw new Error('插件包根缺 manifest.json——包内应有 manifest.json（或包成单层目录）')
-      }
-    }
-    let manifestRaw: unknown
-    try {
-      manifestRaw = JSON.parse(await readFile(join(pkgRoot, 'manifest.json'), 'utf8'))
-    } catch (error) {
-      throw new Error(`manifest.json 不是合法 JSON（${error instanceof Error ? error.message : String(error)}）`)
-    }
-    const manifest = validateManifest(manifestRaw, true)
-    if (!apiVersionAtMost(manifest.apiVersion ?? HOST_PLUGIN_API_VERSION, HOST_PLUGIN_API_VERSION)) {
-      throw new Error(`插件要求 HostApi ${manifest.apiVersion}，当前宿主 ${HOST_PLUGIN_API_VERSION}——请升级 TagHit 后再安装`)
-    }
-    const entryStat = await stat(join(pkgRoot, manifest.main ?? 'index.js')).catch(() => null)
-    if (entryStat == null || !entryStat.isFile()) {
-      throw new Error(`入口模块缺失（${manifest.main ?? 'index.js'}）——zip 需包含预构建的 ESM bundle`)
-    }
     const target = join(installsRoot, manifest.id)
     if (!isUnderDir(installsRoot, target)) throw new Error(`安装落点越界（${manifest.id}）`)
     let replaced = false
