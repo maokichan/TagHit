@@ -42,6 +42,8 @@ export interface DiagnosticsPaths {
   rendererTarget: string
   /** 打包态可判（目标文件在不在）；dev 态目标是 URL，无文件可判 → null。 */
   rendererTargetExists: boolean | null
+  /** 插件安装位（D48）：[开发目录（仅 dev）, 用户安装位]。 */
+  pluginRoots: string[]
 }
 
 export interface DiagnosticsSnapshot {
@@ -115,6 +117,7 @@ export function staticFacts(input: {
       dbPath: input.dbPath,
       rendererTarget: '',
       rendererTargetExists: null,
+      pluginRoots: [],
     },
     load: { mode: input.isPackaged ? 'packaged' : 'dev', target: '', ok: false, failCount: 0, lastError: null },
     events: [],

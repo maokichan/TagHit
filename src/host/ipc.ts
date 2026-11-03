@@ -47,6 +47,7 @@ import type {
   VisibilitySummary,
 } from '../application/index.ts'
 import type { ScanOptions, ScanSummary } from '../application/index.ts'
+import type { PluginInstallEntry, PluginManifestFile } from './plugins.ts'
 
 /** 渲染层常用形状随契约一并交付（frontend 经 shared/contract.ts type-only 引用）。 */
 export type {
@@ -91,6 +92,12 @@ export type Result<T> = Ok<T> | Err
 
 /** 壳级窗口动作（无边框窗口的自绘控制键）。 */
 export type WindowAction = 'minimize' | 'toggleMaximize' | 'close'
+
+/**
+ * 插件装载面（D48）：形状权威在 src/host/plugins.ts（纯模块，校验规则唯一实现）。
+ * 此处 re-export 供渲染层 type-only 引用（shared/contract.ts 同款通道）。
+ */
+export type { PluginInstallEntry, InstallForm, PluginManifestFile } from './plugins.ts'
 
 /** 端点契约：args → result。新增端点在此加一行即获得两端类型。 */
 export interface IpcContracts {
@@ -159,6 +166,13 @@ export interface IpcContracts {
 
   // ---- 对话框 dialog：原生目录选择（唯一 dialog 端点；取消 → null） ----
   'dialog.pickDirectory': { args: []; result: string | null }
+  /** 原生文件选择（zip 插件包；D48 分发 v1。与 pickDirectory 同域：只此一类，不开通用口子）。 */
+  'dialog.pickZip': { args: []; result: string | null }
+
+  // ---- 插件装载 plugins：zip 安装 / 清单 / 卸载（D48；装载激活在渲染层，宿主是装载事实权威） ----
+  'plugins.list': { args: []; result: { installs: PluginInstallEntry[] } }
+  'plugins.install': { args: [zipPath: string]; result: { manifest: PluginManifestFile; replaced: boolean } }
+  'plugins.uninstall': { args: [id: string]; result: null }
 
   // ---- 工作区 workspace：建 / 列 / 浏览 / 来源根 ---------------------------
   'workspace.create': { args: [name: string]; result: Workspace }
@@ -275,6 +289,11 @@ export interface TaghitRendererApi {
   trashFsEntry(input: { workspaceId: Id; path: string }): Promise<IpcResult<'fs.trash'>>
 
   pickDirectory(): Promise<IpcResult<'dialog.pickDirectory'>>
+  pickZip(): Promise<IpcResult<'dialog.pickZip'>>
+
+  listPlugins(): Promise<IpcResult<'plugins.list'>>
+  installPlugin(zipPath: string): Promise<IpcResult<'plugins.install'>>
+  uninstallPlugin(id: string): Promise<IpcResult<'plugins.uninstall'>>
 
   createWorkspace(name: string): Promise<IpcResult<'workspace.create'>>
   listWorkspaces(): Promise<IpcResult<'workspace.list'>>

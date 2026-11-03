@@ -13,6 +13,8 @@ declare module 'node:path' {
   export function dirname(path: string): string
   export function join(...parts: string[]): string
   export function resolve(...parts: string[]): string
+  /** 插件安装位落点校验（plugins.ts isUnderDir）。 */
+  export function relative(from: string, to: string): string
 }
 
 declare module 'node:fs' {
@@ -22,6 +24,8 @@ declare module 'node:fs' {
   export interface StatLike {
     size: number
     mtime: Date
+    isFile(): boolean
+    isDirectory(): boolean
   }
   export function createReadStream(path: string, options?: { start?: number; end?: number }): ReadStream
   export function statSync(path: string): StatLike
@@ -42,6 +46,26 @@ declare module 'node:stream' {
 /** 主进程真实运行在完整 Node（better-sqlite3 场景），此处仅补类型检查用最小面。 */
 declare const Buffer: {
   from(data: string, encoding: string): Uint8Array
+}
+
+/** yauzl（extract-zip 的解包引擎，插件安装位预检用；@types 被 .npmrc omit，最小面自维护）。 */
+declare module 'yauzl' {
+  export interface Entry {
+    fileName: string
+    uncompressedSize: number
+  }
+  export interface ZipFile {
+    on(event: 'entry', listener: (entry: Entry) => void): void
+    on(event: 'end', listener: () => void): void
+    on(event: 'error', listener: (error: Error) => void): void
+    readEntry(): void
+    close(): void
+  }
+  export function open(
+    path: string,
+    options: { lazyEntries: true },
+    callback: (error: Error | null, zipfile?: ZipFile) => void
+  ): void
 }
 
 /** bundle:host 以 cjs 格式输出（build/main.cjs），CJS 的模块目录全局在运行时存在。 */

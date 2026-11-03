@@ -35,4 +35,8 @@ declare module 'node:fs/promises' {
   }>
   export function open(path: string, flags: string): Promise<FileHandle>
   export function rename(from: string, to: string): Promise<void>
+  /** 插件安装位（D48）：目录创建与递归删除。 */
+  export function mkdir(path: string, options?: { recursive?: boolean }): Promise<void>
+  export function rm(path: string, options?: { recursive?: boolean; force?: boolean }): Promise<void>
+  export function readFile(path: string, encoding: 'utf8'): Promise<string>
 }

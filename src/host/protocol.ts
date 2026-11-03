@@ -14,6 +14,7 @@ import { normalize } from 'node:path'
 import { createReadStream, statSync } from 'node:fs'
 import { Readable } from 'node:stream'
 import { isPathAllowed } from './pathGate.ts'
+import { TAGHIT_PLUGIN_SCHEME } from './pluginProtocol.ts'
 import type { AppServices } from '../application/index.ts'
 
 export const TAGHIT_FILE_SCHEME = 'taghit-file'
@@ -27,6 +28,12 @@ export function registerPrivilegedSchemes(): void {
       // 已实测：standard:true + 空 host 的 URL（taghit-file:///C%3A/...）不会被路由到 handler，
       // <img> 加载必失败。opaque 形态才能被渲染层正确加载。
       // corsEnabled：配合 ACAO 响应头，让渲染层 fetch / <video> 抓帧时 canvas 不被污染。
+      privileges: { secure: true, supportFetchAPI: true, stream: true, corsEnabled: true },
+    },
+    {
+      // 插件模块协议（D48）：同款 opaque 形态——动态 import 的模块脚本按 CORS 抓取，
+      // 需要 corsEnabled + handler 回 ACAO:*（见 pluginProtocol.ts）。
+      scheme: TAGHIT_PLUGIN_SCHEME,
       privileges: { secure: true, supportFetchAPI: true, stream: true, corsEnabled: true },
     },
   ])

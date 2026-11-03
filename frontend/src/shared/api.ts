@@ -17,6 +17,8 @@ import type {
   ItemWindowResult,
   NodeState,
   PathNode,
+  PluginInstallEntry,
+  PluginManifestFile,
   Result,
   RootManagementView,
   ScanOptions,
@@ -287,6 +289,24 @@ export const api = {
     /** 原生目录选择器；取消 → null。 */
     async pickDirectory(): Promise<string | null> {
       return unwrap(await bridge().pickDirectory())
+    },
+    /** 原生 zip 插件包选择器（D48）；取消 → null。 */
+    async pickZip(): Promise<string | null> {
+      return unwrap(await bridge().pickZip())
+    }
+  },
+  plugins: {
+    /** 已装载插件清单（宿主为装载事实权威：zip 校验通过才在列；错误条目如实呈现）。 */
+    async list(): Promise<{ installs: PluginInstallEntry[] }> {
+      return unwrap(await bridge().listPlugins())
+    },
+    /** 安装 zip 插件包（更新 = 同 id 覆盖）；返回落位 manifest 与是否覆盖。 */
+    async install(zipPath: string): Promise<{ manifest: PluginManifestFile; replaced: boolean }> {
+      return unwrap(await bridge().installPlugin(zipPath))
+    },
+    /** 卸载 = 删安装目录（贡献清扫归渲染层停用语义）。 */
+    async uninstall(id: string): Promise<void> {
+      unwrap(await bridge().uninstallPlugin(id))
     }
   },
   drag: {

@@ -81,6 +81,8 @@ import type { AppServices, ItemContext, ScanOptions } from '../application/index
 import type { Id, TagProfile } from '../domain/index.ts'
 import type { ItemsQuery } from '../ports/index.ts'
 import type { DomainErrorCode } from '../domain/index.ts'
+import { installZip, listInstalls, uninstallPlugin, type InstallForm } from './plugins.ts'
+import { registerTaghitPluginProtocol } from './pluginProtocol.ts'
 
 function dbPath(): string {
   return process.env.TAGHIT_DB ?? `${app.getPath('userData')}/taghit.db`
@@ -180,6 +182,7 @@ function writeDiagnostics(): void {
             dbPath: dbPath(),
             rendererTarget: target,
             rendererTargetExists: app.isPackaged && target !== '' ? existsSync(target) : null,
+            pluginRoots: pluginRoots().map((r) => r.root),
           },
           load: { ...diag.load },
           events: diagEvents.list(),
@@ -229,6 +232,20 @@ async function envelope<T>(work: Promise<T>): Promise<{ ok: boolean; data?: T; e
 
 /** 真实文件系统：仅主进程持有，扫描端点按需使用。 */
 const nodeFs = createNodeFileSystem()
+
+// ---- 插件安装位（D48）：bundle 落 {userData}/plugins；dev 态额外暴露仓库开发目录 ----
+// 开发目录缺省 = 仓库 plugins/（appPath），TAGHIT_PLUGINS_DIR 可指别处；打包态无此根。
+function userDataPluginsDir(): string {
+  return join(app.getPath('userData'), 'plugins')
+}
+function pluginRoots(): Array<{ root: string; form: InstallForm }> {
+  const roots: Array<{ root: string; form: InstallForm }> = []
+  if (!app.isPackaged) {
+    roots.push({ root: process.env.TAGHIT_PLUGINS_DIR ?? join(app.getAppPath(), 'plugins'), form: 'dev-source' })
+  }
+  roots.push({ root: userDataPluginsDir(), form: 'bundle' })
+  return roots
+}
 
 function registerHandlers(): void {
   ipcMain.handle('ping', () => envelope(Promise.resolve({ version: HOST_VERSION })))
@@ -467,6 +484,28 @@ function registerHandlers(): void {
       r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
     ))
   })
+  // 原生文件选择（zip 插件包；D48）
+  ipcMain.handle('dialog.pickZip', (_event) => {
+    const win = BrowserWindow.fromWebContents(_event.sender)
+    if (win == null) return envelope(Promise.resolve(null))
+    return envelope(
+      dialog
+        .showOpenDialog(win, {
+          filters: [{ name: 'TagHit 插件包', extensions: ['zip'] }],
+          properties: ['openFile'],
+        })
+        .then((r) => (r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]))
+    )
+  })
+
+  // ---- 插件装载（D48）：宿主是装载事实权威（zip 校验/安装位）；激活在渲染层 ----
+  ipcMain.handle('plugins.list', () => envelope(listInstalls(pluginRoots())))
+  ipcMain.handle('plugins.install', (_event, zipPath: string) =>
+    envelope(installZip(String(zipPath), userDataPluginsDir()))
+  )
+  ipcMain.handle('plugins.uninstall', (_event, id: string) =>
+    envelope(uninstallPlugin(String(id), userDataPluginsDir()).then(() => null))
+  )
 
   // ---- 作品 ----
   ipcMain.handle('collection.create', (_event, name: string) => envelope(createCollection(services, name)))
@@ -635,6 +674,13 @@ app.whenReady().then(() => {
   // 去掉 Electron 默认应用菜单（File/Edit/View…）；快捷键随菜单一并失效
   Menu.setApplicationMenu(null)
   registerTaghitFileProtocol(services)
+  // 插件模块协议（D48）：vendor（vue 共享模块）dev 经 vite 编译、打包态直出 vendor chunk
+  registerTaghitPluginProtocol({
+    services,
+    installsRoot: userDataPluginsDir(),
+    devVendorUrl: app.isPackaged ? null : `${process.env.TAGHIT_RENDERER_URL ?? 'http://localhost:5173'}/src/vendor/vueVendor.ts`,
+    packagedVendorPath: app.isPackaged ? join(app.getAppPath(), 'renderer-dist', 'assets', 'vue-vendor.js') : null,
+  })
   // 一次性数据修复（幂等）：历史反斜杠 sourceUri 的归一化与双身份合并（D21）
   void repairLegacyPaths(services)
     .then((r) => {

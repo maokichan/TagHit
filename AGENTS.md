@@ -64,6 +64,6 @@ docs/           六件套（见 §四）· build/ 为产物与真机开发库（
 
 ## 六、环境红线速记
 
-- 根 node_modules 仅 ABI 依赖（better-sqlite3/bindings/file-uri-to-path，**勿让 node v24 直接加载**）；任何 `npm install/rebuild` 会打回 Node ABI，恢复法见 CONTEXT §五。
+- 根 node_modules = ABI 依赖（better-sqlite3/bindings/file-uri-to-path，**勿让 node v24 直接加载**）+ 打包进宿主 bundle 的纯 JS 依赖（music-metadata、extract-zip——插件 zip 安装用，D48）。任何 `npm install/rebuild` 会打回 Node ABI（**install 必带 `--ignore-scripts`**），恢复法见 CONTEXT §五；根 `.npmrc` 的 `omit=optional` 挡的是 @types 链（@types/node 会劫持 `node:` 前缀解析、打破零依赖 ambient 声明策略），勿删。
 - 受限沙箱已知边界：Vitest 的 esbuild spawn 会失败（环境问题非代码）；Windows ACL 异常按 CONTEXT §五处置（先取证再改权限）。
 - 渲染层校验命令的准确形态（vue-tsc 的 tsconfig/参数）、开发库位置等细节在 CONTEXT §五，不在此复制。

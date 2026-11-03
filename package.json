@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
+    "extract-zip": "2.0.1",
     "music-metadata": "^12.3.2"
   }
 }

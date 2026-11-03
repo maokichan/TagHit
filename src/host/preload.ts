@@ -47,6 +47,11 @@ const api: TaghitRendererApi = {
   trashFsEntry: (input) => invoke('fs.trash', input),
 
   pickDirectory: () => invoke('dialog.pickDirectory'),
+  pickZip: () => invoke('dialog.pickZip'),
+
+  listPlugins: () => invoke('plugins.list'),
+  installPlugin: (zipPath) => invoke('plugins.install', zipPath),
+  uninstallPlugin: (id) => invoke('plugins.uninstall', id),
 
   createWorkspace: (name) => invoke('workspace.create', name),
   listWorkspaces: () => invoke('workspace.list'),
