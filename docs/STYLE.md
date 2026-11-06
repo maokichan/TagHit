@@ -107,7 +107,7 @@ TagHit 是**内容管理工具**：界面是内容的容器，视觉为浏览与
 5. 静态内联 `style="`——几何走 `:style`。
 6. `rounded-*` 圆角类——全直角（§3），机检已启用（D44 落地时存量 44 处一并清零）。
 
-新增禁区：先改本文，再去 `scripts/check-style.mjs` 加一条。
+新增禁区：先改本文，再去 `frontend/scripts/check-style.mjs` 加一条。
 
 ## 7. 新组件检查表（8 条）
 

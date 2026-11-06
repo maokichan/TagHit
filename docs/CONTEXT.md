@@ -33,7 +33,7 @@
 
 > 命令清单的唯一描述 = AGENTS.md §三；本节只留命令背后的**准确形态、环境细节与已知边界**。
 
-- **CI 门**：链条构成见 AGENTS §三；`.git/hooks/pre-push` 挂同一链条——push 由真人执行，链不过不出门（绕过 = `git push --no-verify`）。钩子不入版本管理：重建 = 在 `.git/hooks/pre-push` 写入 `npm run ci`（sh 脚本）。远端 CI（GitHub Actions）待仓库有远端再接（TODO 工程化）。
+- **CI 门**：链条构成见 AGENTS §三；`.githooks/pre-push` 挂同一链条——push 由真人执行，链不过不出门（绕过 = `git push --no-verify`）。**钩子入版本管理**：`.githooks/` 入库，clone 后一次性 `git config core.hooksPath .githooks` 激活。**pre-commit 挂文档门控三守卫**（docIndex / repoGuard / docGuard，口径与修法见 `ops/AGENTS.md`）。远端 CI（GitHub Actions）待仓库有远端再接（TODO 工程化）。
 
 - **层 typecheck**：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（freeze 路径已失效）；node v24 可直跑 TS。
 - **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）；**渲染层断言** = `npm --prefix frontend run test`（Vitest：标签↔路由映射、顺序上下文解析、窄桥包装与入参纯化——不需要 DOM，跑一次几百毫秒）；**样式基线机检** = `npm --prefix frontend run check:style`（STYLE §6 禁区：写死颜色/10px/uppercase/内联样式等，组件里零命中才绿）；**CSS 编译门** = `npm --prefix frontend run check:build`（vite 生产构建——check:style/vue-tsc 都不经过 PostCSS/Tailwind 编译，`@apply` 里的非法类只有它抓得住；动过 globals.css 必跑）。
@@ -42,9 +42,9 @@
 - **宿主产物**：esbuild 打包 `src/host` → `build/main.cjs` + `preload.cjs`（宿主代码改动必须重新打包并重启应用；渲染层改动只需刷新窗口）。
 - 根 node_modules = Electron ABI（better-sqlite3/bindings/file-uri-to-path，**勿让 node v24 直接加载**）+ 打包进宿主 bundle 的纯 JS 依赖（music-metadata，D42；extract-zip，D48 插件 zip 安装）。根 dependencies 已声明（better-sqlite3 ^11 + music-metadata + extract-zip）——**任何 npm install/rebuild 都会把 better-sqlite3 变回 Node ABI**（install 必带 `--ignore-scripts`；宿主启动报 NODE_MODULE_VERSION 不匹配时）：在 `node_modules/better-sqlite3` 内跑 `npx prebuild-install --runtime=electron --target=<electron 版本>` 恢复（prebuild 缓存通常命中），再重启应用。host/adapters 层的 node 内置模块类型走自维护 ambient 声明（`src/host/nodeGlobals.d.ts` + `src/adapters/node-builtins.d.ts`）——根目录若混入 @types/node（extract-zip 的 optional 依赖链），`node:` 前缀解析会被劫持而大面积报错：根 `.npmrc` 已 `omit=optional` 挡住，勿删。
 - **工作区文件权限（Windows ACL）**：
-  - 症状：会话内所有 shell 命令启动即失败（`SetNamedSecurityInfoW failed (Win32 5): grantWrite(D:\PROJECT)`），随后工作区内写入被拒（`EPERM`，连 `.git/index.lock` 都建不了）；读操作与 `write`/`edit` 工具不受影响。`D:\PROJECT` 本身可写而**只有子目录级被拒**时，根因是该目录缺 `WRITE_OWNER`——沙箱无法为自己发放工作区授权。
+  - 症状：会话内所有 shell 命令启动即失败（`SetNamedSecurityInfoW failed (Win32 5): grantWrite(<工作区根>)`），随后工作区内写入被拒（`EPERM`，连 `.git/index.lock` 都建不了）；读操作与 `write`/`edit` 工具不受影响。`<工作区根>` 本身可写而**只有子目录级被拒**时，根因是该目录缺 `WRITE_OWNER`——沙箱无法为自己发放工作区授权。
   - 处置：跑内置 ACL 诊断脚本（`diagnose-windows-sandbox-acl`）：一次调用即**先取证、再给当前用户补一条完全控制项、随后复核**；该脚本不能在受限态跑（受限态会把自己的限制误报成缺权限），须放行一次。复核通过后**重复原操作**确认恢复。
-  - 报告与**回滚脚本**：`D:\PROJECT\dsh-acl-report\`（文件内容与所有者未改，回滚命令由脚本打印）。
+  - 报告与**回滚脚本**：勘验产物落仓库外临时目录（处置完成即退役，不引用仓库外路径；文件内容与所有者未改，回滚命令由脚本打印）。
   - 这不是应用问题：TagHit 的代码与数据都无关。**再遇按专题修**（先取证再改权限，别手工编辑 ACL）。
 - **受限沙箱的已知边界**：`npm test`（Vitest）在受限模式下必失败——esbuild 要 spawn 子进程并用管道收集输出，沙箱直接拒（`spawn EPERM`）。放行一次即可跑通，属环境边界而非代码问题。
 

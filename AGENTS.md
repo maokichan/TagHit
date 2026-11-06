@@ -16,7 +16,7 @@ Electron 宿主只做装配与安全边界），正朝**插件生态**演进。
 3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / STYLE / CONTEXT / 本文件 / README / TODO.md；**不留轮次记录、不带历史叙事与日期**；**进度只记 CONTEXT §三**（只列名下能力）；**待办只记 TODO.md**（完成即删条目）；文档不写可推断的内部标识符与文件清单。
 4. **界面文案纪律**：交互自身可理解的不加说明文字；说明性文案取最少必要；说明进 hover，死路才给最短行动句。
 5. **不预建模**：DECISIONS 末尾 parked 项不进代码；待办细化进 TODO.md。
-6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**；动过模板结构跑 check:templates（vue-tsc 漏报标签不闭合）；动过 globals.css 必跑 check:build；语义变更即同步文档。
+6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**；动过模板结构跑 check:templates（vue-tsc 漏报标签不闭合）；动过 globals.css 必跑 check:build；语义变更即同步文档。**文档门控链**（pre-commit 三守卫，ops/）提交时自动跑，拦截按报错自带修法处理。
 7. **git**：本地提交积极做；**版本号只在开发者明示时升（AI 不得自升）**，升版本必打 tag；非版本类 tag 打前确认；**push（含 tag）由真人执行**。
 
 ## 三、命令（唯一描述在此）
@@ -33,6 +33,7 @@ npm run dev                # 真机：bundle:host → vite dev → Electron（�
 npm run bundle:host        # esbuild 打包 src/host → build/（宿主改动必须重新打包并重启；渲染层改动刷新窗口即可）
 npm run pack               # 便携 zip：bundle:host → vite 构建 → renderer-dist 归置 → electron-builder（产物 release/，gitignore；cwd=根，版本归口根 package.json）
 node scripts/pack-plugin.mjs <目录名>   # 插件 zip 打包（plugins/<目录> → build/plugins/<id>-<version>.zip；D48 参考实现）
+node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuard 用 --report；pre-commit 自动跑，口径见 ops/AGENTS.md）
 ```
 
 ## 四、文档地图（渐进披露，按需读）
@@ -48,6 +49,7 @@ node scripts/pack-plugin.mjs <目录名>   # 插件 zip 打包（plugins/<目录
 | `TODO.md` | 排活（唯一待办清单） |
 | `plugins/AGENTS.md` | 写或改任何插件之前（插件上下文唯一入口） |
 | `plugins/<dir>/TODO.md` | 该插件的自持待办（如 audio-cover-player） |
+| `ops/AGENTS.md` | 改治理守卫、新增入口文档、看路径/行数口径之前 |
 
 ## 五、目录要点
 

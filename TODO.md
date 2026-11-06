@@ -38,7 +38,7 @@
 
 - **三方插件权限面执行**：manifest.surfaces v0 只声明不校验；分发落地时补执行层（权限门接在 registerContributedFeature）。
 - **EAV 元数据建模**：词表已留位（元数据 = 核心事实 + EAV 长尾），领域/存储未建。
-- **盘根直接子文件的父目录边界**（D19 副产物）：`C:/f.txt` 的 parentDir = `C:`，而节点 dirPath 由 normalizePath 保留为 `C:/` → 挂在盘根（如 `C:/`）时其直接子文件不可见。两种适配器行为一致（非漂移），是路径约定本身的边界：需裁决"盘根节点 dirPath 形态"（`C:` vs `C:/`）后统一修。
+- **盘根直接子文件的父目录边界**（D19 副产物）：`<盘>:/f.txt` 的 parentDir = `<盘>:`，而节点 dirPath 由 normalizePath 保留为 `<盘>:/` → 挂在盘根时其直接子文件不可见。两种适配器行为一致（非漂移），是路径约定本身的边界：需裁决"盘根节点 dirPath 形态"（`<盘>:` vs `<盘>:/`）后统一修。
 - **事件系统**（D6）：扫描进度 → 进度 UI；裁决基线"只保留有真实订阅者的事件"。
 - **config 持久化迁宿主**：现为 localStorage；迁移后存储键形状不变（`featureId:key`）。
 - **后台增量扫描 / C-S / 作品嵌套·多归属**：DECISIONS parked 项，动前先立裁决。
@@ -76,6 +76,7 @@
 ## 工程化
 
 - **LICENSE**：未定未加。
+- **决策笔记模型平移**（D49 的另一半，文档门控已落）：`.agents/notes/` 三态生命周期（proposed/implemented/rejected，路径即元数据、Alternatives considered 强制）——论证层与放弃项从 DECISIONS 巨型行与 git log 迁出到逐题笔记，DECISIONS 保留为现状基线。实施时机由开发者点名。
 - **frontend/package.json 双身份收敛**：已清（0.3.0 打包随行）——死脚本（build:win/release:win 指向丢失的 ps1、build:mac/linux、electron-vite dev/start/build、postinstall）与 `main`/`version`/`license` 字段撤除，版本与 LICENSE 归口根 package.json；frontend 定位收敛为"渲染层 + 工具链宿主"。
 - **启动失败可见性**（黑屏不是可接受的终态）：渲染进程崩溃自恢复的 3 次上限用尽后**停在黑屏**——应用尽时渲染一张错误页（"渲染进程反复崩溃，请重启应用"）。（单实例锁的原生错误框已在宿主实现；首载失败的错误框 + 诊断快照 + `--diagnose` 已随 D45 落地。）
 

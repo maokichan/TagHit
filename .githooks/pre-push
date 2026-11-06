@@ -1,0 +1,3 @@
+#!/bin/sh
+# 推前 CI 门：npm run ci 全链不过，push 不出门。绕过 = git push --no-verify（真人裁决用）。
+npm run ci
