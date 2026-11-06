@@ -12,11 +12,11 @@ Electron 宿主只做装配与安全边界），正朝**插件生态**演进。
 ## 二、纪律红线（违反即返工）
 
 1. **层纪律**：领域纯类型+规则（零依赖）；流程在应用层；存储/IO 在适配器；宿主只装配与边界；端口不做业务判定。
-2. **术语纪律**：只用 GLOSSARY（领域词）/ ARCHITECTURE（架构与渲染层词）已定义的词；**禁自造语义词**、**一词一义**；组件名取领域对象名（ARCHITECTURE 名录是单点）。
-3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / STYLE / CONTEXT / 本文件 / README / TODO.md；**不留轮次记录、不带历史叙事与日期**；**进度只记 CONTEXT §三**（只列名下能力）；**待办只记 TODO.md**（完成即删条目）；**影响项目的决定写决策笔记**（`.agents/notes/`，三态生命周期，写前先查旧笔记；表与状态文件只记事实，理由与放弃项进笔记）；文档不写可推断的内部标识符与文件清单。
+2. **术语纪律**：只用 `docs/GLOSSARY.md`（领域词）/ `docs/ARCHITECTURE.md`（架构与渲染层词）已定义的词；**禁自造语义词**、**一词一义**；组件名取领域对象名（ARCHITECTURE 名录是单点）。
+3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / STYLE / CONTEXT / 本文件 / README.md / TODO.md；**不留轮次记录、不带历史叙事与日期**；**进度只记 `docs/CONTEXT.md` §三**（只列名下能力）；**待办只记 TODO.md**（完成即删条目）；**影响项目的决定写决策笔记**（`.agents/notes/`，三态生命周期，写前先查旧笔记；表与状态文件只记事实，理由与放弃项进笔记）；文档不写可推断的内部标识符与文件清单。
 4. **界面文案纪律**：交互自身可理解的不加说明文字；说明性文案取最少必要；说明进 hover，死路才给最短行动句。
-5. **不预建模**：DECISIONS 末尾 parked 项不进代码；待办细化进 TODO.md。
-6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**；动过模板结构跑 check:templates（vue-tsc 漏报标签不闭合）；动过 globals.css 必跑 check:build；语义变更即同步文档。**文档门控链**（pre-commit 三守卫，ops/）提交时自动跑，拦截按报错自带修法处理。
+5. **不预建模**：`docs/DECISIONS.md` 末尾 parked 项不进代码；待办细化进 TODO.md。
+6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**；动过模板结构跑 check:templates（vue-tsc 漏报标签不闭合）；动过 `frontend/src/renderer/src/styles/globals.css` 必跑 check:build；语义变更即同步文档。**文档门控链**（pre-commit 三守卫，ops/）提交时自动跑，拦截按报错自带修法处理。
 7. **git**：本地提交积极做；**版本号只在开发者明示时升（AI 不得自升）**，升版本必打 tag；非版本类 tag 打前确认；**push（含 tag）由真人执行**。
 
 ## 三、命令（唯一描述在此）
@@ -48,7 +48,7 @@ node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuar
 | `docs/STYLE.md` | 渲染层动任何样式之前 |
 | `TODO.md` | 排活（唯一待办清单） |
 | `plugins/AGENTS.md` | 写或改任何插件之前（插件上下文唯一入口） |
-| `plugins/<dir>/TODO.md` | 该插件的自持待办（如 audio-cover-player） |
+| `plugins/<dir>/TODO.md` | 该插件的自持待办（如 `plugins/audio-cover-player/`） |
 | `ops/AGENTS.md` | 改治理守卫、新增入口文档、看路径/行数口径之前 |
 
 ## 五、目录要点
@@ -62,7 +62,7 @@ src/host        主进程装配 · typed IPC 契约（单一事实源）· taghi
 frontend/       渲染层：shared（契约 type-only 桥 + api 门面）· renderer（features/components/stores/views）
 plugins/        三方插件独立目录（磁盘 manifest.json + activate(ctx)；dev 装载，分发未接入）
 scripts/        校准场景与入口 · dev 一键脚本 · 夹具生成
-docs/           六件套（见 §四）· build/ 为产物与真机开发库（gitignore）
+docs/           五件套（见 §四）· build/ 为产物与真机开发库（gitignore）
 ```
 
 ## 六、环境红线速记
