@@ -76,7 +76,6 @@
 ## 工程化
 
 - **LICENSE**：未定未加。
-- **决策笔记模型平移**（D49 的另一半，文档门控已落）：`.agents/notes/` 三态生命周期（proposed/implemented/rejected，路径即元数据、Alternatives considered 强制）——论证层与放弃项从 DECISIONS 巨型行与 git log 迁出到逐题笔记，DECISIONS 保留为现状基线。实施时机由开发者点名。
 - **frontend/package.json 双身份收敛**：已清（0.3.0 打包随行）——死脚本（build:win/release:win 指向丢失的 ps1、build:mac/linux、electron-vite dev/start/build、postinstall）与 `main`/`version`/`license` 字段撤除，版本与 LICENSE 归口根 package.json；frontend 定位收敛为"渲染层 + 工具链宿主"。
 - **启动失败可见性**（黑屏不是可接受的终态）：渲染进程崩溃自恢复的 3 次上限用尽后**停在黑屏**——应用尽时渲染一张错误页（"渲染进程反复崩溃，请重启应用"）。（单实例锁的原生错误框已在宿主实现；首载失败的错误框 + 诊断快照 + `--diagnose` 已随 D45 落地。）
 

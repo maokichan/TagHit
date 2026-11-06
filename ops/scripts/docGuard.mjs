@@ -33,7 +33,9 @@ const DOC_LIMITS = {
   'AGENTS.md': 80, // agent 全局入口（每次会话强制注入）
   'README.md': 80, // 人类入口
   'ops/AGENTS.md': 80, // 治理子树入口
-  'plugins/AGENTS.md': 80 // 插件子树入口
+  'plugins/AGENTS.md': 80, // 插件子树入口
+  '.agents/notes/README.md': 80, // 决策日志机制
+  '.agents/notes/AGENTS.md': 80 // 决策日志 agent 规则
 }
 
 /** 未登记文档的默认上限 */

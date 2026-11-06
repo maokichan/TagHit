@@ -13,7 +13,7 @@ Electron 宿主只做装配与安全边界），正朝**插件生态**演进。
 
 1. **层纪律**：领域纯类型+规则（零依赖）；流程在应用层；存储/IO 在适配器；宿主只装配与边界；端口不做业务判定。
 2. **术语纪律**：只用 GLOSSARY（领域词）/ ARCHITECTURE（架构与渲染层词）已定义的词；**禁自造语义词**、**一词一义**；组件名取领域对象名（ARCHITECTURE 名录是单点）。
-3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / STYLE / CONTEXT / 本文件 / README / TODO.md；**不留轮次记录、不带历史叙事与日期**；**进度只记 CONTEXT §三**（只列名下能力）；**待办只记 TODO.md**（完成即删条目）；文档不写可推断的内部标识符与文件清单。
+3. **文档纪律**：维护 GLOSSARY / DECISIONS / ARCHITECTURE / STYLE / CONTEXT / 本文件 / README / TODO.md；**不留轮次记录、不带历史叙事与日期**；**进度只记 CONTEXT §三**（只列名下能力）；**待办只记 TODO.md**（完成即删条目）；**影响项目的决定写决策笔记**（`.agents/notes/`，三态生命周期，写前先查旧笔记；表与状态文件只记事实，理由与放弃项进笔记）；文档不写可推断的内部标识符与文件清单。
 4. **界面文案纪律**：交互自身可理解的不加说明文字；说明性文案取最少必要；说明进 hover，死路才给最短行动句。
 5. **不预建模**：DECISIONS 末尾 parked 项不进代码；待办细化进 TODO.md。
 6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**；动过模板结构跑 check:templates（vue-tsc 漏报标签不闭合）；动过 globals.css 必跑 check:build；语义变更即同步文档。**文档门控链**（pre-commit 三守卫，ops/）提交时自动跑，拦截按报错自带修法处理。

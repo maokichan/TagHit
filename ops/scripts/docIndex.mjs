@@ -78,7 +78,7 @@ const gitIgnored = (rel, dirForm = false) => {
 }
 
 /** 已知仓库根段：这些开头而解析失败的引用，大概率是文档与现实的脱钩 */
-const KNOWN_ROOTS = ['src/', 'frontend/', 'docs/', 'ops/', 'scripts/', 'plugins/']
+const KNOWN_ROOTS = ['src/', 'frontend/', 'docs/', 'ops/', 'scripts/', 'plugins/', '.agents/']
 
 /** 无扩展名的 token 依次补这些扩展名再试（人写路径常省 .md/.ts） */
 const GUESS_EXTS = ['.md', '.ts', '.mjs']
