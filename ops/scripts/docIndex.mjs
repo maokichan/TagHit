@@ -54,8 +54,10 @@ const isAncestorDir = (effDir, docRel) => {
   return d.startsWith(effDir + '/')
 }
 
-/** 路径形 token：含 `/` 或以 1–4 位扩展名结尾；剥尾部标点 */
-const TOKEN_RE = /[A-Za-z0-9_][A-Za-z0-9_./\\-]*/g
+/** 路径形 token：含 `/` 或以 1–4 位扩展名结尾；剥尾部标点。
+ *  字符集含 CJK 统一表意文字（\u4e00-\u9fff）——中文项目里路径提及可能是中英混写
+ *  （如 `src/领域规则`），纯 ASCII 正则会在首个汉字处截断 token，失效探针静默漏检。 */
+const TOKEN_RE = /[A-Za-z0-9_\u4e00-\u9fff][A-Za-z0-9_\u4e00-\u9fff./\\-]*/g
 const isPathLike = (tok) => tok.includes('/') || /\.[A-Za-z0-9]{1,4}$/.test(tok)
 const stripEdgePunct = (tok) => tok.replace(/[.,;:。，、；）)」』】\]]+$/, '')
 
