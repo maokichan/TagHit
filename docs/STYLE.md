@@ -3,7 +3,7 @@
 > 归属：**frontend 专属**（渲染层）。权威范围：`frontend/src/renderer/**` + `frontend/src/renderer/src/styles/globals.css`。
 > **不约束**后端核心（领域/端口/应用/适配器）——风格是渲染层的事。
 > 本文是渲染层开发的**准则**：新组件先读本文，再动代码。冲突裁决顺序：本文 > `docs/ARCHITECTURE.md` > 组件内注释。
-> 方法取自 TuRead（docs/STYLE.md 的实践）：**标准样式表 + 组件只挂类名 + 禁区机器可断言**。
+> 方法取自 TuRead 项目的同名样式实践：**标准样式表 + 组件只挂类名 + 禁区机器可断言**。
 
 ## 1. 风格定性
 
