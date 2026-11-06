@@ -1,7 +1,7 @@
 # TagHit 开发交接（CONTEXT）
 
 > 强制入口 = 根 **AGENTS.md**（纪律红线 / 命令 / 文档地图）；本文件 = **进度与环境的活页**。
-> 架构见 ARCHITECTURE · 词汇 GLOSSARY · 裁决 DECISIONS · 风格基线 STYLE · 待办 TODO.md（唯一清单）。
+> 架构见 `docs/ARCHITECTURE.md` · 词汇 `docs/GLOSSARY.md` · 裁决 `docs/DECISIONS.md` · 风格基线 `docs/STYLE.md` · 待办 TODO.md（唯一清单）。
 > 版本：0.3.1。
 
 ## 一、一句话
@@ -38,7 +38,7 @@
 - **层 typecheck**：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（freeze 路径已失效）；node v24 可直跑 TS。
 - **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）；**渲染层断言** = `npm --prefix frontend run test`（Vitest：标签↔路由映射、顺序上下文解析、窄桥包装与入参纯化——不需要 DOM，跑一次几百毫秒）；**样式基线机检** = `npm --prefix frontend run check:style`（STYLE §6 禁区：写死颜色/10px/uppercase/内联样式等，组件里零命中才绿）；**CSS 编译门** = `npm --prefix frontend run check:build`（vite 生产构建——check:style/vue-tsc 都不经过 PostCSS/Tailwind 编译，`@apply` 里的非法类只有它抓得住；动过 globals.css 必跑）。
 - **校准**：`npm run calibrate | calibrate:sqlite`（s32 契约，memory / sqlite 各一个入口）· `calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots | calibrate:window | calibrate:fileops`（各自跑同一场景于 memory 与 sqlite）——scene 定义在 `scripts/s3x-*-scenario.ts`，入口是 `*-calibrate.ts`。**宿主纯模块直验**（不进 CI 链）：`node scripts/plugins-selfcheck.ts`（插件安装位全链，D48）· `node scripts/diagnostics-selfcheck.ts`（诊断快照）。
-- **真机运行**：`npm run dev`（一键：打包宿主 → vite dev（端口自适应回退）→ Electron；开发库 `build/taghit-dev.db`）；手动分步见 README。开发态 userData 按库隔离，同库双开由单实例锁拒绝。
+- **真机运行**：`npm run dev`（一键：打包宿主 → vite dev（端口自适应回退）→ Electron；开发库 `build/taghit-dev.db`）；手动分步见 `README.md`。开发态 userData 按库隔离，同库双开由单实例锁拒绝。
 - **宿主产物**：esbuild 打包 `src/host` → `build/main.cjs` + `preload.cjs`（宿主代码改动必须重新打包并重启应用；渲染层改动只需刷新窗口）。
 - 根 node_modules = Electron ABI（better-sqlite3/bindings/file-uri-to-path，**勿让 node v24 直接加载**）+ 打包进宿主 bundle 的纯 JS 依赖（music-metadata，D42；extract-zip，D48 插件 zip 安装）。根 dependencies 已声明（better-sqlite3 ^11 + music-metadata + extract-zip）——**任何 npm install/rebuild 都会把 better-sqlite3 变回 Node ABI**（install 必带 `--ignore-scripts`；宿主启动报 NODE_MODULE_VERSION 不匹配时）：在 `node_modules/better-sqlite3` 内跑 `npx prebuild-install --runtime=electron --target=<electron 版本>` 恢复（prebuild 缓存通常命中），再重启应用。host/adapters 层的 node 内置模块类型走自维护 ambient 声明（`src/host/nodeGlobals.d.ts` + `src/adapters/node-builtins.d.ts`）——根目录若混入 @types/node（extract-zip 的 optional 依赖链），`node:` 前缀解析会被劫持而大面积报错：根 `.npmrc` 已 `omit=optional` 挡住，勿删。
 - **工作区文件权限（Windows ACL）**：
