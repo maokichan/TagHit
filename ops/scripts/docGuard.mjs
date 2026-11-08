@@ -20,7 +20,7 @@
  *
  * ── 上限表口径 ──
  * 只登记入口/索引类（AGENTS/README 族）的硬上限——渐进式披露的命脉，短是结构性的，没有商量；
- * 其余文档（六件套/待办/插件自持待办）统一默认 300（guardrail 非削减目标）：超限 = 洗——
+ * 其余文档（五件套/待办/插件自持待办）统一默认 300（guardrail 非削减目标）：超限 = 洗——
  * 按纪律结合程序事实（对照代码现状），去没必要的形容词与不必要的推演过程，只留判定、事实
  * 与接口形状。运行环境：零依赖 Node ESM（node >= 20）；路径一律 / 分隔（git ls-files 口径）。
  */
@@ -40,6 +40,9 @@ const isExempt = (p) => EXEMPT.some((pre) => (pre.endsWith('/') ? p.startsWith(p
 const DOC_LIMITS = {
   'AGENTS.md': 80, // agent 全局入口（每次会话强制注入）
   'README.md': 80, // 人类入口
+  'src/AGENTS.md': 80, // 后端核心子树入口
+  'frontend/AGENTS.md': 80, // 渲染层子树入口
+  'scripts/AGENTS.md': 80, // 校准与开发工具子树入口
   'ops/AGENTS.md': 80, // 治理子树入口
   'plugins/AGENTS.md': 80, // 插件子树入口
   '.agents/notes/README.md': 80, // 决策日志机制

@@ -19,20 +19,13 @@ Electron 宿主只做装配与安全边界），正朝**插件生态**演进。
 6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**；动过模板结构跑 check:templates（vue-tsc 漏报标签不闭合）；动过 `frontend/src/renderer/src/styles/globals.css` 必跑 check:build；语义变更即同步文档。**文档门控链**（pre-commit 三守卫，ops/）提交时自动跑，拦截按报错自带修法处理。
 7. **git**：本地提交积极做；**版本号只在开发者明示时升（AI 不得自升）**，升版本必打 tag；非版本类 tag 打前确认；**push（含 tag）由真人执行**。
 
-## 三、命令（唯一描述在此）
+## 三、命令（跨域速查；域内命令的唯一描述在各子树入口）
 
 ```bash
 npm run ci                 # 全链 CI 门：五层 typecheck + 八份校准 + 渲染层全链 + doctor（pre-push 同链）
-npm run typecheck:domain   # 分层类型检查（ports/adapters/application/host 同款）
-npm run calibrate          # 八份校准（s32–s38：契约/扫描/边界/浏览窗口/来源根/顺序窗口/文件操作；memory+sqlite 双跑）
-npm --prefix frontend run test        # 渲染层 Vitest 断言
-npm --prefix frontend run check:templates   # 模板解析（vue-tsc 漏报标签不闭合）
-npm --prefix frontend run check:style      # 样式禁区机检（docs/STYLE.md §6）
-npm --prefix frontend run check:build      # CSS 编译门（vite 生产构建）
 npm run dev                # 真机：bundle:host → vite dev → Electron（开发库 build/taghit-dev.db）
-npm run bundle:host        # esbuild 打包 src/host → build/（宿主改动必须重新打包并重启；渲染层改动刷新窗口即可）
-npm run pack               # 便携 zip：bundle:host → vite 构建 → renderer-dist 归置 → electron-builder（产物 release/，gitignore；cwd=根，版本归口根 package.json）
-node scripts/pack-plugin.mjs <目录名>   # 插件 zip 打包（plugins/<目录> → build/plugins/<id>-<version>.zip；D48 参考实现）
+npm run calibrate          # 八份校准（s32–s38；memory+sqlite 双跑，场景形状见 scripts/AGENTS.md）
+npm run pack               # 便携 zip 装配（产物 release/，gitignore；版本归口根 package.json）
 node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuard 用 --report；pre-commit 自动跑，口径见 ops/AGENTS.md）
 ```
 
@@ -41,6 +34,7 @@ node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuar
 | 文档 | 什么时候读 |
 |---|---|
 | 本文件 | 每次会话开始（红线 + 地图） |
+| `frontend/AGENTS.md` · `src/AGENTS.md` · `scripts/AGENTS.md` | 进入对应子系统工作之前（子树入口：域地图 + 增量红线） |
 | `docs/CONTEXT.md` | 接手进度、下一步、环境与运行细节（ABI 坑、沙箱边界） |
 | `docs/ARCHITECTURE.md` | 动架构、贡献点、渲染层词汇、字节闸门 |
 | `docs/GLOSSARY.md` | 命名、新概念入册 |
@@ -55,19 +49,16 @@ node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuar
 ## 五、目录要点
 
 ```
-src/domain      实体与关系类型 · 纯规则 · 路径规则 · 错误码（零依赖）
-src/ports       端口契约（流动类型第一公民：条件对象/写输入/结果）
-src/adapters    memory（校准替身）· sqlite（驱动注入）· node（真文件系统）
-src/application 用例编排（打标/浏览投影/检索/扫描/来源根生命周期/内容读取/级联删除）
-src/host        主进程装配 · typed IPC 契约（单一事实源）· taghit-file 字节闸门 · 窗口壳
-frontend/       渲染层：shared（契约 type-only 桥 + api 门面）· renderer（features/components/stores/views）
-plugins/        三方插件独立目录（磁盘 manifest.json + activate(ctx)；dev 装载，分发未接入）
-scripts/        校准场景与入口 · dev 一键脚本 · 夹具生成
+src/            后端核心五层 domain/ports/adapters/application/host（地图见 src/AGENTS.md）
+frontend/       渲染层：shared（契约 type-only 桥 + api 门面）+ renderer（地图见 frontend/AGENTS.md）
+scripts/        校准与开发工具（地图见 scripts/AGENTS.md）
+plugins/        三方插件独立目录（磁盘 manifest.json + activate(ctx)；入口 plugins/AGENTS.md）
 docs/           五件套（见 §四）· build/ 为产物与真机开发库（gitignore）
 ```
 
 ## 六、环境红线速记
 
-- 根 node_modules = ABI 依赖（better-sqlite3/bindings/file-uri-to-path，**勿让 node v24 直接加载**）+ 打包进宿主 bundle 的纯 JS 依赖（music-metadata、extract-zip——插件 zip 安装用，D48）。任何 `npm install/rebuild` 会打回 Node ABI（**install 必带 `--ignore-scripts`**），恢复法见 CONTEXT §五；根 `.npmrc` 的 `omit=optional` 挡的是 @types 链（@types/node 会劫持 `node:` 前缀解析、打破零依赖 ambient 声明策略），勿删。
+- 根 node_modules = Electron ABI 陷阱（**勿让 node v24 直接加载**；`npm install` 必带 `--ignore-scripts`）；
+  恢复配方与 ambient 声明策略见 `src/AGENTS.md` 与 CONTEXT §五；根 `.npmrc` 勿删。
 - 受限沙箱已知边界：Vitest 的 esbuild spawn 会失败（环境问题非代码）；Windows ACL 异常按 CONTEXT §五处置（先取证再改权限）。
-- 渲染层校验命令的准确形态（vue-tsc 的 tsconfig/参数）、开发库位置等细节在 CONTEXT §五，不在此复制。
+- 渲染层验证形态、校准场景形状、开发库位置：`frontend/AGENTS.md`、`scripts/AGENTS.md`、CONTEXT §五，不在此复制。

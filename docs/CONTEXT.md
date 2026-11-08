@@ -10,7 +10,7 @@
 
 ## 二、读序
 
-**AGENTS.md（红线与命令）** → 本文件（进度与环境）→ **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{domain,ports,application}`；渲染层动样式先读 docs/STYLE.md；**写插件先读 plugins/AGENTS.md**。
+**AGENTS.md（红线与命令）** → 本文件（进度与环境）→ **ARCHITECTURE** → GLOSSARY → DECISIONS → `src/{domain,ports,application}`；渲染层动样式先读 docs/STYLE.md；**写插件先读 plugins/AGENTS.md**；进入 `src/`、`frontend/`、`scripts/` 子树先读各自的 `AGENTS.md`（域地图与增量红线）。
 
 ## 三、进度与下一步
 
@@ -35,11 +35,8 @@
 
 - **CI 门**：链条构成见 AGENTS §三；`.githooks/pre-push` 挂同一链条——push 由真人执行，链不过不出门（绕过 = `git push --no-verify`）。**钩子入版本管理**：`.githooks/` 入库，clone 后一次性 `git config core.hooksPath .githooks` 激活。**pre-commit 挂文档门控三守卫**（docIndex / repoGuard / docGuard，口径与修法见 `ops/AGENTS.md`）。远端 CI（GitHub Actions）待仓库有远端再接（TODO 工程化）。
 
-- **层 typecheck**：`node frontend/node_modules/typescript/bin/tsc -p tsconfig.<domain|ports|adapters|application|host>.json`（freeze 路径已失效）；node v24 可直跑 TS。
-- **渲染层**：node_modules 已装（electron 33.4.11）；校验 = `npx vue-tsc --noEmit -p tsconfig.web.json --composite false` **加** `npm --prefix frontend run check:templates`（后者才是模板语法防线）；**渲染层断言** = `npm --prefix frontend run test`（Vitest：标签↔路由映射、顺序上下文解析、窄桥包装与入参纯化——不需要 DOM，跑一次几百毫秒）；**样式基线机检** = `npm --prefix frontend run check:style`（STYLE §6 禁区：写死颜色/10px/uppercase/内联样式等，组件里零命中才绿）；**CSS 编译门** = `npm --prefix frontend run check:build`（vite 生产构建——check:style/vue-tsc 都不经过 PostCSS/Tailwind 编译，`@apply` 里的非法类只有它抓得住；动过 globals.css 必跑）。
-- **校准**：`npm run calibrate | calibrate:sqlite`（s32 契约，memory / sqlite 各一个入口）· `calibrate:scan | calibrate:boundary | calibrate:view | calibrate:roots | calibrate:window | calibrate:fileops`（各自跑同一场景于 memory 与 sqlite）——scene 定义在 `scripts/s3x-*-scenario.ts`，入口是 `*-calibrate.ts`。**宿主纯模块直验**（不进 CI 链）：`node scripts/plugins-selfcheck.ts`（插件安装位全链，D48）· `node scripts/diagnostics-selfcheck.ts`（诊断快照）。
+- **分层与渲染层验证、校准场景形状**：唯一描述在各子树入口（`src/AGENTS.md`、`frontend/AGENTS.md`、`scripts/AGENTS.md`），不在此复制。
 - **真机运行**：`npm run dev`（一键：打包宿主 → vite dev（端口自适应回退）→ Electron；开发库 `build/taghit-dev.db`）；手动分步见 `README.md`。开发态 userData 按库隔离，同库双开由单实例锁拒绝。
-- **宿主产物**：esbuild 打包 `src/host` → `build/main.cjs` + `preload.cjs`（宿主代码改动必须重新打包并重启应用；渲染层改动只需刷新窗口）。
 - 根 node_modules = Electron ABI（better-sqlite3/bindings/file-uri-to-path，**勿让 node v24 直接加载**）+ 打包进宿主 bundle 的纯 JS 依赖（music-metadata，D42；extract-zip，D48 插件 zip 安装）。根 dependencies 已声明（better-sqlite3 ^11 + music-metadata + extract-zip）——**任何 npm install/rebuild 都会把 better-sqlite3 变回 Node ABI**（install 必带 `--ignore-scripts`；宿主启动报 NODE_MODULE_VERSION 不匹配时）：在 `node_modules/better-sqlite3` 内跑 `npx prebuild-install --runtime=electron --target=<electron 版本>` 恢复（prebuild 缓存通常命中），再重启应用。host/adapters 层的 node 内置模块类型走自维护 ambient 声明（`src/host/nodeGlobals.d.ts` + `src/adapters/node-builtins.d.ts`）——根目录若混入 @types/node（extract-zip 的 optional 依赖链），`node:` 前缀解析会被劫持而大面积报错：根 `.npmrc` 已 `omit=optional` 挡住，勿删。
 - **工作区文件权限（Windows ACL）**：
   - 症状：会话内所有 shell 命令启动即失败（`SetNamedSecurityInfoW failed (Win32 5): grantWrite(<工作区根>)`），随后工作区内写入被拒（`EPERM`，连 `.git/index.lock` 都建不了）；读操作与 `write`/`edit` 工具不受影响。`<工作区根>` 本身可写而**只有子目录级被拒**时，根因是该目录缺 `WRITE_OWNER`——沙箱无法为自己发放工作区授权。
