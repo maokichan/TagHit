@@ -10,6 +10,12 @@ apiVersion/settings/surfaces/mounts，source 由装载方打 contributed）+ 入
 `activate(ctx)`（返回清理函数，启停的机制承载）。**启动期主动激活是刻意的**（纯预览
 贡献方不挂停靠面，惰性装载对它永不触发）。
 
+**贡献文案两形态（D51）**：manifest 的 `title` / `description` / `settings[].label` /
+`options[].label` 及命令注册、toast/confirm 的文案，均可写**字符串**（原样透传）或
+**语言映射**（`{ "zh": …, "en": … }`，值非空字符串）——渲染层按当前语言取值、缺失回落
+首值；命令 title 在注册时按当前语言取快照，切语言后重新装载刷新。纯字符串写法不受
+影响（第三方插件零改动）。
+
 **装载（D48）**：宿主端点驱动的运行时装载（`DEV_PLUGINS` 手工清单已退役）——开发目录
 经 dev 态清单直入（源码走 vite `/@fs/` 编译，改完刷新窗口即生效）；**zip 分发**（
 `node scripts/pack-plugin.mjs <目录名>` 打包）→ 管理页「安装插件」→ `{userData}/plugins/<id>/`

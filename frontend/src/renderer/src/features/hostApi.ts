@@ -8,9 +8,13 @@
 import { api } from '@shared/api'
 import { computed, type Ref } from 'vue'
 import { confirmDialog, showToast } from './services/dialog'
+import type { ConfirmOptions } from './services/dialog'
+import type { LocalizedText } from '@shared/contract'
 import { taghitFileUrl } from '../lib/media'
 import { toItemView, type ItemView } from '../lib/viewModel'
 import { useConfigStore } from '../stores/config'
+import { i18n } from '../i18n'
+import { resolveLocalized } from '../lib/localized'
 import {
   playbackPlay,
   playbackToggle,
@@ -80,10 +84,29 @@ export const hostApi = {
       return computed(() => configStore.value(featureId, key, fallback))
     }
   },
-  /** 服务面（dialog/toast）：经壳统一渲染，manifest.surfaces 声明后使用 */
+  /** 服务面（dialog/toast）：经壳统一渲染，manifest.surfaces 声明后使用。
+   *  文案两形态（D51）：插件可传字符串或语言映射，进入壳服务前按当前语言解析为字符串。 */
   ui: {
-    confirm: confirmDialog,
-    toast: showToast
+    confirm(opts: {
+      title: LocalizedText
+      message: LocalizedText
+      confirmText?: LocalizedText
+      cancelText?: LocalizedText
+      danger?: boolean
+    }): Promise<boolean> {
+      const loc = i18n.global.locale.value
+      const out: ConfirmOptions = {
+        title: resolveLocalized(opts.title, loc),
+        message: resolveLocalized(opts.message, loc),
+        danger: opts.danger
+      }
+      if (opts.confirmText != null) out.confirmText = resolveLocalized(opts.confirmText, loc)
+      if (opts.cancelText != null) out.cancelText = resolveLocalized(opts.cancelText, loc)
+      return confirmDialog(out)
+    },
+    toast(text: LocalizedText, kind: 'info' | 'error' = 'info'): void {
+      showToast(resolveLocalized(text, i18n.global.locale.value), kind)
+    }
   },
   /** 播放面（D43）：全局播放引擎的冻结子集——换曲即播/传输控制/快照订阅（回调式，不暴露响应式对象）。 */
   playback: {

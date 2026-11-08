@@ -37,6 +37,8 @@ import { api } from '@shared/api'
 import type { FeatureManifest } from '@shared/types/feature'
 import type { PluginInstallEntry } from '@shared/contract'
 import type { Component } from 'vue'
+import { i18n } from '../i18n'
+import { localizeManifestTexts, resolveSettingLabels } from '../lib/localized'
 
 const config = useConfigStore()
 
@@ -88,14 +90,16 @@ function apiVersionOk(required: string | undefined): boolean {
   return true
 }
 
-/** 磁盘 manifest → 注册表 manifest（宿主已校验形状；mounts/surfaces 白名单在宿主侧收口）。 */
+/** 磁盘 manifest → 注册表 manifest（宿主已校验形状；mounts/surfaces 白名单在宿主侧收口）。
+ *  贡献文案两形态在此收敛为当前语言的字符串（D51）——注册表下游（面板/详情页/SchemaControl/
+ *  标签页标题）只见字符串，语言切换后重新装载生效。 */
 function manifestOf(m: NonNullable<PluginInstallEntry['manifest']>): Omit<FeatureManifest, 'source'> {
+  const locale = i18n.global.locale.value
   return {
+    ...localizeManifestTexts(m, locale),
     id: m.id,
-    title: m.title,
-    description: m.description,
     mounts: (m.mounts ?? []) as FeatureManifest['mounts'],
-    settings: m.settings as FeatureManifest['settings'],
+    settings: (m.settings as FeatureManifest['settings'] ?? []).map((s) => resolveSettingLabels(s, locale)),
     surfaces: m.surfaces as FeatureManifest['surfaces'],
     version: m.version,
     author: m.author,

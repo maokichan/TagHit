@@ -95,10 +95,17 @@ export type WindowAction = 'minimize' | 'toggleMaximize' | 'close'
 // ---- 插件装载面形状（D48）：契约形状归 ipc.ts（单一事实源），实现与校验在 plugins.ts ----
 
 /** 磁盘 manifest 的形状（校验权威在 plugins.ts；渲染层映射为 FeatureManifest 消费）。 */
+
+/**
+ * 贡献文案两形态（D51）：字符串透传；或语言映射（键 = locale，如 zh-CN / en，可扩展），
+ * 值须非空字符串——渲染层按当前语言取值、缺失回落首值。
+ */
+export type LocalizedText = string | Record<string, string>
+
 export interface PluginManifestFile {
   id: string
-  title: string
-  description?: string
+  title: LocalizedText
+  description?: LocalizedText
   /** zip 分发必填（安装时校验）：分发没有仓库上下文，身份事实必须自带（D48）。 */
   version?: string
   author?: string

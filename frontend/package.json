@@ -37,6 +37,7 @@
     "vue-tsc": "^2.1.10"
   },
   "dependencies": {
-    "markdown-it": "^15.0.3"
+    "markdown-it": "^15.0.3",
+    "vue-i18n": "^11.4.18"
   }
 }

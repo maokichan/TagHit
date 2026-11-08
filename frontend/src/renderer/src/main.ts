@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { i18n } from './i18n'
 import { useUiStore } from './stores/ui'
 import { registerBuiltinFeatures, setupFeatureBehaviors } from './features/registry'
 import { registerBuiltinDetailPreviews } from './features/preview/builtinPreviews'
@@ -15,6 +16,8 @@ async function bootstrap(): Promise<void> {
   const app = createApp(App)
   app.use(pinia)
   app.use(router)
+  // 界面文案 i18n（D50）：先于功能组件注册——组件 setup 可能用 $t
+  app.use(i18n)
   // 官方功能组件先注册再挂载：App.vue 的活动栏在 setup 时读取注册表
   registerBuiltinFeatures()
   // 官方命令（右键菜单/未来命令面板的贡献者）与功能组件同表机制

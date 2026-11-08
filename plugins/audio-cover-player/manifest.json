@@ -1,6 +1,6 @@
 {
   "id": "audioPlayer",
-  "title": "音频播放器",
+  "title": { "zh": "音频播放器", "en": "Audio Player" },
   "description": "认领音频条目：黑胶播放、歌词同步、封面提取的第一消费方。",
   "version": "0.3.0",
   "author": "TagHit",

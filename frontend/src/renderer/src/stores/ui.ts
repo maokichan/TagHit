@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Theme } from '@shared/types/config'
+import type { Locale, Theme } from '@shared/types/config'
+import { DEFAULT_CONFIG } from '@shared/types/config'
+import { i18n } from '../i18n'
 
 /** 左活动栏工具：路径 / 标签 / 显示 / 文件管理 / 媒体信息 / 插件（右活动栏已裁撤，D40） */
 export type LeftTool = 'paths' | 'tags' | 'display' | 'files' | 'info' | 'plugins'
@@ -11,6 +13,8 @@ export type LeftTool = 'paths' | 'tags' | 'display' | 'files' | 'info' | 'plugin
  */
 export const useUiStore = defineStore('ui', () => {
   const theme = ref<Theme>('dark')
+  /** 界面语言（D50：zh-CN 底 + en；内存态，与 theme 同不持久化） */
+  const locale = ref<Locale>(DEFAULT_CONFIG.locale)
   /** 开始界面工作区卡片是否显示封面 */
   const showWorkspaceCovers = ref(true)
 
@@ -50,11 +54,17 @@ export const useUiStore = defineStore('ui', () => {
   /** config 持久化不在契约 v0：init 只应用本地缺省。 */
   function init(): void {
     applyTheme()
+    i18n.global.locale.value = locale.value
   }
 
   async function setTheme(t: Theme): Promise<void> {
     theme.value = t
     applyTheme()
+  }
+
+  async function setLocale(l: Locale): Promise<void> {
+    locale.value = l
+    i18n.global.locale.value = l
   }
 
   async function toggleWorkspaceCovers(): Promise<void> {
@@ -63,11 +73,13 @@ export const useUiStore = defineStore('ui', () => {
 
   return {
     theme,
+    locale,
     showWorkspaceCovers,
     leftTool,
     toggleLeft,
     init,
     setTheme,
+    setLocale,
     toggleWorkspaceCovers
   }
 })

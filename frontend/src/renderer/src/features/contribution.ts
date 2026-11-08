@@ -20,8 +20,11 @@ import { hostApi } from './hostApi'
 import { registerDetailPreview, unregisterDetailPreview } from './detailPreview'
 import { registerCommand, unregisterCommand } from './commands'
 import type { CommandHandler, CommandManifest } from '@shared/types/command'
+import type { LocalizedText } from '@shared/contract'
 import type { DetailPreviewProvider } from './detailPreview'
 import type { ItemView } from '../lib/viewModel'
+import { resolveLocalized } from '../lib/localized'
+import { i18n } from '../i18n'
 
 /** detailPreview 槽的贡献注册面（provider id 约定 `<featureId>:<form>`，D37） */
 export interface ContributionPreviews {
@@ -32,10 +35,11 @@ export interface ContributionPreviews {
 /**
  * commands 槽的贡献注册面（D46）：命令 id 强制 `<featureId>.` 前缀
  * （注册表 id 惯例 = 域.动作，插件的域就是它自己）；source 自动打 contributed，
- * 只进命令面板（右键菜单保持官方策展，D46）。
+ * 只进命令面板（右键菜单保持官方策展，D46）。title 允许语言映射（D51），
+ * 注册时按当前语言解析为字符串快照——切语言后下次装载刷新。
  */
 export interface ContributionCommands {
-  register(manifest: Omit<CommandManifest, 'source'>, run: CommandHandler): void
+  register(manifest: Omit<CommandManifest, 'source' | 'title'> & { title: LocalizedText }, run: CommandHandler): void
   unregister(id: string): void
 }
 
@@ -102,14 +106,16 @@ export function createContributionContext(featureId: string): ContributionContex
           console.error(`[plugins] 命令 id 必须以「${featureId}.」开头，已拒绝：${manifest.id}`)
           return
         }
+        // title 语言映射在注册时解析为快照（D51）：面板所见 = 装载那一刻的语言
+        const title = resolveLocalized(manifest.title, i18n.global.locale.value)
         try {
-          registerCommand({ ...manifest, source: 'contributed' }, run)
+          registerCommand({ ...manifest, title, source: 'contributed' }, run)
         } catch {
           // 重复 id = 重激活残留（模块缓存的旧命令未被清干净）：替换而非拒绝——
           // 重激活语义是"这家插件的这一版贡献生效"，卡死在旧账会让贡献面残缺
           try {
             unregisterCommand(manifest.id)
-            registerCommand({ ...manifest, source: 'contributed' }, run)
+            registerCommand({ ...manifest, title, source: 'contributed' }, run)
           } catch (error) {
             console.error(`[plugins] 命令注册失败：${manifest.id}`, error)
             return

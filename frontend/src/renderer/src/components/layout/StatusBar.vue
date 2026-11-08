@@ -52,7 +52,7 @@ const statusText = computed(() => {
     <!-- 多选：状态 + 批量动作（原搜索栏下的操作条并入此处） -->
     <template v-if="count > 0">
       <span class="text-[var(--fg)] shrink-0">已选 {{ count }} 项</span>
-      <button class="btn px-1.5 py-0.5 text-[11px]" @click="batch('add')">批量打标签…</button>
+      <button class="btn px-1.5 py-0.5 text-[11px]" @click="batch('add')">{{ $t('statusbar.batchTag') }}</button>
       <button class="btn px-1.5 py-0.5 text-[11px]" @click="batch('remove')">批量移除标签…</button>
       <button
         class="shrink-0 cursor-pointer hover:text-[var(--fg)] inline-flex"

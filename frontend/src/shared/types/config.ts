@@ -1,5 +1,7 @@
 export type Theme = 'dark' | 'light' | 'system'
 export type LayoutMode = 'masonry' | 'grid' | 'list'
+/** 界面语言（D50：zh-CN 底 + en，回落中文） */
+export type Locale = 'zh-CN' | 'en'
 
 export interface AppConfig {
   /** ffmpeg/ffprobe 可执行文件（子进程调用，无 GPL 传染） */
@@ -12,6 +14,8 @@ export interface AppConfig {
   /** 标签名 → 描述 */
   tagDescriptions: Record<string, string>
   theme: Theme
+  /** 界面语言（D50：状态仿 theme 走 ui store，此处声明字段与出厂值） */
+  locale: Locale
   layoutMode: LayoutMode
   /** 网格卡片是否显示标题（可关闭，设置页与显示面板均可切换） */
   showTitles: boolean
@@ -66,6 +70,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   tagDescriptions: {},
   theme: 'dark',
+  locale: 'zh-CN',
   layoutMode: 'masonry',
   showTitles: true,
   showWorkspaceCovers: true,

@@ -67,16 +67,25 @@ export function apiVersionAtMost(a: string, b: string): boolean {
  * distribution = true 时 version/apiVersion 必填（zip 安装路径）；dev-source 清单可缺。
  * 校验失败抛 Error（message 用户可见）。
  */
+
+/** 贡献文案两形态（D51）：字符串（须非空），或语言映射（键 = locale，值须非空字符串）。 */
+function isLocalizedText(x: unknown): x is PluginManifestFile['title'] {
+  if (typeof x === 'string') return x !== ''
+  if (!isRecord(x)) return false
+  const values = Object.values(x)
+  return values.length > 0 && values.every((v) => typeof v === 'string' && v !== '')
+}
+
 export function validateManifest(raw: unknown, distribution: boolean): PluginManifestFile {
   if (!isRecord(raw)) throw new Error('manifest.json 不是 JSON 对象')
   const id = raw.id
   if (typeof id !== 'string' || !ID_PATTERN.test(id)) {
     throw new Error(`manifest.id 缺失或含非法字符（${String(id)}）——只允许字母数字与 _-，且不以下划线开头`)
   }
-  if (typeof raw.title !== 'string' || raw.title === '') throw new Error('manifest.title 缺失')
+  if (!isLocalizedText(raw.title)) throw new Error('manifest.title 缺失或非法（字符串或语言映射，D51）')
   const m: PluginManifestFile = { id, title: raw.title }
   if (raw.description != null) {
-    if (typeof raw.description !== 'string') throw new Error('manifest.description 必须是字符串')
+    if (!isLocalizedText(raw.description)) throw new Error('manifest.description 必须是字符串或语言映射（D51）')
     m.description = raw.description
   }
   if (raw.version != null) {
@@ -117,8 +126,8 @@ export function validateManifest(raw: unknown, distribution: boolean): PluginMan
     m.surfaces = raw.surfaces as string[]
   }
   if (raw.settings != null) {
-    if (!Array.isArray(raw.settings) || raw.settings.some((s) => !isRecord(s) || typeof s.key !== 'string' || typeof s.label !== 'string' || typeof s.type !== 'string')) {
-      throw new Error('manifest.settings 必须是 { key, label, type, ... } 对象数组')
+    if (!Array.isArray(raw.settings) || raw.settings.some((s) => !isRecord(s) || typeof s.key !== 'string' || !isLocalizedText(s.label) || typeof s.type !== 'string')) {
+      throw new Error('manifest.settings 必须是 { key, label, type, ... } 对象数组（label 为字符串或语言映射，D51）')
     }
     m.settings = raw.settings
   }

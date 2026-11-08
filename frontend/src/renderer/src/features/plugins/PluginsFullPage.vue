@@ -31,7 +31,9 @@ import { confirmDialog } from '../services/dialog'
 import { api } from '@shared/api'
 import SchemaControl from '../../components/settings/SchemaControl.vue'
 import type { SettingSchema } from '@shared/types/feature'
-import type { InstallForm, PluginInstallEntry, PluginManifestFile } from '@shared/contract'
+import type { InstallForm, PluginInstallEntry } from '@shared/contract'
+import { i18n } from '../../i18n'
+import { localizeManifestTexts, resolveLocalized, type LocalizedManifest } from '../../lib/localized'
 
 const config = useConfigStore()
 
@@ -42,7 +44,8 @@ interface PluginRow {
   id: string
   title: string
   form: InstallForm
-  manifest: PluginManifestFile | null
+  /** 装载点已解析文案（D51）：title/description 为当前语言字符串 */
+  manifest: LocalizedManifest | null
   error: string | null
   registered: boolean
   enabled: boolean
@@ -55,14 +58,16 @@ const error = ref<string | null>(null)
 async function refresh(): Promise<void> {
   const { installs } = await api.plugins.list()
   const activationErrors = new Map(listInstallErrors().map((e) => [e.id, e.error]))
+  // 装载点解析文案两形态（D51）：行内 manifest 副本持有当前语言的字符串
+  const locale = i18n.global.locale.value
   rows.value = installs.map((entry: PluginInstallEntry) => {
     const id = entry.manifest?.id ?? entry.id
     const registered = getFeature(id) != null
     return {
       id,
-      title: entry.manifest?.title ?? id,
+      title: (entry.manifest != null ? resolveLocalized(entry.manifest.title, locale) : '') || id,
       form: entry.form,
-      manifest: entry.manifest,
+      manifest: entry.manifest == null ? null : localizeManifestTexts(entry.manifest, locale),
       error: entry.error ?? activationErrors.get(id) ?? null,
       registered,
       enabled: registered ? isPluginEnabled(id) : false,
@@ -110,7 +115,7 @@ async function uninstall(row: PluginRow): Promise<void> {
 }
 
 // ---- 安装（D48）：pick → peek → 待安装卡 → 确认 ---------------------------------
-const pending = ref<{ zipPath: string; manifest: PluginManifestFile; conflict: boolean } | null>(null)
+const pending = ref<{ zipPath: string; manifest: LocalizedManifest; conflict: boolean } | null>(null)
 
 async function pickInstall(): Promise<void> {
   if (busyId.value != null) return
@@ -118,7 +123,13 @@ async function pickInstall(): Promise<void> {
   try {
     const zipPath = await api.dialog.pickZip()
     if (zipPath == null) return
-    pending.value = { zipPath, ...(await api.plugins.peek(zipPath)) }
+    const peeked = await api.plugins.peek(zipPath)
+    // 待安装卡的文案在呈现点解析（D51）
+    pending.value = {
+      zipPath,
+      conflict: peeked.conflict,
+      manifest: localizeManifestTexts(peeked.manifest, i18n.global.locale.value)
+    }
   } catch (e) {
     error.value = message(e)
   }

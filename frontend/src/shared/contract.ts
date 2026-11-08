@@ -30,6 +30,7 @@ export type {
   ItemsQuery,
   ItemStatus,
   ItemWindowResult,
+  LocalizedText,
   NodeState,
   PathNode,
   PluginInstallEntry,
