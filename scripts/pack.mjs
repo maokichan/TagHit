@@ -25,6 +25,7 @@ const step = (name, cmd, args) => {
 }
 
 step('bundle:host', 'npm', ['run', 'bundle:host'])
+step('i18n 门控（键对账 + 残留基线，D50/D51）', 'npm', ['--prefix', 'frontend', 'run', 'check:i18n:strict'])
 step('渲染层构建', 'npm', ['--prefix', 'frontend', 'run', 'check:build'])
 
 const dist = join(root, 'frontend/src/renderer/dist')

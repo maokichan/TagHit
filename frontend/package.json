@@ -10,6 +10,8 @@
     "typecheck:web": "vue-tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "check:templates": "node scripts/check-templates.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check:i18n:strict": "node scripts/check-i18n.mjs --strict",
     "check:style": "node scripts/check-style.mjs",
     "style": "vite --config vite.renderer.config.ts --port 5174 --open /style.html",
     "check:build": "vite build --config vite.renderer.config.ts",

@@ -14,7 +14,9 @@
  * `node ops/scripts/repoGuard.mjs` = 门控（hook 调的就是它）；`--report` = 体检报告，只打印不挡。
  *
  * ── 口径 ──
- * 排除 trash/（留档）。逐行先试绝对路径、再试密钥，一行只报第一个命中；密钥命中的行只显示
+ * 排除 trash/（留档）与 i18n 文案事实镜像（i18n/locales/ 语言包 + i18n-residue-baseline.json
+ * 残留基线——两者如实镜像界面文案，而文案本身可能合法含路径示例【如输入提示的格式样例】；
+ * UI 文案归产品、不归仓库卫生管，绝对路径红线约束的是 agent 笔下的共享文档）。逐行先试绝对路径、再试密钥，一行只报第一个命中；密钥命中的行只显示
  * 「（片段隐去）」——检出的密钥不回显。值形如 `<占位符>` 的不算密钥，路径形态本身是讨论对象
  * 时写 `<盘>` / `<仓库根>` 占位（如盘根边界裁决：`<盘>:` vs `<盘>:/`）。
  * 运行环境：零依赖 Node ESM（node >= 20）；路径一律 / 分隔（git ls-files 口径）。
@@ -45,7 +47,7 @@ const isPlaceholderValue = (v) => /^<[^<>]*>$/.test(v)
 
 const ABS_EXT = /\.(md|txt|json|yml|yaml|toml|ps1|sh)$/
 const KEY_EXT = /\.(md|txt|json|yml|yaml|toml|mjs|cjs|ts|tsx|vue|go|sh|ps1)$/
-const EXCLUDED_PREFIX = ['trash/']
+const EXCLUDED_PREFIX = ['trash/', 'frontend/src/renderer/src/i18n/locales/', 'frontend/scripts/i18n-residue-baseline.json']
 
 const tracked = execSync('git ls-files', { encoding: 'utf8' })
   .split('\n')
