@@ -10,8 +10,7 @@
  * **点前缀兜底**：TOKEN_RE 首字符类不含 `.`，`.agents/`、`.githooks/` 开头的提及 token 化时
  * 丢点（md 链接里的 `../.agents/...` 即此形态），解析必然失败且不匹配带点的已知根段 → 静默
  * 漏检；故解析失败且匹配位置前一字符是 `.` 时并入重试。
- * **引用方向纪律只管 md 链接**（导航语义：禁止向上进入祖先目录的内容，根层全局件除外、
- * 允许平级或子一级）；路径提及是
+ * **引用方向纪律只管 md 链接**（导航语义：禁止向上祖先——根层单件也不例外、允许平级或子一级）；路径提及是
  * 跟踪边不是导航，不做方向校验。机制不保证同步、不校验语义；它只让"该看一眼"无处遁形。
  * 用法：`node ops/scripts/docIndex.mjs check`（全量体检）| `hook`（pre-commit 调用）。
  * 运行环境：零依赖 Node ESM（node >= 20）；路径一律 / 分隔（git ls-files 口径）。
@@ -59,7 +58,7 @@ const effectiveTargetDir = (rel) => {
 const isAncestorDir = (effDir, docRel) => {
   const d = dirOf(docRel)
   if (effDir === d) return false // 平级
-  if (effDir === '') return false // 根层单件（AGENTS/TODO/README 等）是全局入口，子树指回不算向上
+  if (effDir === '') return d !== '' // 根层单件也在祖先链上：向上的指针一概非法（含指回根 AGENTS）
   return d.startsWith(effDir + '/')
 }
 

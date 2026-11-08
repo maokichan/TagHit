@@ -1,7 +1,7 @@
 # TagHit 开发交接（CONTEXT）
 
-> 强制入口 = 根 **[AGENTS.md](../AGENTS.md)**（纪律红线 / 命令 / 文档地图）；本文件 = **进度与环境的活页**。
-> 架构见 [docs/ARCHITECTURE.md](ARCHITECTURE.md) · 词汇 [docs/GLOSSARY.md](GLOSSARY.md) · 裁决 [docs/DECISIONS.md](DECISIONS.md) · 风格基线 [docs/STYLE.md](STYLE.md) · 待办 [TODO.md](../TODO.md)（唯一清单）。
+> 强制入口 = 根 **AGENTS.md**（纪律红线 / 命令 / 文档地图）；本文件 = **进度与环境的活页**。
+> 架构见 [docs/ARCHITECTURE.md](ARCHITECTURE.md) · 词汇 [docs/GLOSSARY.md](GLOSSARY.md) · 裁决 [docs/DECISIONS.md](DECISIONS.md) · 风格基线 [docs/STYLE.md](STYLE.md) · 待办 `TODO.md`（唯一清单）。
 > 版本：0.3.2。
 
 ## 一、一句话
@@ -10,7 +10,7 @@
 
 ## 二、读序
 
-**[AGENTS.md](../AGENTS.md)（红线与命令）** → 本文件（进度与环境）→ **[ARCHITECTURE](ARCHITECTURE.md)** → [GLOSSARY](GLOSSARY.md) → [DECISIONS](DECISIONS.md) → `src/{domain,ports,application}`；渲染层动样式先读 [docs/STYLE.md](STYLE.md)；**写插件先读 [plugins/AGENTS.md](../plugins/AGENTS.md)**；进入 `src/`、`frontend/`、`scripts/` 子树先读各自的入口（[src](../src/AGENTS.md) · [frontend](../frontend/AGENTS.md) · [scripts](../scripts/AGENTS.md)，域地图与增量红线）。
+**AGENTS.md（红线与命令）** → 本文件（进度与环境）→ **[ARCHITECTURE](ARCHITECTURE.md)** → [GLOSSARY](GLOSSARY.md) → [DECISIONS](DECISIONS.md) → `src/{domain,ports,application}`；渲染层动样式先读 [docs/STYLE.md](STYLE.md)；**写插件先读 `plugins/AGENTS.md`**；进入 `src/`、`frontend/`、`scripts/` 子树先读各自的入口（`src/AGENTS.md` · `frontend/AGENTS.md` · `scripts/AGENTS.md`，域地图与增量红线）。
 
 ## 三、进度与下一步
 

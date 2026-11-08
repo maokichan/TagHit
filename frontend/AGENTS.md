@@ -1,7 +1,7 @@
 # frontend/ —— 渲染层子树入口
 
-> 渲染层 = Vue3 + Pinia + router + Tailwind，经 typed 窄桥取数。架构与渲染层词汇权威 = [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) §二/§三，
-> 风格基线 = [`docs/STYLE.md`](../docs/STYLE.md)（动任何样式之前必读）；全局红线与跨域命令在根 [`AGENTS.md`](../AGENTS.md)，不在此复读。
+> 渲染层 = Vue3 + Pinia + router + Tailwind，经 typed 窄桥取数。架构与渲染层词汇权威 = `docs/ARCHITECTURE.md` §二/§三，
+> 风格基线 = `docs/STYLE.md`（动任何样式之前必读）；全局红线与跨域命令在根 `AGENTS.md`，不在此复读。
 
 ## 目录地图
 
@@ -26,7 +26,7 @@ npm --prefix frontend run check:i18n:strict  # 文案机检门控（键对账 + 
 
 ## 增量红线
 
-- 样式走标准样式表（组件类 + token），禁区机检零命中才绿；版式词汇（底板/卡片/全直角/版心）以 [`docs/STYLE.md`](../docs/STYLE.md) 与 [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) §二为准。
+- 样式走标准样式表（组件类 + token），禁区机检零命中才绿；版式词汇（底板/卡片/全直角/版心）以 `docs/STYLE.md` 与 `docs/ARCHITECTURE.md` §二为准。
 - 过桥入参必须是纯数据（store/reactive 的 Proxy 结构化克隆会抛错）——经 `frontend/src/shared/api.ts` 门面，调用点不得绕过。
 - i18n：UI 文案入语言包（zh+en 键同构，残留基线只收不涨）；英译认 `frontend/src/renderer/src/i18n/TERMS.md`；功能组件 title/命令 title/设置 label = 注册时取 i18n 快照，切语言重启刷新。
-- 插件契约面的渲染层实现（contribution/hostApi/装载器）变动须过 [`plugins/AGENTS.md`](../plugins/AGENTS.md) 的契约纪律。
+- 插件契约面的渲染层实现（contribution/hostApi/装载器）变动须过 `plugins/AGENTS.md` 的契约纪律。
