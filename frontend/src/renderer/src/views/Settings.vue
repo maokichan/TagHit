@@ -31,10 +31,17 @@ function setSetting(featureId: string, key: string, v: unknown): void {
   config.setValue(featureId, key, v)
 }
 
+/** 主题枚举：label 走语言包（settings.theme.<key>），键即 i18n 路径尾段。 */
 const themes = [
-  { key: 'dark', label: '暗色' },
-  { key: 'light', label: '亮色' },
-  { key: 'system', label: '跟随系统' }
+  { key: 'dark', label: 'settings.theme.dark' },
+  { key: 'light', label: 'settings.theme.light' },
+  { key: 'system', label: 'settings.theme.system' }
+] as const
+
+/** 语言枚举：选项名 = 语言自名（中文 / English），值存语言包且两语言一致，不随界面语言变。 */
+const locales = [
+  { key: 'zh-CN', label: 'settings.language.zh' },
+  { key: 'en', label: 'settings.language.en' }
 ] as const
 
 /** 版本号：构建时注入（vite define ← 根 package.json），模板不吃 import.meta 故在此转交。 */
@@ -44,30 +51,44 @@ const appVersion = import.meta.env.APP_VERSION
 <template>
   <div class="h-full overflow-y-auto p-4">
     <div class="max-w-2xl mx-auto space-y-6">
-      <h1 class="text-lg font-semibold">设置</h1>
+      <h1 class="text-lg font-semibold">{{ $t('settings.title') }}</h1>
 
       <!-- 外观：壳自身的外观（ui store），不属任何功能组件 -->
       <section class="panel p-4">
-        <div class="text-sm font-medium mb-3">外观</div>
+        <div class="text-sm font-medium mb-3">{{ $t('settings.appearance') }}</div>
         <div class="flex flex-wrap items-center gap-4">
           <div>
-            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">主题</div>
+            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">{{ $t('settings.theme.label') }}</div>
             <div class="flex gap-1.5">
               <button
-                v-for="t in themes"
-                :key="t.key"
+                v-for="opt in themes"
+                :key="opt.key"
                 class="btn"
-                :class="uiStore.theme === t.key ? 'btn-primary' : ''"
-                @click="uiStore.setTheme(t.key)"
+                :class="uiStore.theme === opt.key ? 'btn-primary' : ''"
+                @click="uiStore.setTheme(opt.key)"
               >
-                {{ t.label }}
+                {{ $t(opt.label) }}
               </button>
             </div>
           </div>
           <div>
-            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">开始界面封面</div>
+            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">{{ $t('settings.language.label') }}</div>
+            <div class="flex gap-1.5">
+              <button
+                v-for="opt in locales"
+                :key="opt.key"
+                class="btn"
+                :class="uiStore.locale === opt.key ? 'btn-primary' : ''"
+                @click="uiStore.setLocale(opt.key)"
+              >
+                {{ $t(opt.label) }}
+              </button>
+            </div>
+          </div>
+          <div>
+            <div class="text-[12px] text-[var(--fg-dim)] mb-1.5">{{ $t('settings.covers.label') }}</div>
             <button class="btn" @click="uiStore.toggleWorkspaceCovers()">
-              {{ uiStore.showWorkspaceCovers ? '显示封面' : '隐藏封面' }}
+              {{ uiStore.showWorkspaceCovers ? $t('settings.covers.show') : $t('settings.covers.hide') }}
             </button>
           </div>
         </div>
@@ -91,13 +112,13 @@ const appVersion = import.meta.env.APP_VERSION
 
       <!-- 关于 -->
       <section class="panel p-4">
-        <div class="text-sm font-medium mb-3">关于</div>
+        <div class="text-sm font-medium mb-3">{{ $t('settings.about.title') }}</div>
         <dl class="space-y-1.5 text-[12px]">
-          <div class="flex gap-2"><dt class="w-12 shrink-0 text-[var(--fg-dim)]">应用</dt><dd>TagHit</dd></div>
-          <div class="flex gap-2"><dt class="w-12 shrink-0 text-[var(--fg-dim)]">版本</dt><dd class="tabular-nums">{{ appVersion }}</dd></div>
+          <div class="flex gap-2"><dt class="w-12 shrink-0 text-[var(--fg-dim)]">{{ $t('settings.about.app') }}</dt><dd>TagHit</dd></div>
+          <div class="flex gap-2"><dt class="w-12 shrink-0 text-[var(--fg-dim)]">{{ $t('settings.about.version') }}</dt><dd class="tabular-nums">{{ appVersion }}</dd></div>
           <div class="flex gap-2">
-            <dt class="w-12 shrink-0 text-[var(--fg-dim)]">定位</dt>
-            <dd>本地内容标记与检索管理器——标签替代层级、数据全本地、单一数据库文件。</dd>
+            <dt class="w-12 shrink-0 text-[var(--fg-dim)]">{{ $t('settings.about.positioning') }}</dt>
+            <dd>{{ $t('settings.about.positioningText') }}</dd>
           </div>
         </dl>
       </section>

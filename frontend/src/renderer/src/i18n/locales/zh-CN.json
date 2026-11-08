@@ -1,5 +1,96 @@
 {
   "statusbar": {
     "batchTag": "批量打标签…"
+  },
+  "featureTab": {
+    "missing": "功能组件不存在或已被移除（{id}）",
+    "noFullPage": "「{title}」尚未提供全页呈现。"
+  },
+  "workspaceTab": {
+    "scanFailed": "扫描失败：{error}"
+  },
+  "itemDetail": {
+    "missing": "条目不存在或已被删除",
+    "backHome": "返回主页",
+    "winLoadFailed": "顺序窗口加载失败：{error}",
+    "close": "关闭"
+  },
+  "settings": {
+    "title": "设置",
+    "appearance": "外观",
+    "theme": {
+      "label": "主题",
+      "dark": "暗色",
+      "light": "亮色",
+      "system": "跟随系统"
+    },
+    "language": {
+      "label": "语言",
+      "zh": "中文",
+      "en": "English"
+    },
+    "covers": {
+      "label": "开始界面封面",
+      "show": "显示封面",
+      "hide": "隐藏封面"
+    },
+    "about": {
+      "title": "关于",
+      "app": "应用",
+      "version": "版本",
+      "positioning": "定位",
+      "positioningText": "本地内容标记与检索管理器——标签替代层级、数据全本地、单一数据库文件。"
+    }
+  },
+  "start": {
+    "searchPlaceholder": "全局搜索条目名关键词…",
+    "searching": "搜索中…",
+    "hits": "命中 {n} 项",
+    "wsTitle": "工作区",
+    "collapse": "收起",
+    "newWsHover": "新建工作区",
+    "new": "新建",
+    "wsNamePlaceholder": "输入工作区名称",
+    "create": "创建",
+    "cancel": "取消",
+    "wsLoadFailed": "工作区列表加载失败：{error}",
+    "retry": "重试",
+    "rootCount": "{n} 来源根",
+    "createdOn": "创建于 {date}",
+    "deleteWsHover": "删除工作区 {name}",
+    "empty": "还没有工作区",
+    "deleteTitle": "删除工作区",
+    "deleteConfirm": "删除工作区「{name}」？其来源根、节点与标签声明将一并删除。",
+    "deleteConfirmText": "删除"
+  },
+  "tagProfile": {
+    "missing": "标签不存在或已被删除。",
+    "reading": "正在读取…",
+    "linkRequired": "链接名和地址都要填",
+    "info": "信息",
+    "description": "描述",
+    "mounted": "挂载",
+    "declared": "声明",
+    "wsCount": "{n} 个工作区",
+    "group": "组",
+    "cooccurTitle": "经常一起出现",
+    "cooccurHover": "共现 {n} 项——打开它的主页",
+    "cooccurEmpty": "本工作区里还没有与它共现的标签。",
+    "editHover": "编辑主页内容",
+    "edit": "编辑",
+    "close": "关闭",
+    "bodyPlaceholder": "正文（Markdown）。用 [[标签名]] 链到别的标签主页。",
+    "bodyAria": "主页正文",
+    "links": "链接",
+    "linkNamePlaceholder": "名称",
+    "linkNameAria": "链接名称",
+    "linkUrlAria": "链接地址",
+    "removeLink": "移除此链接",
+    "removeLinkAria": "移除链接 {name}",
+    "addLink": "添加链接",
+    "save": "保存",
+    "cancel": "取消",
+    "editorHint": "Markdown；正文与链接都留空 = 清除主页",
+    "emptyPage": "还没有主页内容——「编辑」写点什么。"
   }
 }

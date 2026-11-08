@@ -1,5 +1,96 @@
 {
   "statusbar": {
     "batchTag": "Batch tag…"
+  },
+  "featureTab": {
+    "missing": "Feature component does not exist or has been removed ({id})",
+    "noFullPage": "\"{title}\" does not offer a full-page view yet."
+  },
+  "workspaceTab": {
+    "scanFailed": "Scan failed: {error}"
+  },
+  "itemDetail": {
+    "missing": "Item does not exist or has been deleted",
+    "backHome": "Back to home",
+    "winLoadFailed": "Failed to load sequential window: {error}",
+    "close": "Close"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": {
+      "label": "Theme",
+      "dark": "Dark",
+      "light": "Light",
+      "system": "System"
+    },
+    "language": {
+      "label": "Language",
+      "zh": "中文",
+      "en": "English"
+    },
+    "covers": {
+      "label": "Start screen covers",
+      "show": "Show covers",
+      "hide": "Hide covers"
+    },
+    "about": {
+      "title": "About",
+      "app": "App",
+      "version": "Version",
+      "positioning": "Positioning",
+      "positioningText": "Local content tagging and retrieval manager — tags instead of hierarchy, all data local, a single database file."
+    }
+  },
+  "start": {
+    "searchPlaceholder": "Search item names globally…",
+    "searching": "Searching…",
+    "hits": "Found {n}",
+    "wsTitle": "Workspaces",
+    "collapse": "Collapse",
+    "newWsHover": "New workspace",
+    "new": "New",
+    "wsNamePlaceholder": "Enter workspace name",
+    "create": "Create",
+    "cancel": "Cancel",
+    "wsLoadFailed": "Failed to load workspace list: {error}",
+    "retry": "Retry",
+    "rootCount": "Roots: {n}",
+    "createdOn": "Created on {date}",
+    "deleteWsHover": "Delete workspace {name}",
+    "empty": "No workspaces yet",
+    "deleteTitle": "Delete workspace",
+    "deleteConfirm": "Delete workspace \"{name}\"? Its roots, nodes and tag declarations will be deleted as well.",
+    "deleteConfirmText": "Delete"
+  },
+  "tagProfile": {
+    "missing": "Tag does not exist or has been deleted.",
+    "reading": "Loading…",
+    "linkRequired": "Both link name and URL are required",
+    "info": "Info",
+    "description": "Description",
+    "mounted": "Mounted",
+    "declared": "Declared",
+    "wsCount": "Workspaces: {n}",
+    "group": "Group",
+    "cooccurTitle": "Often together",
+    "cooccurHover": "Co-occurrence: {n} — open its profile",
+    "cooccurEmpty": "No tags co-occur with it in this workspace yet.",
+    "editHover": "Edit profile content",
+    "edit": "Edit",
+    "close": "Close",
+    "bodyPlaceholder": "Body (Markdown). Use [[tag name]] to link to another tag's profile.",
+    "bodyAria": "Profile body",
+    "links": "Links",
+    "linkNamePlaceholder": "Name",
+    "linkNameAria": "Link name",
+    "linkUrlAria": "Link URL",
+    "removeLink": "Remove this link",
+    "removeLinkAria": "Remove link {name}",
+    "addLink": "Add link",
+    "save": "Save",
+    "cancel": "Cancel",
+    "editorHint": "Markdown; leaving body and links empty clears the profile",
+    "emptyPage": "No profile content yet — use Edit to write something."
   }
 }

@@ -104,7 +104,7 @@ function selectItem(item: ItemView, intent: SelectIntent): void {
       v-if="itemStore.scanError"
       class="error-note mx-3 mt-2 items-center"
     >
-      <span class="flex-1">扫描失败：{{ itemStore.scanError }}</span>
+      <span class="flex-1">{{ $t('workspaceTab.scanFailed', { error: itemStore.scanError }) }}</span>
       <button @click="itemStore.scanError = null">
         ✕
       </button>

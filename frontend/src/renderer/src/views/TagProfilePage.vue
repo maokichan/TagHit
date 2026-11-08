@@ -10,6 +10,7 @@
  */
 import { computed, onMounted, ref, watch } from 'vue'
 import { Plus, Trash2, X } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 import MarkdownIt from 'markdown-it'
 import { api } from '@shared/api'
 import type { Id, TagProfile } from '@shared/contract'
@@ -18,6 +19,7 @@ import { useTabStore, type TagTab } from '../stores/tab'
 import { openTagTab } from '../features/tabs'
 
 const props = defineProps<{ id: string }>()
+const { t } = useI18n()
 const tagStore = useTagStore()
 const tabStore = useTabStore()
 
@@ -60,7 +62,7 @@ async function load(): Promise<void> {
       .map((m) => nameOf.get(m.groupId))
       .filter((n): n is string => n != null)
     if (wsId.value != null) await loadCooccur(wsId.value)
-    if (tag.value == null) error.value = '标签不存在或已被删除'
+    if (tag.value == null) error.value = t('tagProfile.missing')
   } catch (e) {
     error.value = message(e)
   } finally {
@@ -158,7 +160,7 @@ async function saveEdit(): Promise<void> {
     .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
     .filter((l) => l.label !== '' || l.url !== '')
   if (links.some((l) => l.label === '' || l.url === '')) {
-    editError.value = '链接名和地址都要填'
+    editError.value = t('tagProfile.linkRequired')
     return
   }
   const body = draftBody.value.trim() === '' ? null : draftBody.value
@@ -194,27 +196,27 @@ const hasContent = computed(
           <!-- 左：事实条（与正文对齐的简单信息） -->
           <aside class="w-52 shrink-0 space-y-5">
             <div class="panel p-3">
-              <div class="panel-label mb-2">信息</div>
+              <div class="panel-label mb-2">{{ $t('tagProfile.info') }}</div>
               <dl class="space-y-1.5 text-[12px]">
                 <div class="flex gap-2">
-                  <dt class="w-10 shrink-0 text-[var(--fg-dim)]">描述</dt>
+                  <dt class="w-10 shrink-0 text-[var(--fg-dim)]">{{ $t('tagProfile.description') }}</dt>
                   <dd class="min-w-0 flex-1 break-words" :title="tag.description ?? undefined">
                     {{ tag.description ?? '—' }}
                   </dd>
                 </div>
                 <div class="flex gap-2">
-                  <dt class="w-10 shrink-0 text-[var(--fg-dim)]">挂载</dt>
+                  <dt class="w-10 shrink-0 text-[var(--fg-dim)]">{{ $t('tagProfile.mounted') }}</dt>
                   <dd class="tabular-nums">{{ countText(statsRow?.itemCount) }}</dd>
                 </div>
                 <div class="flex gap-2">
-                  <dt class="w-10 shrink-0 text-[var(--fg-dim)]">声明</dt>
+                  <dt class="w-10 shrink-0 text-[var(--fg-dim)]">{{ $t('tagProfile.declared') }}</dt>
                   <dd class="tabular-nums">
-                    {{ countText(statsRow?.workspaceCount) }} 个工作区
+                    {{ $t('tagProfile.wsCount', { n: countText(statsRow?.workspaceCount) }) }}
                   </dd>
                 </div>
               </dl>
               <template v-if="groupNames.length > 0">
-                <div class="panel-label mt-3 mb-1.5">组</div>
+                <div class="panel-label mt-3 mb-1.5">{{ $t('tagProfile.group') }}</div>
                 <div class="flex flex-wrap gap-1">
                   <span v-for="n in groupNames" :key="n" class="chip">{{ n }}</span>
                 </div>
@@ -222,20 +224,20 @@ const hasContent = computed(
             </div>
 
             <div v-if="wsId != null" class="panel p-3">
-              <div class="panel-label mb-2">经常一起出现</div>
+              <div class="panel-label mb-2">{{ $t('tagProfile.cooccurTitle') }}</div>
               <div v-if="cooccur.length > 0" class="flex flex-wrap gap-1">
                 <button
                   v-for="c in cooccur"
                   :key="c.id"
                   class="chip chip--action"
-                  :title="`共现 ${c.together} 项——打开它的主页`"
+                  :title="$t('tagProfile.cooccurHover', { n: c.together })"
                   @click="openNeighbor(c)"
                 >
                   {{ c.name }}
                 </button>
               </div>
               <p v-else-if="loaded" class="text-[11px] text-[var(--fg-dim)]">
-                本工作区里还没有与它共现的标签。
+                {{ $t('tagProfile.cooccurEmpty') }}
               </p>
             </div>
           </aside>
@@ -249,10 +251,10 @@ const hasContent = computed(
               <button
                 v-if="!editing"
                 class="btn h-7 px-2 text-[11px] shrink-0"
-                title="编辑主页内容"
+                :title="$t('tagProfile.editHover')"
                 @click="startEdit"
               >
-                编辑
+                {{ $t('tagProfile.edit') }}
               </button>
             </div>
 
@@ -262,8 +264,8 @@ const hasContent = computed(
                 <span class="min-w-0 flex-1 break-words">{{ editError }}</span>
                 <button
                   class="icon-btn h-4 w-4 shrink-0 text-[var(--danger)]"
-                  title="关闭"
-                  aria-label="关闭"
+                  :title="$t('tagProfile.close')"
+                  :aria-label="$t('tagProfile.close')"
                   @click="editError = null"
                 >
                   <X :size="11" />
@@ -273,12 +275,12 @@ const hasContent = computed(
                 v-model="draftBody"
                 class="input w-full font-mono text-[12px] leading-5"
                 rows="14"
-                placeholder="正文（Markdown）。用 [[标签名]] 链到别的标签主页。"
-                aria-label="主页正文"
+                :placeholder="$t('tagProfile.bodyPlaceholder')"
+                :aria-label="$t('tagProfile.bodyAria')"
                 spellcheck="false"
               ></textarea>
               <div class="mt-3">
-                <div class="panel-label mb-1.5">链接</div>
+                <div class="panel-label mb-1.5">{{ $t('tagProfile.links') }}</div>
                 <div class="space-y-1.5">
                   <div
                     v-for="(l, i) in draftLinks"
@@ -288,21 +290,21 @@ const hasContent = computed(
                     <input
                       v-model="l.label"
                       class="input h-8 w-32 py-0 text-[12px]"
-                      placeholder="名称"
-                      aria-label="链接名称"
+                      :placeholder="$t('tagProfile.linkNamePlaceholder')"
+                      :aria-label="$t('tagProfile.linkNameAria')"
                       spellcheck="false"
                     />
                     <input
                       v-model="l.url"
                       class="input h-8 flex-1 min-w-0 py-0 text-[12px]"
                       placeholder="https://…"
-                      aria-label="链接地址"
+                      :aria-label="$t('tagProfile.linkUrlAria')"
                       spellcheck="false"
                     />
                     <button
                       class="icon-btn h-8 w-7 shrink-0 hover:text-[var(--danger)]"
-                      title="移除此链接"
-                      :aria-label="`移除链接 ${l.label || i + 1}`"
+                      :title="$t('tagProfile.removeLink')"
+                      :aria-label="$t('tagProfile.removeLinkAria', { name: l.label || i + 1 })"
                       @click="draftLinks.splice(i, 1)"
                     >
                       <Trash2 :size="13" />
@@ -314,17 +316,17 @@ const hasContent = computed(
                   :disabled="draftLinks.length >= 100"
                   @click="draftLinks.push({ label: '', url: '' })"
                 >
-                  <Plus :size="12" /> 添加链接
+                  <Plus :size="12" /> {{ $t('tagProfile.addLink') }}
                 </button>
               </div>
               <div class="flex items-center gap-2 mt-4">
                 <button class="btn btn-primary h-7 px-3 text-[12px]" :disabled="saving" @click="saveEdit">
-                  保存
+                  {{ $t('tagProfile.save') }}
                 </button>
                 <button class="btn h-7 px-2 text-[11px]" :disabled="saving" @click="cancelEdit">
-                  取消
+                  {{ $t('tagProfile.cancel') }}
                 </button>
-                <span class="text-[11px] text-[var(--fg-dim)]">Markdown；正文与链接都留空 = 清除主页</span>
+                <span class="text-[11px] text-[var(--fg-dim)]">{{ $t('tagProfile.editorHint') }}</span>
               </div>
             </template>
 
@@ -332,11 +334,11 @@ const hasContent = computed(
             <template v-else>
               <div v-if="renderedBody !== ''" class="doc" @click="onBodyClick" v-html="renderedBody"></div>
               <p v-else-if="loaded && !hasContent" class="text-[12px] text-[var(--fg-dim)]">
-                还没有主页内容——「编辑」写点什么。
+                {{ $t('tagProfile.emptyPage') }}
               </p>
 
               <div v-if="(profile?.links.length ?? 0) > 0" class="mt-6">
-                <div class="panel-label mb-1.5">链接</div>
+                <div class="panel-label mb-1.5">{{ $t('tagProfile.links') }}</div>
                 <ul class="space-y-1">
                   <li v-for="(l, i) in profile?.links" :key="i" class="flex items-baseline gap-2 min-w-0">
                     <a
@@ -355,8 +357,8 @@ const hasContent = computed(
         </div>
       </template>
 
-      <div v-else-if="loaded" class="text-[12px] text-[var(--fg-dim)]">标签不存在或已被删除。</div>
-      <div v-else class="text-[12px] text-[var(--fg-dim)]">正在读取…</div>
+      <div v-else-if="loaded" class="text-[12px] text-[var(--fg-dim)]">{{ $t('tagProfile.missing') }}</div>
+      <div v-else class="text-[12px] text-[var(--fg-dim)]">{{ $t('tagProfile.reading') }}</div>
     </div>
   </div>
 </template>

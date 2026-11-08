@@ -18,8 +18,10 @@ import { windowNav } from '../features/windowNav'
 import { registerDetailNav } from '../features/detailNav'
 import { showToast } from '../features/services/dialog'
 import DetailWorkbench from '../features/detailWorkbench/DetailWorkbench.vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{ id: string }>()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const tabStore = useTabStore()
@@ -130,7 +132,7 @@ async function load(): Promise<void> {
   try {
     const hits = await api.items.query({ ids: [props.id] })
     item.value = hits.length ? toItemView(hits[0]) : null
-    if (!item.value) error.value = '条目不存在或已被删除'
+    if (!item.value) error.value = t('itemDetail.missing')
   } catch (e) {
     item.value = null
     error.value = e instanceof Error ? e.message : String(e)
@@ -188,15 +190,15 @@ watch(
     <div v-if="error" class="flex-1 flex items-center justify-center">
       <div class="text-[var(--danger)] text-sm">
         {{ error }}
-        <button class="btn ml-2" @click="router.push('/')">返回主页</button>
+        <button class="btn ml-2" @click="router.push('/')">{{ $t('itemDetail.backHome') }}</button>
       </div>
     </div>
 
     <template v-else-if="item">
       <!-- 失败可见性：顺序窗口取不到时如实说（顶栏已裁撤 D40，标题由标签页承载；常驻进度不再有） -->
       <div v-if="winError" class="error-note mx-3 mt-2 shrink-0" role="alert">
-        <span class="min-w-0 flex-1 break-words">顺序窗口加载失败：{{ winError }}</span>
-        <button class="icon-btn h-4 w-4 shrink-0" title="关闭" @click="winError = null">✕</button>
+        <span class="min-w-0 flex-1 break-words">{{ $t('itemDetail.winLoadFailed', { error: winError }) }}</span>
+        <button class="icon-btn h-4 w-4 shrink-0" :title="$t('itemDetail.close')" @click="winError = null">✕</button>
       </div>
 
       <!-- 版面：详情页工作台（D39 槽位化；视图 = 预览/信息面/预览条） -->

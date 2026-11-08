@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { FolderPlus, Search, Trash2 } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../stores/workspace'
 import { useTabStore } from '../stores/tab'
@@ -12,6 +13,7 @@ import type { ItemContext } from '@shared/contract'
 import ItemCard from '../components/item/ItemCard.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const workspaceStore = useWorkspaceStore()
 const tabStore = useTabStore()
 
@@ -53,9 +55,9 @@ function openWorkspace(id: string, name: string): void {
 /** 删除工作区（工作区生命周期的家，自设置页迁来）：危险动作带确认，行尾显形。 */
 async function deleteWorkspace(id: string, name: string): Promise<void> {
   const ok = await confirmDialog({
-    title: '删除工作区',
-    message: `删除工作区「${name}」？其来源根、节点与标签声明将一并删除。`,
-    confirmText: '删除',
+    title: t('start.deleteTitle'),
+    message: t('start.deleteConfirm', { name }),
+    confirmText: t('start.deleteConfirmText'),
     danger: true
   })
   if (!ok) return
@@ -134,7 +136,7 @@ function openGlobalItem(item: ItemView): void {
         <input
           v-model="globalQuery"
           class="input pl-9 w-full py-2"
-          placeholder="全局搜索条目名关键词…"
+          :placeholder="$t('start.searchPlaceholder')"
           data-shortcut="search"
         />
       </div>
@@ -147,7 +149,7 @@ function openGlobalItem(item: ItemView): void {
       <!-- 搜索中：结果显示瀑布流（CSS columns，卡片不拆行） -->
       <template v-if="globalQuery.trim()">
         <div class="text-[11px] text-[var(--fg-dim)] mb-2 self-start">
-          {{ globalLoading ? '搜索中…' : `命中 ${globalResults.length} 项` }}
+          {{ globalLoading ? $t('start.searching') : $t('start.hits', { n: globalResults.length }) }}
         </div>
         <div v-if="globalResults.length" class="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3 w-full">
           <ItemCard
@@ -165,14 +167,14 @@ function openGlobalItem(item: ItemView): void {
       <!-- 未搜索：工作区栏（标题 + 新建按钮居中）+ 卡片 -->
       <template v-else>
         <div class="flex items-center gap-2.5 mb-3">
-          <span class="text-sm font-medium">工作区</span>
+          <span class="text-sm font-medium">{{ $t('start.wsTitle') }}</span>
           <button
             class="flex items-center gap-1 text-[12px] text-[var(--accent)] hover:opacity-80 cursor-pointer"
-            :title="showNewForm ? '收起' : '新建工作区'"
+            :title="showNewForm ? $t('start.collapse') : $t('start.newWsHover')"
             @click="toggleNewForm"
           >
             <FolderPlus :size="13" />
-            {{ showNewForm ? '收起' : '新建' }}
+            {{ showNewForm ? $t('start.collapse') : $t('start.new') }}
           </button>
         </div>
 
@@ -182,13 +184,13 @@ function openGlobalItem(item: ItemView): void {
             <input
               v-model="newName"
               class="input flex-1 text-[13px]"
-              placeholder="输入工作区名称"
+              :placeholder="$t('start.wsNamePlaceholder')"
               autofocus
               @keyup.enter="createWorkspace"
               @keyup.esc="showNewForm = false"
             />
-            <button class="btn btn-primary" @click="createWorkspace">创建</button>
-            <button class="btn" @click="showNewForm = false">取消</button>
+            <button class="btn btn-primary" @click="createWorkspace">{{ $t('start.create') }}</button>
+            <button class="btn" @click="showNewForm = false">{{ $t('start.cancel') }}</button>
           </div>
           <p v-if="error" class="text-[11px] text-[var(--danger)] mt-2">{{ error }}</p>
         </div>
@@ -198,8 +200,8 @@ function openGlobalItem(item: ItemView): void {
           v-if="workspaceStore.error"
           class="w-full max-w-xl text-[12px] text-[var(--danger)] panel p-3 mb-3 break-all"
         >
-          工作区列表加载失败：{{ workspaceStore.error }}
-          <button class="btn ml-2 text-[11px]" @click="workspaceStore.refresh()">重试</button>
+          {{ $t('start.wsLoadFailed', { error: workspaceStore.error }) }}
+          <button class="btn ml-2 text-[11px]" @click="workspaceStore.refresh()">{{ $t('start.retry') }}</button>
         </p>
 
         <!-- 已有工作区卡片 -->
@@ -222,27 +224,27 @@ function openGlobalItem(item: ItemView): void {
                 v-if="rootCountByWs[ws.id] !== undefined"
                 class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-[var(--overlay-dim)] text-white text-[11px]"
               >
-                {{ rootCountByWs[ws.id] }} 来源根
+                {{ $t('start.rootCount', { n: rootCountByWs[ws.id] }) }}
               </span>
             </div>
             <div class="p-2">
               <div class="font-medium text-[13px] truncate">{{ ws.name }}</div>
               <div class="text-[11px] text-[var(--fg-dim)] mt-0.5">
-                创建于 {{ new Date(ws.createdAt).toLocaleDateString() }}
+                {{ $t('start.createdOn', { date: new Date(ws.createdAt).toLocaleDateString() }) }}
               </div>
             </div>
             <!-- 删除（危险动作）：行尾显形，点击不触发打开 -->
             <button
               class="icon-btn w-5 h-5 absolute top-1 right-1 text-[var(--danger)] bg-[var(--bg-elev)]
                      opacity-0 group-hover:opacity-100 focus:opacity-100"
-              :title="`删除工作区 ${ws.name}`"
+              :title="$t('start.deleteWsHover', { name: ws.name })"
               @click.stop="deleteWorkspace(ws.id, ws.name)"
             >
               <Trash2 :size="12" />
             </button>
           </div>
         </div>
-        <p v-else class="text-[12px] text-[var(--fg-dim)] mt-1">还没有工作区</p>
+        <p v-else class="text-[12px] text-[var(--fg-dim)] mt-1">{{ $t('start.empty') }}</p>
       </template>
     </div>
   </div>

@@ -42,11 +42,8 @@ const featureProps = computed(() =>
     />
     <div v-else class="h-full flex items-center justify-center px-6 text-center">
       <p class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
-        <template v-if="feature == null">功能组件不存在或已被移除（{{ featureId }}）</template>
-        <template v-else>
-          「{{ feature.manifest.title }}」尚未提供全页呈现。<br />
-          全页呈现不复用窄面板——需为该功能组件单独实现（见 DECISIONS D22）。
-        </template>
+        <template v-if="feature == null">{{ $t('featureTab.missing', { id: featureId }) }}</template>
+        <template v-else>{{ $t('featureTab.noFullPage', { title: feature.manifest.title }) }}</template>
       </p>
     </div>
   </div>
