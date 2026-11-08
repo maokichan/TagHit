@@ -40,6 +40,7 @@ const isExempt = (p) => EXEMPT.some((pre) => (pre.endsWith('/') ? p.startsWith(p
 const DOC_LIMITS = {
   'AGENTS.md': 80, // agent 全局入口（每次会话强制注入）
   'README.md': 80, // 人类入口
+  'docs/AGENTS.md': 80, // 项目级文档子树入口（维护法）
   'src/AGENTS.md': 80, // 后端核心子树入口
   'frontend/AGENTS.md': 80, // 渲染层子树入口
   'scripts/AGENTS.md': 80, // 校准与开发工具子树入口

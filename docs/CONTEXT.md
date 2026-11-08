@@ -10,7 +10,7 @@
 
 ## 二、读序
 
-**AGENTS.md（红线与命令）** → 本文件（进度与环境）→ **[ARCHITECTURE](ARCHITECTURE.md)** → [GLOSSARY](GLOSSARY.md) → [DECISIONS](DECISIONS.md) → `src/{domain,ports,application}`；渲染层动样式先读 [docs/STYLE.md](STYLE.md)；**写插件先读 `plugins/AGENTS.md`**；进入 `src/`、`frontend/`、`scripts/` 子树先读各自的入口（`src/AGENTS.md` · `frontend/AGENTS.md` · `scripts/AGENTS.md`，域地图与增量红线）。
+**AGENTS.md（红线与命令）** → 本文件（进度与环境）→ **[ARCHITECTURE](ARCHITECTURE.md)** → [GLOSSARY](GLOSSARY.md) → [DECISIONS](DECISIONS.md) → `src/{domain,ports,application}`；渲染层动样式先读 [docs/STYLE.md](STYLE.md)；**写插件先读 `plugins/AGENTS.md`**；进入 `src/`、`frontend/`、`scripts/` 子树先读各自的入口（`src/AGENTS.md` · `frontend/AGENTS.md` · `scripts/AGENTS.md`，域地图与增量红线），写或改文档先读 [docs/AGENTS.md](AGENTS.md)（维护法）。
 
 ## 三、进度与下一步
 

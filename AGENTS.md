@@ -35,6 +35,7 @@ node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuar
 |---|---|
 | 本文件 | 每次会话开始（红线 + 地图） |
 | [`frontend/AGENTS.md`](frontend/AGENTS.md) · [`src/AGENTS.md`](src/AGENTS.md) · [`scripts/AGENTS.md`](scripts/AGENTS.md) | 进入对应子系统工作之前（子树入口：域地图 + 增量红线） |
+| [`docs/AGENTS.md`](docs/AGENTS.md) | 写或改任何文档之前（维护法：事实住址、结构规则、洗与 slop 清单） |
 | [`docs/CONTEXT.md`](docs/CONTEXT.md) | 接手进度、下一步、环境与运行细节（ABI 坑、沙箱边界） |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 动架构、贡献点、渲染层词汇、字节闸门 |
 | [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | 命名、新概念入册 |
