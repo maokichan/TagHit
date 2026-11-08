@@ -1,0 +1,30 @@
+{
+  "_note": "文件级豁免统一登记表（单点维护，各守卫按 guards 名取用）——加豁免只改这里、理由随行可审计，守卫脚本内不散落硬编码；豁免过多会让门控失效，故每条必须带理由。path 以 / 结尾 = 目录前缀匹配，否则精确文件匹配。行级规则（注释剥离、console 行等）是探针机制内部规则，不在此登记。",
+  "exemptions": [
+    {
+      "path": "trash/",
+      "guards": ["repoGuard", "docGuard", "docIndex"],
+      "reason": "删除暂存留档——条目不再维护、行数与卫生不再受控，登记表 trash/README.md 承载审计"
+    },
+    {
+      "path": "frontend/src/renderer/src/i18n/locales/",
+      "guards": ["repoGuard", "check-i18n"],
+      "reason": "语言包 = UI 文案事实本体：文案可能合法含路径示例（如输入提示的格式样例），绝对路径红线约束的是 agent 笔下的共享文档；语言包本身即文案，残留扫描无意义（D50/D51）"
+    },
+    {
+      "path": "frontend/scripts/i18n-residue-baseline.json",
+      "guards": ["repoGuard"],
+      "reason": "残留基线如实镜像 UI 文案（D50/D51 机检底稿），与语言包同一口径"
+    },
+    {
+      "path": "frontend/src/renderer/src/__tests__/",
+      "guards": ["check-i18n"],
+      "reason": "测试断言里的中文是夹具，不是 UI 文案"
+    },
+    {
+      "path": "frontend/src/renderer/src/styleguide/",
+      "guards": ["check-i18n"],
+      "reason": "样式基线样张页的示例文本，非产品文案（npm run style 的开发页）"
+    }
+  ]
+}

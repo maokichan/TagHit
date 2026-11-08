@@ -8,7 +8,7 @@
  * （校准场景、dev 一键、自验），二者分治。本脚本 = 域 `doc`（文档治理）+ 动作 `Guard`。
  *
  * ── 用途 ──
- * 扫描 git 追踪的全部 Markdown（trash/ 留档除外），逐文件比对行数与上限表，超限即挡。
+ * 扫描 git 追踪的全部 Markdown（文件级豁免统一登记 ops/exemptions.json），逐文件比对行数与上限表，超限即挡。
  * `node ops/scripts/docGuard.mjs` = 门控（hook 调的就是它）；`--report` = 体检报告，只打印不挡。
  *
  * ── 目的 ──
@@ -27,6 +27,14 @@
 
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/** 文件级豁免单点登记于 ops/exemptions.json（path + guards + reason），按守卫名取用。 */
+const EXEMPT = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'exemptions.json'), 'utf8')
+).exemptions.filter((e) => e.guards.includes('docGuard')).map((e) => e.path)
+const isExempt = (p) => EXEMPT.some((pre) => (pre.endsWith('/') ? p.startsWith(pre) : p === pre))
 
 /** 上限表：路径（/ 分隔）→ 行数上限。只登记入口/索引类硬上限——其余文档一律默认 300。 */
 const DOC_LIMITS = {
@@ -41,11 +49,11 @@ const DOC_LIMITS = {
 /** 未登记文档的默认上限 */
 const DEFAULT_LIMIT = 300
 
-/** git 追踪的全部 .md（含暂存区新文件；trash/ 留档之外不会混进别的） */
+/** git 追踪的全部 .md（含暂存区新文件；豁免口径见 ops/exemptions.json） */
 const tracked = execSync('git ls-files -- "*.md"', { encoding: 'utf8' })
   .split('\n')
   .map((p) => p.trim())
-  .filter((p) => p.endsWith('.md') && p !== '' && !p.startsWith('trash/'))
+  .filter((p) => p.endsWith('.md') && p !== '' && !isExempt(p))
 
 const linesOf = (p) => {
   const text = readFileSync(p, 'utf8')

@@ -17,6 +17,9 @@
 `set -e` 串联：docIndex hook → repoGuard → docGuard，任一失败即中止提交；push 前另有
 `npm run ci` 全链（`.githooks/pre-push`）。`--no-verify` 是人类的绕行特权，agent 不用——
 门控为纪律而设，不是安全机制。体检：`docIndex check`、各 Guard `--report`，只打印不挡。
+**文件级豁免单点登记 [`exemptions.json`](exemptions.json)**（path + guards + reason）——
+各守卫按名取用；加豁免只改登记一处、理由随行可审计，守卫脚本内不散落硬编码（豁免堆积
+即门控失效的前兆，每条都过目）。行级规则（注释剥离等）是探针机制内部规则，不在登记表。
 
 ## 路径红线（repoGuard 的口径依据）
 

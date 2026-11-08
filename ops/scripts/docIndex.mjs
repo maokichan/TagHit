@@ -20,6 +20,11 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
+/** 文件级豁免单点登记于 ops/exemptions.json（path + guards + reason），按守卫名取用。 */
+const EXEMPT = JSON.parse(readFileSync(join(ROOT, 'ops', 'exemptions.json'), 'utf8'))
+  .exemptions.filter((e) => e.guards.includes('docIndex')).map((e) => e.path)
+const isExempt = (p) => EXEMPT.some((pre) => (pre.endsWith('/') ? p.startsWith(pre) : p === pre))
+
 const isTTY = process.stdout.isTTY
 const paint = (s, c) => (isTTY ? `\x1b[${c}m${s}\x1b[0m` : s)
 const red = (s) => paint(s, '31')
@@ -30,7 +35,7 @@ const trackedMd = () =>
   execSync('git ls-files -- "*.md"', { encoding: 'utf8' })
     .split('\n')
     .map((p) => p.trim())
-    .filter((p) => p.endsWith('.md') && p !== '' && !p.startsWith('trash/'))
+    .filter((p) => p.endsWith('.md') && p !== '' && !isExempt(p))
 
 const dirOf = (rel) => {
   const d = dirname(rel).split(sep).join('/')

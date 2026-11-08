@@ -17,11 +17,11 @@
  *   node scripts/check-i18n.mjs residue --update-baseline              # 只清理基线中已消失条目
  *   node scripts/check-i18n.mjs residue --update-baseline --accept-new # 连当前新增一并收进基线
  *
- * 范围边界：跟踪面 = 渲染层 UI 源码（.vue/.ts，排除 __tests__ / i18n 语言包 / styleguide
- * 样张页 / console.* 行 / 注释行——报告制探针，行级剥离的边角误差靠基线消化）。
- * host 侧中文 = 调试细节（D50）、docs 中文 = 政策（docGuard 管）、插件中文 = 插件资产
- * （D51 自译）——均不在跟踪面。基线只收不涨：--update-baseline 只删已消失条目，
- * 新增必须显式 --accept-new（有意识收纳 = 抽取批的工作底稿）。
+ * 范围边界：跟踪面 = 渲染层 UI 源码（.vue/.ts）；**文件级豁免统一登记 ops/exemptions.json**
+ * （__tests__ / i18n 语言包 / styleguide，按 guards 名取用），行级规则（注释剥离、console.*
+ * 行）是本探针机制内部规则。host 侧中文 = 调试细节（D50）、docs 中文 = 政策（docGuard 管）、
+ * 插件中文 = 插件资产（D51 自译）——均不在跟踪面。基线只收不涨：--update-baseline 只删已消失
+ * 条目，新增必须显式 --accept-new（有意识收纳 = 抽取批的工作底稿）。
  *
  * 运行环境：零依赖 stdlib（node >= 20）；路径一律仓库相对。
  */
@@ -31,9 +31,15 @@ import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const frontendDir = join(scriptDir, '..')
+const repoRoot = join(frontendDir, '..')
 const localesDir = join(frontendDir, 'src', 'renderer', 'src', 'i18n', 'locales')
 const rendererSrc = join(frontendDir, 'src', 'renderer', 'src')
 const baselinePath = join(scriptDir, 'i18n-residue-baseline.json')
+
+/** 文件级豁免单点登记于 ops/exemptions.json（path + guards + reason），按守卫名取用。 */
+const EXEMPT = JSON.parse(readFileSync(join(repoRoot, 'ops', 'exemptions.json'), 'utf8'))
+  .exemptions.filter((e) => e.guards.includes('check-i18n')).map((e) => e.path)
+const isExempt = (rel) => EXEMPT.some((pre) => (pre.endsWith('/') ? rel.startsWith(pre) : rel === pre))
 
 const args = process.argv.slice(2)
 const strict = args.includes('--strict')
@@ -85,7 +91,8 @@ function checkKeys() {
 
 // ---- 探针二：中文残留（基线对照） ---------------------------------------------
 
-const SKIP_DIRS = new Set(['__tests__', 'i18n', 'styleguide', 'node_modules', 'dist'])
+/** fs 剪枝（node_modules/dist 不入 git，非豁免）；语义豁免走 ops/exemptions.json。 */
+const SKIP_DIRS = new Set(['node_modules', 'dist'])
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
@@ -94,7 +101,8 @@ function walk(dir, out = []) {
     if (st.isDirectory()) {
       if (!SKIP_DIRS.has(name)) walk(p, out)
     } else if ((name.endsWith('.ts') && !name.endsWith('.d.ts')) || name.endsWith('.vue')) {
-      out.push(p)
+      const rel = relative(repoRoot, p).split(sep).join('/')
+      if (!isExempt(rel)) out.push(p)
     }
   }
   return out
