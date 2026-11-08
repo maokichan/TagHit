@@ -42,18 +42,21 @@ export class ApiError extends Error {
   }
 }
 
-/** D9 错误文案映射：code → 中文短句（message 作为细节附在其后）。 */
-const ERROR_LABELS: Record<string, string> = {
-  NOT_FOUND: '目标不存在',
-  CONFLICT: '与现有数据冲突',
-  INVALID: '输入不合法',
-  UNKNOWN: '内部错误'
+/** D9 错误文案映射：code → 语言包键 errors.*（渲染层按当前语言取短句，message 作为细节附后）。
+ *  窄桥本就是渲染层物件（包的是 window.api），此处是 shared 对 renderer 的唯一运行时反向引用。 */
+import { i18n } from '@renderer/i18n'
+
+const ERROR_KEYS: Record<string, string> = {
+  NOT_FOUND: 'errors.NOT_FOUND',
+  CONFLICT: 'errors.CONFLICT',
+  INVALID: 'errors.INVALID',
+  UNKNOWN: 'errors.UNKNOWN'
 }
 
 function unwrap<T>(result: Result<T>): T {
   if (result.ok) return result.data
-  const label = ERROR_LABELS[result.error.code] ?? '内部错误'
-  throw new ApiError(result.error.code, `${label}：${result.error.message}`)
+  const key = ERROR_KEYS[result.error.code] ?? 'errors.UNKNOWN'
+  throw new ApiError(result.error.code, `${i18n.global.t(key)}：${result.error.message}`)
 }
 
 /**

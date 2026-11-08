@@ -632,5 +632,11 @@
   "boundary": {
     "labelError": "{label}：{error}",
     "retry": "重试"
+  },
+  "errors": {
+    "NOT_FOUND": "目标不存在",
+    "CONFLICT": "与现有数据冲突",
+    "INVALID": "输入不合法",
+    "UNKNOWN": "内部错误"
   }
 }
