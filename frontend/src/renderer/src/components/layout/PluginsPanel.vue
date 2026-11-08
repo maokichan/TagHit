@@ -39,7 +39,7 @@ function open(featureId: string, title: string): void {
     <div
       class="panel-label mb-2 flex items-center gap-1.5"
     >
-      <Puzzle :size="12" /> 插件
+      <Puzzle :size="12" /> {{ $t('layout.plugins.title') }}
     </div>
 
     <div v-if="contentTabs.length" class="space-y-1 mb-3">
@@ -55,7 +55,7 @@ function open(featureId: string, title: string): void {
     </div>
 
     <div v-if="hasContributed" class="space-y-2 mb-3">
-      <div class="panel-label mb-2">已安装</div>
+      <div class="panel-label mb-2">{{ $t('layout.plugins.installed') }}</div>
       <!-- 卡片 = 扫视面：只留名称 + 启停开关（D46）；理解与管理进管理页（面板角标，D47） -->
       <div
         v-for="p in installed"
@@ -69,14 +69,14 @@ function open(featureId: string, title: string): void {
           type="button"
           class="text-[11px] px-1.5 py-0.5 cursor-pointer transition-colors"
           :class="p.enabled ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'bg-[var(--bg-hover)] text-[var(--fg-dim)]'"
-          :title="p.enabled ? '停用' : '启用'"
+          :title="$t(p.enabled ? 'layout.plugins.disable' : 'layout.plugins.enable')"
           @click="toggle(p.manifest.id, !p.enabled)"
         >
-          {{ p.enabled ? '启用中' : '已停用' }}
+          {{ $t(p.enabled ? 'layout.plugins.enabledOn' : 'layout.plugins.enabledOff') }}
         </button>
       </div>
     </div>
 
-    <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">安装插件（zip 包）请进管理页。</p>
+    <p class="text-[11px] text-[var(--fg-dim)] leading-relaxed">{{ $t('layout.plugins.manageHint') }}</p>
   </div>
 </template>

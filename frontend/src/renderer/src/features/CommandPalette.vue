@@ -127,7 +127,7 @@ function hoverRow(row: PaletteRow): void {
           ref="inputRef"
           v-model="query"
           type="text"
-          placeholder="输入命令…"
+          :placeholder="$t('palette.inputPlaceholder')"
           class="w-full px-3 py-2.5 text-[13px] bg-transparent outline-none border-b border-[var(--border)] text-[var(--fg)] placeholder:text-[var(--fg-dim)]"
           @input="activeIndex = 0"
         />
@@ -143,18 +143,18 @@ function hoverRow(row: PaletteRow): void {
                 row.applicable ? 'text-[var(--fg)]' : 'text-[var(--fg-dim)] opacity-60 cursor-default'
               ]"
               :disabled="!row.applicable"
-              :title="row.applicable ? row.entry.manifest.id : `${row.entry.manifest.id}：当前上下文不可用`"
+              :title="row.applicable ? row.entry.manifest.id : $t('palette.rowUnavailable', { id: row.entry.manifest.id })"
               @click="runCommand(row)"
               @mousemove="hoverRow(row)"
             >
               <span class="truncate flex-1">{{ row.entry.manifest.title }}</span>
-              <span v-if="!row.applicable" class="shrink-0 text-[11px] opacity-80">当前不可用</span>
+              <span v-if="!row.applicable" class="shrink-0 text-[11px] opacity-80">{{ $t('palette.rowUnavailableShort') }}</span>
               <span v-if="row.shortcut" class="shrink-0 text-[11px] tabular-nums text-[var(--fg-dim)]">
                 {{ row.shortcut }}
               </span>
             </button>
           </template>
-          <div v-else class="px-3 py-2 text-[12px] text-[var(--fg-dim)]">没有匹配的命令</div>
+          <div v-else class="px-3 py-2 text-[12px] text-[var(--fg-dim)]">{{ $t('palette.noMatches') }}</div>
         </div>
       </div>
     </div>

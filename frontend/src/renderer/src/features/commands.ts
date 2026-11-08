@@ -5,6 +5,7 @@ import type {
   MenuGroup,
   WhenClause
 } from '@shared/types/command'
+import { i18n } from '../i18n'
 
 /**
  * 命令注册表 —— 调用面的原子（ARCHITECTURE §3.2）。
@@ -22,7 +23,7 @@ const registry = new Map<string, CommandEntry>()
 /** 注册命令。重复 id 抛错——官方静态注册期望开发期暴露；contributed 届时在装载处降级为拒绝。 */
 export function registerCommand(manifest: CommandManifest, run: CommandHandler): void {
   if (registry.has(manifest.id)) {
-    throw new Error(`命令 id 重复：${manifest.id}`)
+    throw new Error(i18n.global.t('commands.duplicateId', { id: manifest.id }))
   }
   registry.set(manifest.id, { manifest, run })
 }

@@ -34,7 +34,7 @@ onUnmounted(() => window.removeEventListener('resize', refresh))
     <button
       class="flex items-center justify-center w-10 h-full text-[var(--fg-dim)]
              hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] transition-colors cursor-pointer"
-      title="最小化"
+      :title="$t('layout.win.minimize')"
       @click="control('minimize')"
     >
       <Minus :size="14" />
@@ -42,7 +42,7 @@ onUnmounted(() => window.removeEventListener('resize', refresh))
     <button
       class="flex items-center justify-center w-10 h-full text-[var(--fg-dim)]
              hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] transition-colors cursor-pointer"
-      :title="maximized ? '还原' : '最大化'"
+      :title="$t(maximized ? 'layout.win.restore' : 'layout.win.maximize')"
       @click="control('toggleMaximize')"
     >
       <Square v-if="!maximized" :size="11" />
@@ -51,7 +51,7 @@ onUnmounted(() => window.removeEventListener('resize', refresh))
     <button
       class="flex items-center justify-center w-10 h-full text-[var(--fg-dim)]
              hover:bg-[var(--danger)] hover:text-white transition-colors cursor-pointer"
-      title="关闭"
+      :title="$t('layout.win.close')"
       @click="control('close')"
     >
       <X :size="14" />

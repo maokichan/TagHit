@@ -13,6 +13,7 @@
 import { api } from '@shared/api'
 import { taghitFileUrl } from './media'
 import type { ItemView } from './viewModel'
+import { i18n } from '../i18n'
 
 const CONCURRENCY = 3
 /** 采集最大边（像素），等比缩放；输出 JPEG 0.8 质量。 */
@@ -40,7 +41,7 @@ function waitEvent(
   return new Promise((resolve, reject) => {
     const timer = window.setTimeout(() => {
       cleanup()
-      reject(new Error(`视频 ${event} 超时`))
+      reject(new Error(i18n.global.t('thumbnailer.videoEventTimeout', { event })))
     }, timeoutMs)
     const onOk = (): void => {
       cleanup()
@@ -48,7 +49,7 @@ function waitEvent(
     }
     const onErr = (): void => {
       cleanup()
-      reject(new Error('视频加载失败'))
+      reject(new Error(i18n.global.t('thumbnailer.videoLoadFailed')))
     }
     function cleanup(): void {
       window.clearTimeout(timer)
@@ -66,12 +67,12 @@ function encodeCanvas(canvas: HTMLCanvasElement): Promise<string> {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          reject(new Error('缩略图编码失败'))
+          reject(new Error(i18n.global.t('thumbnailer.encodeFailed')))
           return
         }
         const reader = new FileReader()
         reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
-        reader.onerror = () => reject(new Error('base64 读取失败'))
+        reader.onerror = () => reject(new Error(i18n.global.t('thumbnailer.base64ReadFailed')))
         reader.readAsDataURL(blob)
       },
       'image/jpeg',
@@ -93,7 +94,7 @@ function drawScaled(
   canvas.width = cw
   canvas.height = ch
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('canvas 不可用')
+  if (!ctx) throw new Error(i18n.global.t('thumbnailer.canvasUnavailable'))
   ctx.drawImage(source, 0, 0, cw, ch)
   return { canvas, ctx }
 }
@@ -110,7 +111,7 @@ export async function captureVideoThumb(sourceUri: string): Promise<ThumbCapture
 
   try {
     await waitEvent(video, 'loadeddata', LOAD_TIMEOUT)
-    if (!video.videoWidth || !video.videoHeight) throw new Error('视频尺寸不可用')
+    if (!video.videoWidth || !video.videoHeight) throw new Error(i18n.global.t('thumbnailer.videoSizeUnavailable'))
     const duration = Number.isFinite(video.duration) ? video.duration : 0
     const target = duration > 0 ? Math.min(1, duration * 0.1) : 1
     if (Math.abs(video.currentTime - target) > 0.1) {
@@ -138,7 +139,7 @@ async function captureImageThumb(sourceUri: string): Promise<ThumbCapture> {
   await waitEvent(img, 'load', LOAD_TIMEOUT)
   const w = img.naturalWidth
   const h = img.naturalHeight
-  if (!w || !h) throw new Error('图片尺寸不可用')
+  if (!w || !h) throw new Error(i18n.global.t('thumbnailer.imageSizeUnavailable'))
   const { canvas } = drawScaled(img, w, h)
   const base64 = await encodeCanvas(canvas)
   return { base64, width: w, height: h }

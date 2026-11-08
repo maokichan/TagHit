@@ -30,7 +30,7 @@ const TypeIcon = computed(() => iconMap[ctx.item.mediaType] ?? File)
     <button
       class="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-[var(--bg-elev)] border border-[var(--border)] hover:border-[var(--fg-dim)] disabled:opacity-30 disabled:cursor-default"
       :disabled="ctx.prev == null"
-      :title="ctx.prev != null ? `上一张：${ctx.prev.title}（← / PgUp）` : '已是第一张'"
+      :title="ctx.prev != null ? $t('wb.preview.prevTitle', { name: ctx.prev.title }) : $t('wb.preview.isFirst')"
       @click="ctx.go(ctx.prev)"
     >
       <ChevronLeft :size="18" />
@@ -40,14 +40,14 @@ const TypeIcon = computed(() => iconMap[ctx.item.mediaType] ?? File)
     <component :is="preview.component" v-if="preview" :item="ctx.item" />
     <div v-else class="flex flex-col items-center gap-3 text-[var(--fg-dim)]">
       <component :is="TypeIcon" :size="56" />
-      <span class="text-sm">此类型暂无内嵌预览</span>
+      <span class="text-sm">{{ $t('wb.preview.noPreview') }}</span>
       <span v-if="ctx.item.sourceUri" class="text-[11px] kbd max-w-full truncate">{{ ctx.item.sourceUri }}</span>
     </div>
 
     <button
       class="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-[var(--bg-elev)] border border-[var(--border)] hover:border-[var(--fg-dim)] disabled:opacity-30 disabled:cursor-default"
       :disabled="ctx.next == null"
-      :title="ctx.next != null ? `下一张：${ctx.next.title}（→ / PgDn）` : '已是最后一张'"
+      :title="ctx.next != null ? $t('wb.preview.nextTitle', { name: ctx.next.title }) : $t('wb.preview.isLast')"
       @click="ctx.go(ctx.next)"
     >
       <ChevronRight :size="18" />

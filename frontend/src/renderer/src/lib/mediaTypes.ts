@@ -8,6 +8,8 @@
  * 宿主与数据库不知道类别语义，只见过扩展名（DECISIONS D36）。
  */
 
+import { i18n } from '../i18n'
+
 export type MediaType = 'image' | 'video' | 'audio' | 'document' | 'other'
 
 /** 可筛选类别（「其他」没有可配置的扩展名集合，不进筛选面）。 */
@@ -15,10 +17,18 @@ export const FILTERABLE_MEDIA_TYPES = ['image', 'video', 'audio', 'document'] as
 export type FilterableMediaType = (typeof FILTERABLE_MEDIA_TYPES)[number]
 
 export const MEDIA_TYPE_LABEL: Record<FilterableMediaType, string> = {
-  image: '图片',
-  video: '视频',
-  audio: '音频',
-  document: '文档'
+  get image(): string {
+    return i18n.global.t('mediaTypes.image')
+  },
+  get video(): string {
+    return i18n.global.t('mediaTypes.video')
+  },
+  get audio(): string {
+    return i18n.global.t('mediaTypes.audio')
+  },
+  get document(): string {
+    return i18n.global.t('mediaTypes.document')
+  }
 }
 
 /** 默认映射（0.2 以来 viewModel 内置表的原样迁入；设置项留空即回落到它）。 */

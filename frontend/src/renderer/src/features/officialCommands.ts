@@ -1,6 +1,7 @@
 import router from '../router'
 import { useTabStore } from '../stores/tab'
 import { useItemStore } from '../stores/item'
+import { i18n } from '../i18n'
 import { registerCommand, type CommandEntry } from './commands'
 import { registerShortcut } from './keyboardMouse/shortcuts'
 import { openBatchTagDialog } from './services/batchTag'
@@ -33,7 +34,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'item.open',
-      title: '打开',
+      title: i18n.global.t('commands.itemOpen'),
       menu: { group: 'nav', order: 0 },
       when: { kind: 'targetIs', value: 'item' }
     },
@@ -50,7 +51,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'item.copyPath',
-      title: '复制文件路径',
+      title: i18n.global.t('commands.itemCopyPath'),
       menu: { group: 'modify', order: 0 },
       when: { kind: 'targetIs', value: 'item' }
     },
@@ -64,7 +65,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'items.tagBatch',
-      title: '批量打标签…',
+      title: i18n.global.t('commands.itemsTagBatch'),
       menu: { group: 'modify', order: 1 },
       when: { kind: 'targetIs', value: 'item' }
     },
@@ -87,7 +88,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'items.untagBatch',
-      title: '批量移除标签…',
+      title: i18n.global.t('commands.itemsUntagBatch'),
       menu: { group: 'modify', order: 2 },
       when: { kind: 'targetIs', value: 'item' }
     },
@@ -113,7 +114,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'node.onlyThis',
-      title: '只看此节点（含子目录）',
+      title: i18n.global.t('commands.nodeOnlyThis'),
       menu: { group: 'nav', order: 0 },
       when: { kind: 'targetIs', value: 'node' }
     },
@@ -131,7 +132,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'node.showSubtree',
-      title: '显示此节点的全部子条目',
+      title: i18n.global.t('commands.nodeShowSubtree'),
       menu: { group: 'modify', order: 0 },
       when: { kind: 'targetIs', value: 'node' }
     },
@@ -140,7 +141,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'node.hideSubtree',
-      title: '隐藏此节点及子目录的条目',
+      title: i18n.global.t('commands.nodeHideSubtree'),
       menu: { group: 'modify', order: 1 },
       when: { kind: 'targetIs', value: 'node' }
     },
@@ -151,7 +152,7 @@ export function registerBuiltinCommands(): void {
   // 活动标签为工作区 → **切换**顶栏搜索弹出面板（呼出 ↔ 放回，D44）；
   // 其余标签保留 DOM 兜底（globalSearch 全页输入等仍在 DOM 里时聚焦它）。
   official(
-    { id: 'shell.focusSearch', title: '搜索', when: { kind: 'targetIs', value: 'shell' } },
+    { id: 'shell.focusSearch', title: i18n.global.t('commands.focusSearch'), when: { kind: 'targetIs', value: 'shell' } },
     () => {
       const tabStore = useTabStore()
       if (tabStore.activeWorkspaceId != null) {
@@ -166,7 +167,7 @@ export function registerBuiltinCommands(): void {
   )
 
   // 命令面板（Ctrl+Shift+P）：调用面入口本身也是一个命令（快捷键 = 注册表的视图）
-  official({ id: 'shell.commandPalette', title: '显示所有命令', when: { kind: 'targetIs', value: 'shell' } }, () => {
+  official({ id: 'shell.commandPalette', title: i18n.global.t('commands.commandPalette'), when: { kind: 'targetIs', value: 'shell' } }, () => {
     openPalette()
   })
 
@@ -174,7 +175,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'items.selectAll',
-      title: '全选',
+      title: i18n.global.t('commands.selectAll'),
       menu: { group: 'nav', order: 1 },
       when: { kind: 'targetIs', value: 'shell' }
     },
@@ -185,7 +186,7 @@ export function registerBuiltinCommands(): void {
   official(
     {
       id: 'selection.clear',
-      title: '清空选择',
+      title: i18n.global.t('commands.clearSelection'),
       menu: { group: 'nav', order: 2 },
       when: { kind: 'targetIs', value: 'shell' }
     },
@@ -199,7 +200,7 @@ export function registerBuiltinCommands(): void {
   // 唯一入口是显示面板与设置页——命令面板不为它们开第二扇门。
   // 主页：关闭全部主页标签后没有别的回程（"+"与设置都会经 ensureHome 兜底）→ 面板是正路。
   official(
-    { id: 'shell.home', title: '打开主页', when: { kind: 'targetIs', value: 'shell' } },
+    { id: 'shell.home', title: i18n.global.t('commands.openHome'), when: { kind: 'targetIs', value: 'shell' } },
     () => {
       useTabStore().openNewHome()
       void router.push('/')
@@ -207,7 +208,7 @@ export function registerBuiltinCommands(): void {
   )
   // 设置：标签必须先在 tab store 里存在，守卫才认可 '/settings'（无匹配标签会被弹回活动标签）
   official(
-    { id: 'shell.settings', title: '打开设置', when: { kind: 'targetIs', value: 'shell' } },
+    { id: 'shell.settings', title: i18n.global.t('commands.openSettings'), when: { kind: 'targetIs', value: 'shell' } },
     () => {
       useTabStore().openSettings()
       void router.push('/settings')
@@ -217,14 +218,14 @@ export function registerBuiltinCommands(): void {
   // 循环切换标签页（Ctrl+Tab / Ctrl+Shift+Tab）：浏览器同款。
   // 切换 = replace（不写历史，导航语义见 features/tabs.ts）；单标签时无事可做。
   official(
-    { id: 'shell.tabNext', title: '下一个标签页', when: { kind: 'targetIs', value: 'shell' } },
+    { id: 'shell.tabNext', title: i18n.global.t('commands.tabNext'), when: { kind: 'targetIs', value: 'shell' } },
     () => {
       const t = useTabStore().cycleActive(1)
       if (t != null) void router.replace(routeOfTab(t))
     }
   )
   official(
-    { id: 'shell.tabPrev', title: '上一个标签页', when: { kind: 'targetIs', value: 'shell' } },
+    { id: 'shell.tabPrev', title: i18n.global.t('commands.tabPrev'), when: { kind: 'targetIs', value: 'shell' } },
     () => {
       const t = useTabStore().cycleActive(-1)
       if (t != null) void router.replace(routeOfTab(t))
@@ -241,8 +242,8 @@ export function registerBuiltinCommands(): void {
       { kind: 'fieldEquals', field: 'detailNav', value: true }
     ]
   }
-  official({ id: 'item.prev', title: '上一张', when: detailPageOnly }, () => detailPrev())
-  official({ id: 'item.next', title: '下一张', when: detailPageOnly }, () => detailNext())
+  official({ id: 'item.prev', title: i18n.global.t('commands.itemPrev'), when: detailPageOnly }, () => detailPrev())
+  official({ id: 'item.next', title: i18n.global.t('commands.itemNext'), when: detailPageOnly }, () => detailNext())
 
   // 编辑模式（Ctrl+E 双向切换）：详情页的修改类动作（点 chip 打标/摘除、搜标签、数字速打）
   // 只在编辑模式进行，阅读态防误触——相册浏览是高频动作，误改状态是最贵的手感事故。
@@ -256,7 +257,7 @@ export function registerBuiltinCommands(): void {
     ]
   }
   official(
-    { id: 'item.toggleEdit', title: '切换编辑模式', when: detailTaggableOnly },
+    { id: 'item.toggleEdit', title: i18n.global.t('commands.toggleEdit'), when: detailTaggableOnly },
     () => detailToggleEdit()
   )
 
@@ -275,7 +276,7 @@ export function registerBuiltinCommands(): void {
   }
   for (const digit of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) {
     official(
-      { id: `item.quickTag.${digit}`, title: `速打标签 ${digit}`, when: detailEditingOnly },
+      { id: `item.quickTag.${digit}`, title: i18n.global.t('commands.quickTag', { n: digit }), when: detailEditingOnly },
       () => {
         void detailQuickTag(digit)
       }
@@ -283,14 +284,14 @@ export function registerBuiltinCommands(): void {
     registerShortcut({
       commandId: `item.quickTag.${digit}`,
       key: String(digit),
-      label: `速打标签 ${digit}`
+      label: i18n.global.t('commands.quickTag', { n: digit })
     })
   }
 
   // 重置详情页版面为出厂（D39）：可配置版面必须自带退路——槽位分配/关掉的视图/尺寸一并归位。
   // 生效范围 = 详情页在场（detailNav 现场事实）；版面持有者归模块（detailWorkbench/store）。
   official(
-    { id: 'detail.layoutReset', title: '重置详情页版面', when: detailPageOnly },
+    { id: 'detail.layoutReset', title: i18n.global.t('commands.layoutReset'), when: detailPageOnly },
     () => {
       resetWorkbenchLayout(knownViews())
     }
@@ -305,26 +306,26 @@ export function registerBuiltinCommands(): void {
     mod: true,
     allowInEditable: true,
     gate: { featureId: 'keyboardMouse', key: 'enableSearchShortcut', fallback: true },
-    label: '搜索'
+    label: i18n.global.t('commands.focusSearch')
   })
   // Esc：清空多选集（含输入态——打字时按 Esc 也应当退出选择态）
-  registerShortcut({ commandId: 'selection.clear', key: 'escape', label: '清空选择' })
+  registerShortcut({ commandId: 'selection.clear', key: 'escape', label: i18n.global.t('commands.clearSelection') })
   // Ctrl+A 全选：输入态不触发（执行器豁免规则），文本框内的原生全选不受影响
-  registerShortcut({ commandId: 'items.selectAll', key: 'a', mod: true, label: '全选' })
+  registerShortcut({ commandId: 'items.selectAll', key: 'a', mod: true, label: i18n.global.t('commands.selectAll') })
   // Ctrl+E：详情页编辑模式双向切换；输入态也允许（在标签搜索框打字中退出编辑是常态）
   registerShortcut({
     commandId: 'item.toggleEdit',
     key: 'e',
     mod: true,
     allowInEditable: true,
-    label: '切换编辑模式'
+    label: i18n.global.t('commands.toggleEdit')
   })
   // 详情页翻页：← / → 与 PgUp / PgDn 四路并存——笔记本可能没有 PgUp/PgDn（要 Fn+↑），
   // 而视频聚焦时方向键属原生控件（见 keyboardMouse/setup.ts 的让位规则），那时 PgUp/PgDn 是主力。
-  registerShortcut({ commandId: 'item.prev', key: 'arrowleft', label: '上一张' })
-  registerShortcut({ commandId: 'item.next', key: 'arrowright', label: '下一张' })
-  registerShortcut({ commandId: 'item.prev', key: 'pageup', label: '上一张' })
-  registerShortcut({ commandId: 'item.next', key: 'pagedown', label: '下一张' })
+  registerShortcut({ commandId: 'item.prev', key: 'arrowleft', label: i18n.global.t('commands.itemPrev') })
+  registerShortcut({ commandId: 'item.next', key: 'arrowright', label: i18n.global.t('commands.itemNext') })
+  registerShortcut({ commandId: 'item.prev', key: 'pageup', label: i18n.global.t('commands.itemPrev') })
+  registerShortcut({ commandId: 'item.next', key: 'pagedown', label: i18n.global.t('commands.itemNext') })
   // 命令面板：VS Code 同款组合键；输入态也允许（正打字时想换命令是常态）
   registerShortcut({
     commandId: 'shell.commandPalette',
@@ -332,7 +333,7 @@ export function registerBuiltinCommands(): void {
     mod: true,
     shift: true,
     allowInEditable: true,
-    label: '显示所有命令'
+    label: i18n.global.t('commands.commandPalette')
   })
   // Ctrl+Tab / Ctrl+Shift+Tab：循环切换标签页；输入态也允许（打字中切标签是常态）。
   // Electron 渲染层能收到 Tab 的 keydown（无浏览器标签条抢占）。
@@ -341,7 +342,7 @@ export function registerBuiltinCommands(): void {
     key: 'tab',
     mod: true,
     allowInEditable: true,
-    label: '下一个标签页'
+    label: i18n.global.t('commands.tabNext')
   })
   registerShortcut({
     commandId: 'shell.tabPrev',
@@ -349,7 +350,7 @@ export function registerBuiltinCommands(): void {
     mod: true,
     shift: true,
     allowInEditable: true,
-    label: '上一个标签页'
+    label: i18n.global.t('commands.tabPrev')
   })
 }
 
@@ -382,5 +383,9 @@ async function setNodeSubtree(ctx: MenuContext, state: NodeState): Promise<void>
   }
   invalidatePathManagement()
   await useItemStore().load(target.workspaceId)
-  showToast(state === 'excluded' ? '已隐藏该节点及其子目录的条目' : '已显示该节点及其子目录的条目')
+  showToast(
+    state === 'excluded'
+      ? i18n.global.t('commands.subtreeHidden')
+      : i18n.global.t('commands.subtreeShown')
+  )
 }

@@ -7,6 +7,7 @@
  * 统计用分段视图 + 条带表达关系强度，互斥不伪造成"有值"的图形。
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Pencil, Plus, Search, Trash2, X } from 'lucide-vue-next'
 import { api } from '@shared/api'
 import type { Group, Id, Tag, TagPairStat, TagStat } from '@shared/contract'
@@ -17,6 +18,7 @@ import { confirmDialog } from '../services/dialog'
 const props = defineProps<{ workspaceId?: string | null }>()
 const tagStore = useTagStore()
 const config = useConfigStore()
+const { t } = useI18n()
 
 const wsId = computed(() => props.workspaceId ?? '')
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e))
@@ -43,7 +45,9 @@ const rows = computed(() => {
 })
 const filteredLabel = computed(() => {
   const total = tagStore.allTags.length
-  return hasQuery.value ? `${rows.value.length} / ${total} 个` : `${total} 个`
+  return hasQuery.value
+    ? t('tags.countFiltered', { shown: rows.value.length, total })
+    : t('tags.count', { n: total })
 })
 const countText = (n: number | undefined): string | number => (statsLoaded.value ? n ?? '—' : '…')
 
@@ -174,7 +178,7 @@ async function runBatch(ids: Id[], fn: (id: Id) => Promise<void>): Promise<void>
   }
   checked.value = next
   if (failures.length > 0) {
-    error.value = `${failures.length} 个未完成：${failures[0]}`
+    error.value = t('tags.selection.batchIncomplete', { n: failures.length, error: failures[0] })
   }
 }
 
@@ -198,9 +202,9 @@ async function batchDelete(): Promise<void> {
   if (checked.value.size === 0 || anyBusy.value) return
   const count = checked.value.size
   const ok = await confirmDialog({
-    title: '删除标签',
-    message: `删除选中的 ${count} 个标签？其挂载、声明将一并删除。`,
-    confirmText: '删除',
+    title: t('tags.deleteTagTitle'),
+    message: t('tags.deleteTagBatchConfirm', { n: count }),
+    confirmText: t('tags.delete'),
     danger: true
   })
   if (!ok) return
@@ -218,9 +222,9 @@ async function batchDelete(): Promise<void> {
 async function removeOne(id: Id, name: string): Promise<void> {
   if (anyBusy.value) return
   const ok = await confirmDialog({
-    title: '删除标签',
-    message: `删除「${name}」？其挂载、声明将一并删除。`,
-    confirmText: '删除',
+    title: t('tags.deleteTagTitle'),
+    message: t('tags.deleteTagConfirm', { name }),
+    confirmText: t('tags.delete'),
     danger: true
   })
   if (!ok) return
@@ -345,9 +349,9 @@ async function saveRename(): Promise<void> {
 async function removeGroup(g: Group): Promise<void> {
   if (anyBusy.value) return
   const ok = await confirmDialog({
-    title: '删除组',
-    message: `删除组「${g.name}」？组内标签不受影响，只解除这份组织关系。`,
-    confirmText: '删除',
+    title: t('tags.groups.deleteTitle'),
+    message: t('tags.groups.deleteConfirm', { name: g.name }),
+    confirmText: t('tags.delete'),
     danger: true
   })
   if (!ok) return
@@ -392,7 +396,7 @@ async function batchAddToGroup(): Promise<void> {
     checked.value = next
     batchGroupId.value = ''
     if (failures.length > 0) {
-      throw new Error(`${failures.length} 个未加入：${failures[0]}`)
+      throw new Error(t('tags.selection.groupAddIncomplete', { n: failures.length, error: failures[0] }))
     }
   })
 }
@@ -513,7 +517,7 @@ watch(wsId, () => {
       >
         <div class="flex flex-wrap items-center gap-2 min-h-9">
           <h2 class="text-[13px] font-medium flex-1 min-w-0 truncate">
-            标签池
+            {{ $t('tags.pool.title') }}
             <span class="ml-1 text-[11px] font-normal text-[var(--fg-dim)] tabular-nums">
               {{ poolLoaded ? filteredLabel : '…' }}
             </span>
@@ -528,16 +532,16 @@ watch(wsId, () => {
               <input
                 v-model="query"
                 class="input h-8 w-44 pl-8 pr-7 py-0 text-[12px]"
-                placeholder="搜索标签"
-                aria-label="搜索标签"
+                :placeholder="$t('tags.pool.searchPlaceholder')"
+                :aria-label="$t('tags.pool.searchPlaceholder')"
                 spellcheck="false"
                 @keydown.esc.prevent="query = ''"
               />
               <button
                 v-if="query !== ''"
                 class="icon-btn absolute right-1 top-0 h-8 w-6"
-                title="清除搜索"
-                aria-label="清除搜索"
+                :title="$t('tags.pool.clearSearch')"
+                :aria-label="$t('tags.pool.clearSearch')"
                 @click="query = ''"
               >
                 <X :size="12" />
@@ -547,8 +551,8 @@ watch(wsId, () => {
               ref="newTagInput"
               v-model="newTagName"
               class="input h-8 w-36 py-0 text-[12px] shrink-0"
-              placeholder="新建标签"
-              aria-label="新标签名"
+              :placeholder="$t('tags.pool.newTagPlaceholder')"
+              :aria-label="$t('tags.newTagName')"
               spellcheck="false"
               :disabled="anyBusy || !poolLoaded"
               @keydown.enter.prevent="createTag"
@@ -556,8 +560,8 @@ watch(wsId, () => {
             <button
               class="btn h-8 w-8 shrink-0 justify-center px-0"
               :disabled="anyBusy || !poolLoaded || newTagName.trim() === ''"
-              title="新建标签"
-              aria-label="新建标签"
+              :title="$t('tags.pool.newTag')"
+              :aria-label="$t('tags.pool.newTag')"
               @click="createTag"
             >
               <Plus :size="13" />
@@ -566,10 +570,10 @@ watch(wsId, () => {
 
           <template v-else>
             <span class="text-[12px] text-[var(--fg-dim)] shrink-0" aria-live="polite">
-              已选 {{ checked.size }} 个
+              {{ $t('tags.selection.selectedCount', { n: checked.size }) }}
               <span
                 v-if="hiddenCheckedCount > 0"
-                :title="`其中 ${hiddenCheckedCount} 个不在当前结果里`"
+                :title="$t('tags.selection.hiddenHint', { n: hiddenCheckedCount })"
               >
                 （+{{ hiddenCheckedCount }}）
               </span>
@@ -577,27 +581,27 @@ watch(wsId, () => {
             <button
               class="btn h-8 px-2 text-[11px]"
               :disabled="anyBusy || wsId === ''"
-              :title="wsId === '' ? '从工作区打开本页后可声明' : '声明到当前工作区'"
+              :title="wsId === '' ? $t('tags.selection.declareNeedWs') : $t('tags.selection.declareHint')"
               @click="batchDeclare(true)"
             >
-              声明
+              {{ $t('tags.selection.declare') }}
             </button>
             <button
               class="btn h-8 px-2 text-[11px]"
               :disabled="anyBusy || wsId === ''"
-              :title="wsId === '' ? '从工作区打开本页后可取消声明' : '从当前工作区取消声明'"
+              :title="wsId === '' ? $t('tags.selection.undeclareNeedWs') : $t('tags.selection.undeclareHint')"
               @click="batchDeclare(false)"
             >
-              取消声明
+              {{ $t('tags.selection.undeclare') }}
             </button>
             <select
               v-model="batchGroupId"
               class="input h-8 w-32 py-0 text-[11px] shrink-0"
               :disabled="anyBusy || sortedGroups.length === 0"
-              :title="sortedGroups.length === 0 ? '先建一个组' : '选择一个组'"
-              aria-label="批量加入组"
+              :title="sortedGroups.length === 0 ? $t('tags.selection.needGroupFirst') : $t('tags.selection.pickGroup')"
+              :aria-label="$t('tags.selection.batchAddGroupAria')"
             >
-              <option value="">加入组…</option>
+              <option value="">{{ $t('tags.selection.joinGroup') }}</option>
               <option v-for="g in sortedGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
             </select>
             <button
@@ -605,20 +609,20 @@ watch(wsId, () => {
               :disabled="anyBusy || batchGroupId === ''"
               @click="batchAddToGroup"
             >
-              加入
+              {{ $t('tags.selection.join') }}
             </button>
             <button
               class="btn h-8 px-2 text-[11px] text-[var(--danger)] hover:text-[var(--danger)]"
               :disabled="anyBusy"
               @click="batchDelete"
             >
-              删除…
+              {{ $t('tags.selection.deleteAction') }}
             </button>
             <button
               class="btn h-8 w-8 shrink-0 justify-center px-0"
               :disabled="anyBusy"
-              title="清除选择"
-              aria-label="清除选择"
+              :title="$t('tags.selection.clearSelection')"
+              :aria-label="$t('tags.selection.clearSelection')"
               @click="clearSelection"
             >
               <X :size="13" />
@@ -630,8 +634,8 @@ watch(wsId, () => {
           <span class="min-w-0 flex-1 break-words">{{ error }}</span>
           <button
             class="icon-btn h-4 w-4 shrink-0 text-[var(--danger)]"
-            title="关闭"
-            aria-label="关闭"
+            :title="$t('tags.close')"
+            :aria-label="$t('tags.close')"
             @click="error = null"
           >
             <X :size="11" />
@@ -642,7 +646,7 @@ watch(wsId, () => {
       <div :aria-busy="!poolLoaded">
         <table class="w-full table-fixed text-[12px]">
           <caption class="sr-only">
-            标签池
+            {{ $t('tags.pool.title') }}
           </caption>
           <thead class="text-[11px] text-[var(--fg-dim)]">
             <tr class="border-b border-[var(--border)]">
@@ -659,22 +663,22 @@ watch(wsId, () => {
                     :checked="allVisibleChecked"
                     :indeterminate="someVisibleChecked"
                     :disabled="!poolLoaded || rows.length === 0 || anyBusy"
-                    aria-label="选择当前列表全部标签"
+                    :aria-label="$t('tags.selection.selectVisibleAria')"
                     @change="toggleAllVisible"
                   />
                 </label>
               </th>
-              <th class="w-[28%] px-3 py-2 text-left font-normal" scope="col">名称</th>
-              <th class="px-3 py-2 text-left font-normal" scope="col">描述</th>
-              <th class="w-16 px-3 py-2 text-right font-normal" scope="col">挂载</th>
-              <th class="w-16 px-3 py-2 text-right font-normal" scope="col">声明</th>
-              <th class="w-24 px-3 py-2" scope="col"><span class="sr-only">操作</span></th>
+              <th class="w-[28%] px-3 py-2 text-left font-normal" scope="col">{{ $t('tags.pool.colName') }}</th>
+              <th class="px-3 py-2 text-left font-normal" scope="col">{{ $t('tags.pool.colDesc') }}</th>
+              <th class="w-16 px-3 py-2 text-right font-normal" scope="col">{{ $t('tags.pool.colMounted') }}</th>
+              <th class="w-16 px-3 py-2 text-right font-normal" scope="col">{{ $t('tags.pool.colDeclared') }}</th>
+              <th class="w-24 px-3 py-2" scope="col"><span class="sr-only">{{ $t('tags.pool.colActions') }}</span></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!poolLoaded">
               <td colspan="6" class="px-3 py-6 text-[12px] text-[var(--fg-dim)]">
-                正在读取标签…
+                {{ $t('tags.pool.loadingTags') }}
               </td>
             </tr>
             <template v-else>
@@ -694,7 +698,7 @@ watch(wsId, () => {
                       class="h-3.5 w-3.5 accent-[var(--accent)] cursor-pointer"
                       :checked="checked.has(row.tag.id)"
                       :disabled="anyBusy"
-                      :aria-label="`选择 ${row.tag.name}`"
+                      :aria-label="$t('tags.pool.selectTagAria', { name: row.tag.name })"
                       @change="toggleCheck(row.tag.id)"
                     />
                   </label>
@@ -708,7 +712,7 @@ watch(wsId, () => {
                       :ref="setDescInput"
                       v-model="draftDesc"
                       class="input w-full py-1 text-[12px]"
-                      placeholder="描述"
+                      :placeholder="$t('tags.pool.descPlaceholder')"
                       :disabled="anyBusy"
                       spellcheck="false"
                       @keydown.enter.prevent="saveEdit"
@@ -719,11 +723,11 @@ watch(wsId, () => {
                   <template v-else>
                     <button
                       class="cell-edit"
-                      :title="row.tag.description ?? '点击添加描述'"
+                      :title="row.tag.description ?? $t('tags.pool.addDescHint')"
                       :aria-label="
                         row.tag.description
-                          ? `编辑 ${row.tag.name} 的描述`
-                          : `为 ${row.tag.name} 添加描述`
+                          ? $t('tags.pool.editDescAria', { name: row.tag.name })
+                          : $t('tags.pool.addDescAria', { name: row.tag.name })
                       "
                       :disabled="anyBusy"
                       @click="startEdit(row.tag.id, row.tag.description)"
@@ -747,7 +751,7 @@ watch(wsId, () => {
                         @mousedown.prevent
                         @click="saveEdit"
                       >
-                        保存
+                        {{ $t('tags.save') }}
                       </button>
                       <button
                         class="btn h-6 px-1.5 text-[11px]"
@@ -755,14 +759,14 @@ watch(wsId, () => {
                         @mousedown.prevent
                         @click="cancelEdit"
                       >
-                        取消
+                        {{ $t('tags.cancel') }}
                       </button>
                     </template>
                     <template v-else>
                       <button
                         class="btn h-6 w-6 justify-center px-0"
-                        title="编辑描述"
-                        :aria-label="`编辑 ${row.tag.name} 的描述`"
+                        :title="$t('tags.pool.editDesc')"
+                        :aria-label="$t('tags.pool.editDescAria', { name: row.tag.name })"
                         :disabled="anyBusy"
                         @click="startEdit(row.tag.id, row.tag.description)"
                       >
@@ -770,8 +774,8 @@ watch(wsId, () => {
                       </button>
                       <button
                         class="btn h-6 w-6 justify-center px-0 hover:text-[var(--danger)]"
-                        title="删除标签"
-                        :aria-label="`删除 ${row.tag.name}`"
+                        :title="$t('tags.deleteTagTitle')"
+                        :aria-label="$t('tags.deleteTagAria', { name: row.tag.name })"
                         :disabled="anyBusy"
                         @click="removeOne(row.tag.id, row.tag.name)"
                       >
@@ -786,12 +790,12 @@ watch(wsId, () => {
                   <div class="flex flex-col items-center gap-2 text-center">
                     <template v-if="hasQuery">
                       <p class="text-[12px] text-[var(--fg-dim)]">
-                        没有匹配「{{ query }}」的标签
+                        {{ $t('tags.pool.noMatch', { query: query }) }}
                       </p>
-                      <button class="btn text-[11px]" @click="query = ''">清除搜索</button>
+                      <button class="btn text-[11px]" @click="query = ''">{{ $t('tags.pool.clearSearch') }}</button>
                     </template>
                     <p v-else class="text-[12px] text-[var(--fg-dim)]">
-                      标签池是空的——在上方新建第一个标签。
+                      {{ $t('tags.pool.empty') }}
                     </p>
                   </div>
                 </td>
@@ -806,17 +810,17 @@ watch(wsId, () => {
     <section>
       <div class="flex items-center gap-2 mb-3">
         <h2 class="text-[13px] font-medium flex-1 min-w-0 truncate">
-          组
+          {{ $t('tags.groups.title') }}
           <span class="ml-1 text-[11px] font-normal text-[var(--fg-dim)] tabular-nums">
-            {{ groupsLoaded ? sortedGroups.length : '…' }} 个
+            {{ groupsLoaded ? $t('tags.count', { n: sortedGroups.length }) : '…' }}
           </span>
         </h2>
         <input
           ref="newGroupInput"
           v-model="newGroupName"
           class="input h-8 w-40 py-0 text-[12px] shrink-0"
-          placeholder="新建组"
-          aria-label="新组名"
+          :placeholder="$t('tags.groups.newPlaceholder')"
+          :aria-label="$t('tags.groups.newNameAria')"
           spellcheck="false"
           :disabled="anyBusy"
           @keydown.enter.prevent="createGroup"
@@ -824,30 +828,30 @@ watch(wsId, () => {
         <button
           class="btn h-8 w-8 shrink-0 justify-center px-0"
           :disabled="anyBusy || newGroupName.trim() === ''"
-          title="新建组"
-          aria-label="新建组"
+          :title="$t('tags.groups.new')"
+          :aria-label="$t('tags.groups.new')"
           @click="createGroup"
         >
           <Plus :size="13" />
         </button>
       </div>
 
-      <div v-if="groupError" class="error-note mb-2" role="alert">
-        <span class="min-w-0 flex-1 break-words">{{ groupError }}</span>
-        <button
-          class="icon-btn h-4 w-4 shrink-0 text-[var(--danger)]"
-          title="关闭"
-          aria-label="关闭"
-          @click="groupError = ''"
-        >
+        <div v-if="groupError" class="error-note mb-2" role="alert">
+          <span class="min-w-0 flex-1 break-words">{{ groupError }}</span>
+          <button
+            class="icon-btn h-4 w-4 shrink-0 text-[var(--danger)]"
+            :title="$t('tags.close')"
+            :aria-label="$t('tags.close')"
+            @click="groupError = ''"
+          >
           <X :size="11" />
         </button>
       </div>
 
-      <div v-if="!groupsLoaded" class="text-[12px] text-[var(--fg-dim)]">正在读取组…</div>
+      <div v-if="!groupsLoaded" class="text-[12px] text-[var(--fg-dim)]">{{ $t('tags.groups.loading') }}</div>
       <template v-else>
         <div v-if="sortedGroups.length === 0 && groupError === ''" class="text-[12px] text-[var(--fg-dim)]">
-          还没有组——建一个，把同类的标签放进去。
+          {{ $t('tags.groups.empty') }}
         </div>
         <div v-else-if="sortedGroups.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div v-for="g in sortedGroups" :key="g.id" class="panel group-card p-3">
@@ -867,14 +871,14 @@ watch(wsId, () => {
                   :disabled="anyBusy || renameDraft.trim() === ''"
                   @click="saveRename"
                 >
-                  保存
+                  {{ $t('tags.save') }}
                 </button>
                 <button
                   class="btn h-6 px-1.5 text-[11px]"
                   :disabled="anyBusy"
                   @click="cancelRename"
                 >
-                  取消
+                  {{ $t('tags.cancel') }}
                 </button>
               </template>
               <template v-else>
@@ -883,15 +887,15 @@ watch(wsId, () => {
                 </span>
                 <span
                   class="text-[11px] text-[var(--fg-dim)] tabular-nums shrink-0"
-                  :title="`${membersOf(g.id).length} 个标签`"
+                  :title="$t('tags.groups.memberCount', { n: membersOf(g.id).length })"
                 >
-                  {{ membersOf(g.id).length }} 个
+                  {{ $t('tags.count', { n: membersOf(g.id).length }) }}
                 </span>
                 <div class="card-actions shrink-0">
                   <button
                     class="btn h-6 w-6 justify-center px-0"
-                    title="重命名"
-                    :aria-label="`重命名组 ${g.name}`"
+                    :title="$t('tags.groups.rename')"
+                    :aria-label="$t('tags.groups.renameAria', { name: g.name })"
                     :disabled="anyBusy"
                     @click="startRename(g)"
                   >
@@ -899,8 +903,8 @@ watch(wsId, () => {
                   </button>
                   <button
                     class="btn h-6 w-6 justify-center px-0 hover:text-[var(--danger)]"
-                    title="删除组"
-                    :aria-label="`删除组 ${g.name}`"
+                    :title="$t('tags.groups.deleteTitle')"
+                    :aria-label="$t('tags.groups.deleteAria', { name: g.name })"
                     :disabled="anyBusy"
                     @click="removeGroup(g)"
                   >
@@ -920,8 +924,8 @@ watch(wsId, () => {
                 <span class="min-w-0 truncate">{{ nameOf(tid) }}</span>
                 <button
                   class="icon-btn h-4 w-4 shrink-0 hover:text-[var(--danger)]"
-                  title="移出组"
-                  :aria-label="`将 ${nameOf(tid)} 移出组`"
+                  :title="$t('tags.groups.removeMember')"
+                  :aria-label="$t('tags.groups.removeMemberAria', { name: nameOf(tid) })"
                   :disabled="anyBusy"
                   @click="removeFromGroup(g.id, tid)"
                 >
@@ -929,21 +933,21 @@ watch(wsId, () => {
                 </button>
               </span>
               <span v-if="membersOf(g.id).length === 0" class="text-[11px] text-[var(--fg-dim)]">
-                空组
+                {{ $t('tags.groups.emptyGroup') }}
               </span>
             </div>
 
             <select
               class="input h-8 w-full py-0 text-[12px]"
               :disabled="anyBusy || candidatesOf(g.id).length === 0"
-              :aria-label="`向 ${g.name} 添加标签`"
+              :aria-label="$t('tags.groups.addTagAria', { name: g.name })"
               @change="addToGroup(g.id, $event.target as HTMLSelectElement)"
             >
               <option value="">
-                {{ candidatesOf(g.id).length === 0 ? '全部已加入' : '添加标签…' }}
+                {{ candidatesOf(g.id).length === 0 ? $t('tags.groups.allAdded') : $t('tags.groups.addTag') }}
               </option>
-              <option v-for="t in candidatesOf(g.id)" :key="t.id" :value="t.id">
-                {{ t.name }}
+              <option v-for="opt in candidatesOf(g.id)" :key="opt.id" :value="opt.id">
+                {{ opt.name }}
               </option>
             </select>
           </div>
@@ -953,18 +957,18 @@ watch(wsId, () => {
 
     <!-- ③ 数字键速打：详情页 1..9 直达（映射归标签职能，配置只在此页） -->
     <section>
-      <h2 class="text-[13px] font-medium mb-3">数字键速打</h2>
+      <h2 class="text-[13px] font-medium mb-3">{{ $t('tags.quickPin.title') }}</h2>
       <div v-if="wsId === ''" class="text-[12px] text-[var(--fg-dim)]">
-        按工作区生效，从工作区打开本页后可配置。
+        {{ $t('tags.quickPin.needWorkspace') }}
       </div>
-      <div v-else-if="!pinsLoaded" class="text-[12px] text-[var(--fg-dim)]">正在读取…</div>
+      <div v-else-if="!pinsLoaded" class="text-[12px] text-[var(--fg-dim)]">{{ $t('tags.quickPin.loading') }}</div>
       <template v-else>
         <div v-if="pinError" class="error-note" role="alert">
           <span class="min-w-0 flex-1 break-words">{{ pinError }}</span>
           <button
             class="icon-btn h-4 w-4 shrink-0 text-[var(--danger)]"
-            title="关闭"
-            aria-label="关闭"
+            :title="$t('tags.close')"
+            :aria-label="$t('tags.close')"
             @click="pinError = ''"
           >
             <X :size="11" />
@@ -972,7 +976,7 @@ watch(wsId, () => {
         </div>
         <div v-else class="panel p-3">
           <div v-if="declaredTags.length === 0" class="text-[12px] text-[var(--fg-dim)]">
-            本工作区还没有已声明的标签。
+            {{ $t('tags.quickPin.noDeclared') }}
           </div>
           <div v-else class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <label v-for="digit in 9" :key="digit" class="flex items-center gap-2 min-w-0">
@@ -981,11 +985,11 @@ watch(wsId, () => {
                 class="input h-8 min-w-0 flex-1 py-0 text-[12px]"
                 :value="pins[digit - 1] ?? ''"
                 :disabled="anyBusy"
-                :aria-label="`数字键 ${digit} 对应的标签`"
+                :aria-label="$t('tags.quickPin.digitAria', { digit })"
                 @change="setPin(digit, ($event.target as HTMLSelectElement).value)"
               >
-                <option value="">未指定</option>
-                <option v-for="t in declaredTags" :key="t.id" :value="t.id">{{ t.name }}</option>
+                <option value="">{{ $t('tags.quickPin.unassigned') }}</option>
+                <option v-for="opt in declaredTags" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
               </select>
             </label>
           </div>
@@ -996,15 +1000,15 @@ watch(wsId, () => {
     <!-- ④ 对统计（共现 / 互斥） -->
     <section>
       <div class="flex items-center gap-2 mb-3">
-        <h2 class="text-[13px] font-medium flex-1">统计</h2>
-        <div v-if="wsId !== ''" class="segmented shrink-0" role="group" aria-label="统计类型">
+        <h2 class="text-[13px] font-medium flex-1">{{ $t('tags.stats.title') }}</h2>
+        <div v-if="wsId !== ''" class="segmented shrink-0" role="group" :aria-label="$t('tags.stats.kindAria')">
           <button
             class="segment"
             :class="{ 'segment--on': statsKind === 'cooccur' }"
             :aria-pressed="statsKind === 'cooccur'"
             @click="statsKind = 'cooccur'"
           >
-            经常一起出现
+            {{ $t('tags.stats.cooccur') }}
             <span class="tabular-nums opacity-70">{{ pairsLoaded ? cooccur.length : '…' }}</span>
           </button>
           <button
@@ -1013,29 +1017,29 @@ watch(wsId, () => {
             :aria-pressed="statsKind === 'mutex'"
             @click="statsKind = 'mutex'"
           >
-            从未一起出现
+            {{ $t('tags.stats.mutex') }}
             <span class="tabular-nums opacity-70">{{ pairsLoaded ? mutex.length : '…' }}</span>
           </button>
         </div>
       </div>
 
       <div v-if="wsId === ''" class="text-[12px] text-[var(--fg-dim)]">
-        统计按工作区成员口径，从工作区打开本页后可用。
+        {{ $t('tags.stats.needWorkspace') }}
       </div>
       <div v-else class="panel p-3">
         <div v-if="pairError" class="error-note" role="alert">
           <span class="min-w-0 flex-1 break-words">{{ pairError }}</span>
           <button
             class="icon-btn h-4 w-4 shrink-0 text-[var(--danger)]"
-            title="关闭"
-            aria-label="关闭"
+            :title="$t('tags.close')"
+            :aria-label="$t('tags.close')"
             @click="pairError = null"
           >
             <X :size="11" />
           </button>
         </div>
         <div v-else-if="!pairsLoaded" class="py-4 text-[12px] text-[var(--fg-dim)]">
-          正在计算…
+          {{ $t('tags.stats.calculating') }}
         </div>
         <ul v-else-if="activePairs.length > 0" class="divide-y divide-[var(--border)]">
           <li
@@ -1044,8 +1048,8 @@ watch(wsId, () => {
             class="py-2.5"
             :title="
               statsKind === 'cooccur'
-                ? `${nameOf(r.a)} 与 ${nameOf(r.b)} 共现 ${r.together} 项`
-                : `${nameOf(r.a)} 与 ${nameOf(r.b)} 从未共现；分别 ${r.aCount} / ${r.bCount} 项`
+                ? $t('tags.stats.cooccurPairTitle', { a: nameOf(r.a), b: nameOf(r.b), n: r.together })
+                : $t('tags.stats.mutexPairTitle', { a: nameOf(r.a), b: nameOf(r.b), aCount: r.aCount, bCount: r.bCount })
             "
           >
             <div class="flex items-baseline gap-1.5">
@@ -1055,8 +1059,8 @@ watch(wsId, () => {
               </span>
               <span class="min-w-0 truncate text-[12px]">{{ nameOf(r.b) }}</span>
               <span class="ml-auto shrink-0 tabular-nums text-[11px] text-[var(--fg-dim)]">
-                <template v-if="statsKind === 'cooccur'">{{ r.together }} 项</template>
-                <template v-else>各 {{ r.aCount }} / {{ r.bCount }}</template>
+                <template v-if="statsKind === 'cooccur'">{{ $t('tags.count', { n: r.together }) }}</template>
+                <template v-else>{{ $t('tags.stats.mutexEach', { aCount: r.aCount, bCount: r.bCount }) }}</template>
               </span>
             </div>
 
@@ -1074,7 +1078,7 @@ watch(wsId, () => {
           </li>
         </ul>
         <div v-else class="py-2 text-[12px] text-[var(--fg-dim)]">
-          {{ statsKind === 'cooccur' ? '还没有共同出现的标签对' : '没有互斥的标签对' }}
+          {{ statsKind === 'cooccur' ? $t('tags.stats.noCooccur') : $t('tags.stats.noMutex') }}
         </div>
       </div>
     </section>

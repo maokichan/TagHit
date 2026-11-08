@@ -12,21 +12,21 @@ const current = computed(() => config.value('showTitles', 'showTitles', true))
 
 <template>
   <div>
-    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">标题</div>
+    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">{{ $t('display.showTitles.label') }}</div>
     <div class="flex gap-1.5">
       <button
         class="btn flex-1 justify-center text-[12px]"
         :class="current ? 'btn-primary' : ''"
         @click="config.setValue('showTitles', 'showTitles', true)"
       >
-        显示
+        {{ $t('display.showTitles.show') }}
       </button>
       <button
         class="btn flex-1 justify-center text-[12px]"
         :class="!current ? 'btn-primary' : ''"
         @click="config.setValue('showTitles', 'showTitles', false)"
       >
-        隐藏
+        {{ $t('display.showTitles.hide') }}
       </button>
     </div>
   </div>

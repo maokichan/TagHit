@@ -14,7 +14,7 @@ const blocks = listFeatures('displayPanel')
 <template>
   <div class="px-3 py-3 space-y-4">
     <div class="panel-label flex items-center gap-1.5">
-      显示
+      {{ $t('wsPanel.display') }}
     </div>
 
     <!-- 功能组件区块（壳只渲染声明；统一经 SurfaceHost：惰性解析 + 错误隔离 + 上下文注入） -->

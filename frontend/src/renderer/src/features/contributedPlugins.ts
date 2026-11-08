@@ -136,11 +136,11 @@ function removePluginRuntime(featureId: string): void {
 async function activateEntry(entry: PluginInstallEntry): Promise<void> {
   const m = entry.manifest
   if (m == null) {
-    setLoadError(entry.id, entry.error ?? '清单不可读')
+    setLoadError(entry.id, entry.error ?? i18n.global.t('pluginsLoad.manifestUnreadable'))
     return
   }
   if (!apiVersionOk(m.apiVersion)) {
-    setLoadError(m.id, `插件要求 HostApi ${m.apiVersion}，当前宿主 ${HOST_API_VERSION}`)
+    setLoadError(m.id, i18n.global.t('pluginsLoad.hostApiTooNew', { required: m.apiVersion, host: HOST_API_VERSION }))
     return
   }
   const manifest = manifestOf(m)

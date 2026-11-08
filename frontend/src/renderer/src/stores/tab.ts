@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { ItemContext } from '@shared/contract'
+import { i18n } from '../i18n'
 
 export interface HomeTab {
   key: string
@@ -77,7 +78,7 @@ let homeSeq = 0
 
 function newHomeTab(): HomeTab {
   homeSeq += 1
-  return { key: `home:${homeSeq}`, kind: 'home', title: '主页' }
+  return { key: `home:${homeSeq}`, kind: 'home', title: i18n.global.t('tab.home') }
 }
 
 /**
@@ -146,7 +147,7 @@ export const useTabStore = defineStore('tab', () => {
   function openSettings(): void {
     ensureHome()
     if (!tabs.value.some((t) => t.kind === 'settings')) {
-      tabs.value.push({ key: 'settings', kind: 'settings', title: '设置' })
+      tabs.value.push({ key: 'settings', kind: 'settings', title: i18n.global.t('tab.settings') })
     }
     activeKey.value = 'settings'
   }

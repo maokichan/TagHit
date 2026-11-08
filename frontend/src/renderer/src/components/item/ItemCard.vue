@@ -121,7 +121,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           v-if="item.status === 'missing'"
           class="absolute top-0.5 right-0.5 px-1 py-px bg-[var(--danger)] text-white text-[9px]"
         >
-          缺失
+          {{ $t('item.missing') }}
         </span>
       </div>
 
@@ -147,7 +147,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
               +{{ item.tags.length - 3 }}
             </span>
           </template>
-          <span v-else class="text-[11px] text-[var(--fg-dim)]">未打标签</span>
+          <span v-else class="text-[11px] text-[var(--fg-dim)]">{{ $t('item.untagged') }}</span>
         </div>
       </div>
 
@@ -206,7 +206,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
         v-if="item.status === 'missing'"
         class="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-[var(--danger)] text-white text-[11px]"
       >
-        缺失
+        {{ $t('item.missing') }}
       </span>
     </div>
 
@@ -231,7 +231,7 @@ const TypeIcon = computed(() => iconMap[props.item.mediaType] ?? File)
           </span>
         </template>
       </div>
-      <div v-else class="text-[11px] text-[var(--fg-dim)]">未打标签</div>
+      <div v-else class="text-[11px] text-[var(--fg-dim)]">{{ $t('item.untagged') }}</div>
     </div>
   </div>
 </template>

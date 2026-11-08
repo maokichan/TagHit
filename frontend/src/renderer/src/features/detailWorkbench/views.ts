@@ -5,6 +5,7 @@
  * 注销即摘除——消费方是工作台的槽位 tab 栈，不是预览解析。
  */
 import type { Component } from 'vue'
+import { i18n } from '../../i18n'
 import type { DetailSlotId, KnownView } from './slots'
 import PreviewCenter from './views/PreviewCenter.vue'
 import InfoSurface from './views/InfoSurface.vue'
@@ -54,19 +55,19 @@ export function knownViews(): KnownView[] {
 export function registerBuiltinDetailViews(): void {
   registerDetailView({
     id: 'builtin.preview',
-    title: '预览',
+    title: i18n.global.t('wb.views.preview'),
     component: PreviewCenter,
     preferredSlot: 'center'
   })
   registerDetailView({
     id: 'builtin.info',
-    title: '信息',
+    title: i18n.global.t('wb.views.info'),
     component: InfoSurface,
     preferredSlot: 'right'
   })
   registerDetailView({
     id: 'builtin.filmstrip',
-    title: '预览条',
+    title: i18n.global.t('wb.views.filmstrip'),
     component: FilmstripView,
     preferredSlot: 'bottom'
   })

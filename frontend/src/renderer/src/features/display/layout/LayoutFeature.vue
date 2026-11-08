@@ -5,14 +5,16 @@
  * 设置页与面板读写同一份 config 仓（featureId:key = layout:layoutMode），天然一致。
  */
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useConfigStore } from '../../../stores/config'
 
 const config = useConfigStore()
+const { t } = useI18n()
 
 const layouts = [
-  { key: 'masonry', label: '瀑布流' },
-  { key: 'grid', label: '网格' },
-  { key: 'list', label: '列表' }
+  { key: 'masonry', label: t('display.layout.masonry') },
+  { key: 'grid', label: t('display.layout.grid') },
+  { key: 'list', label: t('display.layout.list') }
 ] as const
 
 const current = computed(() => config.value('layout', 'layoutMode', 'masonry'))
@@ -20,7 +22,7 @@ const current = computed(() => config.value('layout', 'layoutMode', 'masonry'))
 
 <template>
   <div>
-    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">布局</div>
+    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">{{ $t('display.layout.label') }}</div>
     <div class="flex gap-1.5">
       <button
         v-for="l in layouts"

@@ -42,14 +42,14 @@ watch(() => tabStore.activeWorkspaceId, (ws) => void refresh(ws))
 <template>
   <!-- 未打开工作区：没有信息可显示，整块不渲染（不渲染死块与说明） -->
   <div v-if="tabStore.activeWorkspaceId != null">
-    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">工作区信息</div>
+    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">{{ $t('display.workspaceInfo.label') }}</div>
     <div class="space-y-1 text-[12px]">
       <div class="flex justify-between">
-        <span class="text-[var(--fg-dim)]">来源根</span>
+        <span class="text-[var(--fg-dim)]">{{ $t('display.workspaceInfo.roots') }}</span>
         <span class="tabular-nums">{{ rootCount }}</span>
       </div>
       <div class="flex justify-between">
-        <span class="text-[var(--fg-dim)]">已声明标签</span>
+        <span class="text-[var(--fg-dim)]">{{ $t('display.workspaceInfo.declaredTags') }}</span>
         <span class="tabular-nums">{{ declaredCount }}</span>
       </div>
     </div>

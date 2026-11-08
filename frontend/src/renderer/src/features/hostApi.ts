@@ -50,7 +50,7 @@ export const hostApi = {
     open: async (itemId: string): Promise<void> => {
       const hits = await api.items.query({ ids: [itemId] })
       const hit = hits[0]
-      if (hit == null) throw new Error(`条目不存在（${itemId}）`)
+      if (hit == null) throw new Error(i18n.global.t('hostApi.itemNotFound', { id: itemId }))
       const { openItemTab } = await import('./tabs')
       openItemTab(hit.item.id, hit.item.title)
     },

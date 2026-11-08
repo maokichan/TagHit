@@ -23,24 +23,24 @@ const { summary, scopeDirPath } = pm
       class="px-2 py-1.5 text-[11px] leading-relaxed bg-[var(--bg)] border border-[var(--border)]"
     >
       <div class="flex items-center gap-2 flex-wrap">
-        <span>可见 <b class="tabular-nums">{{ summary.visible }}</b></span>
+        <span>{{ $t('paths.visible') }} <b class="tabular-nums">{{ summary.visible }}</b></span>
         <span v-if="summary.hiddenByExcluded" class="text-[var(--danger)]">
-          已排除隐藏 <b class="tabular-nums">{{ summary.hiddenByExcluded }}</b>
+          {{ $t('paths.hiddenByExcluded') }} <b class="tabular-nums">{{ summary.hiddenByExcluded }}</b>
         </span>
         <span
           v-if="summary.nodeMissing"
           class="text-[var(--fg-dim)]"
-          title="条目仍在库中（文件可能还在磁盘上），只是其所在目录已消失或未被扫描到；重新挂载对应来源根并扫描即可恢复"
+          :title="$t('paths.nodeMissingHint')"
         >
-          无归属 <b class="tabular-nums">{{ summary.nodeMissing }}</b>
+          {{ $t('paths.nodeMissing') }} <b class="tabular-nums">{{ summary.nodeMissing }}</b>
         </span>
         <button
           v-if="allowBulk && summary.hiddenByExcluded"
           class="ml-auto underline cursor-pointer hover:text-[var(--accent)]"
-          title="把所有被排除的目录恢复为可见（逐节点；不改动未排除目录）"
+          :title="$t('paths.restoreAllHint')"
           @click="pm.restoreAllVisible"
         >
-          恢复全部
+          {{ $t('paths.restoreAll') }}
         </button>
       </div>
     </div>
@@ -51,8 +51,8 @@ const { summary, scopeDirPath } = pm
       class="flex items-center gap-1.5 px-2 py-1.5 text-[11px] bg-[var(--accent-soft)] text-[var(--accent)]"
     >
       <Focus :size="11" class="shrink-0" />
-      <span class="truncate flex-1" :title="scopeDirPath">只看：{{ pm.scopedName() }}</span>
-      <button class="cursor-pointer hover:brightness-110" title="退出范围（回到全部可见条目）" @click="pm.clearScope">
+      <span class="truncate flex-1" :title="scopeDirPath">{{ $t('paths.scopeLabel', { name: pm.scopedName() }) }}</span>
+      <button class="cursor-pointer hover:brightness-110" :title="$t('paths.exitScopeHint')" @click="pm.clearScope">
         <X :size="11" />
       </button>
     </div>

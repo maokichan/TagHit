@@ -221,7 +221,7 @@ function onGripUp(): void {
       class="icon-btn w-8 h-8"
       :class="opened ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : ''"
       :disabled="activeWsId == null"
-      :title="activeWsId == null ? '搜索（工作区标签页可用，Ctrl+F）' : '搜索（Ctrl+F）'"
+      :title="$t(activeWsId == null ? 'layout.search.openNoWs' : 'layout.search.open')"
       @click="toggleSearchPopup()"
     >
       <Search :size="16" />
@@ -229,7 +229,7 @@ function onGripUp(): void {
     <button
       class="icon-btn w-8 h-8"
       :disabled="itemStore.scanning || activeWsId == null || !hasPaths"
-      :title="hasPaths ? '扫描（目录变更后自动触发）' : '未配置路径，请在左侧「来源根」添加'"
+      :title="$t(hasPaths ? 'layout.search.scanHint' : 'layout.search.scanNoPaths')"
       @click="onScan"
     >
       <RefreshCw :size="15" :class="{ 'animate-spin': itemStore.scanning }" />
@@ -266,7 +266,7 @@ function onGripUp(): void {
           @keydown="onInputKeydown"
         />
       </div>
-      <button class="icon-btn w-5 h-5 shrink-0" title="关闭（Esc / Ctrl+F）" @click="closeSearchPopup">
+      <button class="icon-btn w-5 h-5 shrink-0" :title="$t('layout.search.close')" @click="closeSearchPopup">
         <X :size="13" />
       </button>
 

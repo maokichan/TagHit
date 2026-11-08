@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ExternalLink, Info } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
@@ -12,6 +13,7 @@ defineProps<{ side?: 'left' | 'right' }>()
 const router = useRouter()
 const itemStore = useItemStore()
 const tabStore = useTabStore()
+const { t } = useI18n()
 
 const item = computed(() => itemStore.selected)
 
@@ -19,12 +21,12 @@ const rows = computed(() => {
   const it = item.value
   if (!it) return []
   return [
-    ['类型', it.mediaType],
-    ['扩展名', it.extension ?? '-'],
-    ['大小', formatSize(it.size)],
-    ['状态', it.status ?? '-'],
-    ['修改时间', it.fileModifiedAt ?? '-'],
-    ['路径', it.sourceUri ?? '-']
+    [t('layout.info.type'), it.mediaType],
+    [t('layout.info.extension'), it.extension ?? '-'],
+    [t('layout.info.size'), formatSize(it.size)],
+    [t('layout.info.status'), it.status ?? '-'],
+    [t('layout.info.modifiedAt'), it.fileModifiedAt ?? '-'],
+    [t('layout.info.path'), it.sourceUri ?? '-']
   ] as Array<[string, string]>
 })
 
@@ -49,7 +51,7 @@ function openDetail(): void {
     <div
       class="panel-label mb-2 flex items-center gap-1.5"
     >
-      <Info :size="12" /> 媒体信息
+      <Info :size="12" /> {{ $t('layout.info.title') }}
     </div>
 
     <template v-if="item">
@@ -57,7 +59,7 @@ function openDetail(): void {
         <div class="text-[12px] font-medium truncate flex-1" :title="item.title">
           {{ item.title }}
         </div>
-        <button class="btn text-[11px] p-1" title="打开详情页" @click="openDetail">
+        <button class="btn text-[11px] p-1" :title="$t('layout.info.openDetail')" @click="openDetail">
           <ExternalLink :size="13" />
         </button>
       </div>
@@ -68,7 +70,7 @@ function openDetail(): void {
         </span>
       </div>
       <p v-if="item.hiddenCount > 0" class="text-[11px] text-[var(--fg-dim)] mb-2">
-        另有 {{ item.hiddenCount }} 个未声明标签未显示
+        {{ $t('layout.info.hiddenTags', { n: item.hiddenCount }) }}
       </p>
 
       <dl class="space-y-1 text-[12px]">
@@ -79,6 +81,6 @@ function openDetail(): void {
       </dl>
     </template>
 
-    <p v-else class="text-[12px] text-[var(--fg-dim)]">选中条目后显示信息。</p>
+    <p v-else class="text-[12px] text-[var(--fg-dim)]">{{ $t('layout.info.empty') }}</p>
   </div>
 </template>

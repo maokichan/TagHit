@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { X } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
 import { useTabStore } from '../../stores/tab'
@@ -12,6 +13,7 @@ import { openBatchTagDialog } from '../../features/services/batchTag'
  */
 const itemStore = useItemStore()
 const tabStore = useTabStore()
+const { t } = useI18n()
 
 const showCount = computed(() => tabStore.activeWorkspaceId != null)
 
@@ -33,14 +35,21 @@ function batch(mode: 'add' | 'remove'): void {
 }
 
 const statusText = computed(() => {
-  if (itemStore.scanning) return '正在扫描…'
+  if (itemStore.scanning) return t('layout.status.scanning')
   if (itemStore.lastScanResult) {
     const r = itemStore.lastScanResult
     const unreadable =
-      (r.dirsUnreadable > 0 ? ` / ${r.dirsUnreadable} 个目录不可读` : '') +
-      (r.filesUnreadable > 0 ? ` / ${r.filesUnreadable} 个文件不可读` : '')
-    const skipped = unreadable === '' ? '' : `${unreadable}（已跳过，未当消失处理）`
-    return `扫描完成：+${r.itemsCreated} 新增 / ${r.itemsUpdated} 更新 / ${r.itemsRelocated} 认领 / ${r.itemsMissing} 缺失（${r.scannedRoots} 个来源根）${skipped}`
+      (r.dirsUnreadable > 0 ? t('layout.status.dirsUnreadable', { n: r.dirsUnreadable }) : '') +
+      (r.filesUnreadable > 0 ? t('layout.status.filesUnreadable', { n: r.filesUnreadable }) : '')
+    const skipped = unreadable === '' ? '' : `${unreadable}${t('layout.status.skippedSuffix')}`
+    return t('layout.status.scanDone', {
+      created: r.itemsCreated,
+      updated: r.itemsUpdated,
+      relocated: r.itemsRelocated,
+      missing: r.itemsMissing,
+      roots: r.scannedRoots,
+      skipped
+    })
   }
   return null
 })
@@ -51,12 +60,12 @@ const statusText = computed(() => {
     <!-- 状态栏直接坐在底板上（D44）：无自身底色与接缝 -->
     <!-- 多选：状态 + 批量动作（原搜索栏下的操作条并入此处） -->
     <template v-if="count > 0">
-      <span class="text-[var(--fg)] shrink-0">已选 {{ count }} 项</span>
+      <span class="text-[var(--fg)] shrink-0">{{ $t('layout.status.selected', { n: count }) }}</span>
       <button class="btn px-1.5 py-0.5 text-[11px]" @click="batch('add')">{{ $t('statusbar.batchTag') }}</button>
-      <button class="btn px-1.5 py-0.5 text-[11px]" @click="batch('remove')">批量移除标签…</button>
+      <button class="btn px-1.5 py-0.5 text-[11px]" @click="batch('remove')">{{ $t('layout.status.batchRemove') }}</button>
       <button
         class="shrink-0 cursor-pointer hover:text-[var(--fg)] inline-flex"
-        title="清空选择（Esc）"
+        :title="$t('layout.status.clearSelection')"
         @click="itemStore.clearSelection()"
       >
         <X :size="12" />
@@ -71,19 +80,19 @@ const statusText = computed(() => {
     <span
       v-if="showCount"
       class="shrink-0 tabular-nums"
-      :title="`成员总数 ${itemStore.total}；当前已渲染 ${itemStore.items.length}`"
+      :title="$t('layout.status.countTitle', { total: itemStore.total, rendered: itemStore.items.length })"
     >
       <template v-if="itemStore.items.length < itemStore.total">
-        已显示 {{ itemStore.items.length }} / 共 {{ itemStore.total }} 项
+        {{ $t('layout.status.partialCount', { shown: itemStore.items.length, total: itemStore.total }) }}
       </template>
-      <template v-else>共 {{ itemStore.total }} 项</template>
+      <template v-else>{{ $t('layout.status.totalCount', { total: itemStore.total }) }}</template>
     </span>
 
     <span class="flex items-center gap-1 shrink-0">
       <span class="inline-block w-1.5 h-1.5"
         :class="PLUGIN_COUNT > 0 ? 'bg-[var(--ok)]' : 'bg-[var(--border)]'"
       />
-      {{ PLUGIN_COUNT }} 插件
+      {{ $t('layout.status.pluginCount', { n: PLUGIN_COUNT }) }}
     </span>
   </footer>
 </template>

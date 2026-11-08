@@ -24,11 +24,11 @@ const items = computed(() => {
   return listDetailViews().filter((v) => !l.stack.includes(v.id))
 })
 
-const SPLIT_DIRS: Array<{ dir: SplitDir; label: string }> = [
-  { dir: 'left', label: '向左分割新槽' },
-  { dir: 'right', label: '向右分割新槽' },
-  { dir: 'above', label: '向上分割新槽' },
-  { dir: 'below', label: '向下分割新槽' }
+const SPLIT_DIRS: Array<{ dir: SplitDir; labelKey: string }> = [
+  { dir: 'left', labelKey: 'wb.addMenu.splitLeft' },
+  { dir: 'right', labelKey: 'wb.addMenu.splitRight' },
+  { dir: 'above', labelKey: 'wb.addMenu.splitUp' },
+  { dir: 'below', labelKey: 'wb.addMenu.splitDown' }
 ]
 
 const MENU_W = 224
@@ -50,7 +50,7 @@ const pos = computed(() => {
     class="fixed z-40 py-1 border border-[var(--border)] bg-[var(--bg-elev)] shadow-lg"
     :style="pos"
   >
-    <div class="px-2.5 pt-1 pb-0.5 text-[11px] text-[var(--fg-dim)] opacity-70">加入此槽</div>
+    <div class="px-2.5 pt-1 pb-0.5 text-[11px] text-[var(--fg-dim)] opacity-70">{{ $t('wb.addMenu.addToSlot') }}</div>
     <button
       v-for="v in items"
       :key="v.id"
@@ -60,18 +60,18 @@ const pos = computed(() => {
       <span class="truncate">{{ v.title }}</span>
     </button>
     <div v-if="!items.length" class="px-2.5 py-1.5 text-[12px] text-[var(--fg-dim)] opacity-70">
-      没有可添加的视图
+      {{ $t('wb.addMenu.noViews') }}
     </div>
 
     <div class="divider my-1"></div>
-    <div class="px-2.5 pt-0.5 pb-1 text-[11px] text-[var(--fg-dim)] opacity-70">分割新槽</div>
+    <div class="px-2.5 pt-0.5 pb-1 text-[11px] text-[var(--fg-dim)] opacity-70">{{ $t('wb.addMenu.splitNew') }}</div>
     <button
       v-for="d in SPLIT_DIRS"
       :key="d.dir"
       class="w-full flex items-center text-left px-2.5 py-1.5 text-[12px] text-[var(--fg-dim)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] cursor-pointer"
       @click="api.splitLeaf(leaf.id, d.dir); api.closeMenu()"
     >
-      <span>{{ d.label }}</span>
+      <span>{{ $t(d.labelKey) }}</span>
     </button>
   </div>
 </template>

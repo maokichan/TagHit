@@ -130,7 +130,7 @@ function showIndicator(i: number): boolean {
         <span class="truncate flex-1 text-left">{{ tab.title }}</span>
         <button
           class="opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)] p-0.5 cursor-pointer shrink-0"
-          :title="`关闭 ${tab.title}`"
+          :title="$t('layout.tab.closeTab', { name: tab.title })"
           @click.stop="close(tab.key)"
         >
           <X :size="13" />
@@ -140,7 +140,7 @@ function showIndicator(i: number): boolean {
       <button
         class="shrink-0 flex items-center justify-center w-7 h-7 text-[var(--fg-dim)] no-drag
                hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] cursor-pointer"
-        title="新建标签页（新主页）"
+        :title="$t('layout.tab.newTab')"
         @click="newTab"
       >
         <Plus :size="15" />
@@ -153,7 +153,7 @@ function showIndicator(i: number): boolean {
       class="flex items-center justify-center w-8 h-8 text-[var(--fg-dim)] no-drag
              hover:bg-[var(--bg-hover)] hover:text-[var(--fg)] cursor-pointer shrink-0"
       :class="{ 'bg-[var(--accent-soft)] text-[var(--accent)]': route.name === 'settings' }"
-      :title="route.name === 'settings' ? '关闭设置' : '打开设置'"
+      :title="$t(route.name === 'settings' ? 'layout.tab.closeSettings' : 'layout.tab.openSettings')"
       @click="onSettings"
     >
       <Settings :size="16" />

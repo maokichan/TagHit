@@ -11,14 +11,14 @@ const itemStore = useItemStore()
 
 <template>
   <div>
-    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">无标签</div>
+    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">{{ $t('display.untagged.label') }}</div>
     <div class="flex gap-1.5">
       <button
         class="btn flex-1 justify-center text-[12px]"
         :class="itemStore.filter.untaggedOnly ? 'btn-primary' : ''"
         @click="itemStore.toggleUntaggedOnly()"
       >
-        {{ itemStore.filter.untaggedOnly ? '只看未打标签' : '全部条目' }}
+        {{ itemStore.filter.untaggedOnly ? $t('display.untagged.onlyUntagged') : $t('display.untagged.allItems') }}
       </button>
     </div>
   </div>

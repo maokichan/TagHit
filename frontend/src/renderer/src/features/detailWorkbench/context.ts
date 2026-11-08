@@ -4,6 +4,7 @@
  * 不感知自己在哪（机制同构 features/context.ts 的 FeatureContext）。
  */
 import { inject, provide, reactive } from 'vue'
+import { i18n } from '../../i18n'
 import type { InjectionKey } from 'vue'
 import type { ItemView } from '../../lib/viewModel'
 
@@ -65,6 +66,6 @@ export function provideDetailWorkbenchContext(source: {
 /** 视图侧：取上下文（脱离工作台使用 = 编程错误，直接抛）。 */
 export function useDetailWorkbenchContext(): DetailWorkbenchContext {
   const ctx = inject(KEY)
-  if (ctx == null) throw new Error('detailView 视图只能在详情页工作台内渲染')
+  if (ctx == null) throw new Error(i18n.global.t('wb.assertViewInside'))
   return ctx
 }

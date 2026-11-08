@@ -15,6 +15,7 @@ import { SquareArrowOutUpRight } from 'lucide-vue-next'
 import { declaresFullPage, type FeatureEntry } from './registry'
 import { provideFeatureContext, type FeatureContext } from './context'
 import { openFeatureTab } from './tabs'
+import { i18n } from '../i18n'
 import FeatureBoundary from './FeatureBoundary.vue'
 
 const props = defineProps<{
@@ -47,7 +48,7 @@ const asyncComp = computed<Component | null>(() => {
     loader: async () => {
       const parts = await load()
       const c = surface === 'contentTab' ? (parts.fullPage ?? parts.component) : parts.component
-      if (c == null) throw new Error(`${f.manifest.id} 在 ${surface} 呈现面无实现绑定`)
+      if (c == null) throw new Error(i18n.global.t('surface.noBinding', { id: f.manifest.id, surface }))
       return c
     },
     delay: 0
@@ -92,7 +93,7 @@ function openFullPage(): void {
           class="absolute bottom-1.5 right-1.5 flex items-center justify-center w-5 h-5
                  bg-[var(--bg)] border border-[var(--border)] text-[var(--fg-dim)]
                  hover:text-[var(--accent)] hover:border-[var(--accent-border)] transition-colors cursor-pointer"
-          :title="`打开「${feature.manifest.title}」全页`"
+          :title="$t('surface.openFullPage', { name: feature.manifest.title })"
           @click="openFullPage"
         >
           <SquareArrowOutUpRight :size="11" />
@@ -107,7 +108,7 @@ function openFullPage(): void {
       class="shrink-0 flex items-center gap-2 h-9 px-4 border-b border-[var(--border)] bg-[var(--bg-elev)]"
     >
       <span class="text-[12px] font-medium truncate">{{ feature.manifest.title }}</span>
-      <span v-if="feature.manifest.source === 'contributed'" class="text-[11px] text-[var(--fg-dim)]">插件</span>
+      <span v-if="feature.manifest.source === 'contributed'" class="text-[11px] text-[var(--fg-dim)]">{{ $t('surface.contributedBadge') }}</span>
     </header>
     <div class="flex-1 min-h-0 overflow-y-auto">
       <div class="mx-auto w-full px-8 py-6 max-w-[var(--page-max-width)]">
@@ -119,8 +120,7 @@ function openFullPage(): void {
           />
           <div v-else class="flex items-center justify-center px-6 py-16 text-center">
             <p class="text-[12px] text-[var(--fg-dim)] leading-relaxed">
-              功能组件「{{ feature.manifest.title }}」声明了全页呈现，但未绑定全页实现。<br />
-              全页呈现**不复用窄面板**——需为该功能组件提供专门的全页内容。
+              {{ $t('surface.fullPageMissing', { name: feature.manifest.title }) }}
             </p>
           </div>
         </FeatureBoundary>

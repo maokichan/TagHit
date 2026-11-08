@@ -13,6 +13,7 @@
 import { api } from '@shared/api'
 import { useItemStore } from '../stores/item'
 import { showToast } from './services/dialog'
+import { i18n } from '../i18n'
 import type { Id } from '@shared/contract'
 
 /**
@@ -42,15 +43,20 @@ export function startItemDrag(ids: Id[]): void {
   }
 
   if (deliverable.length === 0) {
-    const why = missing > 0 ? '文件已缺失（磁盘上找不到）' : noSource > 0 ? '没有来源文件（作品锚点）' : '不在当前视图'
-    showToast(`无法拖出：${why}`, 'error')
+    const why =
+      missing > 0
+        ? i18n.global.t('drag.whyMissing')
+        : noSource > 0
+          ? i18n.global.t('drag.whyNoSource')
+          : i18n.global.t('drag.whyNotInView')
+    showToast(i18n.global.t('drag.cannotDrag', { reason: why }), 'error')
     return
   }
   if (noSource > 0 || missing > 0) {
     const parts: string[] = []
-    if (missing > 0) parts.push(`${missing} 项文件已缺失`)
-    if (noSource > 0) parts.push(`${noSource} 项没有来源文件`)
-    showToast(`已跳过 ${parts.join('、')}；拖出 ${deliverable.length} 项`, 'info')
+    if (missing > 0) parts.push(i18n.global.t('drag.skippedMissing', { n: missing }))
+    if (noSource > 0) parts.push(i18n.global.t('drag.skippedNoSource', { n: noSource }))
+    showToast(i18n.global.t('drag.skippedSome', { skipped: parts.join('、'), n: deliverable.length }), 'info')
   }
   api.drag.start(deliverable)
 }

@@ -92,5 +92,545 @@
     "cancel": "Cancel",
     "editorHint": "Markdown; leaving body and links empty clears the profile",
     "emptyPage": "No profile content yet — use Edit to write something."
+  },
+  "layout": {
+    "activity": {
+      "dragTitle": "{name} (drag to reorder)"
+    },
+    "info": {
+      "title": "Media info",
+      "openDetail": "Open detail page",
+      "hiddenTags": "Hidden: {n} more undeclared",
+      "empty": "Select an item to show info.",
+      "type": "Type",
+      "extension": "Extension",
+      "size": "Size",
+      "status": "Status",
+      "modifiedAt": "Modified",
+      "path": "Path"
+    },
+    "plugins": {
+      "title": "Plugins",
+      "installed": "Installed",
+      "enable": "Enable",
+      "disable": "Disable",
+      "enabledOn": "Enabled",
+      "enabledOff": "Disabled",
+      "manageHint": "Install plugins (zip) from the manage page."
+    },
+    "search": {
+      "open": "Search (Ctrl+F)",
+      "openNoWs": "Search (available in workspace tabs, Ctrl+F)",
+      "scanHint": "Scan (triggered automatically after directory changes)",
+      "scanNoPaths": "No paths configured. Add them in Roots on the left.",
+      "close": "Close (Esc / Ctrl+F)"
+    },
+    "status": {
+      "scanning": "Scanning…",
+      "dirsUnreadable": " / {n} dirs unreadable",
+      "filesUnreadable": " / {n} files unreadable",
+      "skippedSuffix": " (skipped, not treated as missing)",
+      "scanDone": "Scan complete: +{created} added / {updated} updated / {relocated} relocated / {missing} missing (roots: {roots}){skipped}",
+      "selected": "Selected {n}",
+      "batchRemove": "Batch remove tags…",
+      "clearSelection": "Clear selection (Esc)",
+      "countTitle": "Members: {total}; rendered: {rendered}",
+      "partialCount": "Showing {shown} / {total}",
+      "totalCount": "Total: {total}",
+      "pluginCount": "Plugins: {n}"
+    },
+    "tab": {
+      "closeTab": "Close {name}",
+      "newTab": "New tab (new home)",
+      "openSettings": "Open settings",
+      "closeSettings": "Close settings"
+    },
+    "win": {
+      "minimize": "Minimize",
+      "maximize": "Maximize",
+      "restore": "Restore",
+      "close": "Close"
+    }
+  },
+  "schema": {
+    "boolean": {
+      "on": "On",
+      "off": "Off"
+    },
+    "shortcut": {
+      "unregistered": "⚠ Unregistered command",
+      "key": "Keys",
+      "action": "Action",
+      "scope": "Scope",
+      "command": "Command",
+      "global": "Global",
+      "gatedHint": " (can be disabled above)",
+      "noBindings": "No bindings yet"
+    }
+  },
+  "item": {
+    "missing": "Missing",
+    "untagged": "Untagged",
+    "loading": "Loading…",
+    "emptyTitle": "Nothing here yet",
+    "emptyHint": "Add directories in Roots on the left, then scan"
+  },
+  "wsPanel": {
+    "display": "Display"
+  },
+  "paths": {
+    "title": "Roots",
+    "noWorkspaceHint": "Roots apply per workspace.",
+    "noWorkspaceHintAction": "Open a workspace tab first, then open this page from there.",
+    "mountedTitle": "Mounted roots",
+    "rootCount": "{n}",
+    "rescanHint": "Rescan all roots (content signatures re-claim moved/renamed items)",
+    "noRootsHint": "No roots mounted",
+    "scan": "Scan",
+    "scanning": "Scanning…",
+    "lastScan": "Last scan: +{created} added / {updated} updated / {relocated} relocated / {missing} missing (roots: {roots})",
+    "dirsUnreadable": "· {n} dirs unreadable (subtrees skipped, not treated as missing)",
+    "filesUnreadable": "· {n} files unreadable (skipped, not treated as missing)",
+    "visibilityTitle": "Visibility",
+    "treeTitle": "Directories and visibility",
+    "relocationTitle": "Unmounted roots and rootless items",
+    "relocationEmpty": "No unmounted roots.",
+    "retiredTitle": "Unmounted roots",
+    "itemCount": "{n}",
+    "restoreRetired": "Remount",
+    "restoreRetiredHint": "Mount this directory back into the workspace; the next scan makes its items visible again",
+    "purgeItems": "Purge items…",
+    "purgeItemsHint": "Delete all items under this root and their tag mounts (irreversible; files on disk are untouched)",
+    "retiredAt": "Unmounted on {date}",
+    "untrackedHint": "Items with a source but outside every root: no unmount record to attribute (legacy)",
+    "untrackedTitle": "Untracked rootless items",
+    "collapse": "Collapse",
+    "expandDirs": "Directories…",
+    "mount": "Mount",
+    "mountHint": "Mount this directory as a root of this workspace (the next scan makes these items visible again)",
+    "purge": "Purge",
+    "purgeHint": "Purge rootless items under this directory and its subdirectories (irreversible)",
+    "fold": "Fold",
+    "unfold": "Unfold",
+    "rootIncludedHint": "Included: direct items of the root are visible (click to exclude; Shift+click = include all subdirectories)",
+    "rootExcludedHint": "Excluded: direct items of the root leave the view (click to include; Shift+click = include all subdirectories)",
+    "nodeIncludedHint": "Included: direct items are visible (click to exclude; Shift+click = include all subdirectories)",
+    "nodeExcludedHint": "Excluded: direct items leave the view (click to include; Shift+click = include all subdirectories)",
+    "exitScopeHint": "Exit scope (back to all visible items)",
+    "scopeHint": "Scope to this node (with its subdirectories; does not change visibility)",
+    "scopeLabel": "Scope: {name}",
+    "removeRootHint": "Remove the root (items are kept; handle them in Unmounted)",
+    "noChildren": "No subdirectories",
+    "pick": "Choose directory…",
+    "pickHint": "Open the system directory picker",
+    "removeRootTitle": "Remove root",
+    "removeRootMessage": "Remove path \"{path}\" from the workspace?\nIts items will leave this workspace's view (items and tags are kept; remount or purge them under Unmounted roots).",
+    "removeConfirm": "Remove",
+    "purgeTitle": "Purge rootless items",
+    "purgeMessage": "Will delete {count} rootless items under \"{label}\" and their tag mounts — **irreversible**.\nThe files themselves are not deleted from disk; items still under a root are unaffected.",
+    "purgeConfirm": "Delete items",
+    "purgeNone": "No rootless items to purge (already purged, or mounted back under a root)",
+    "visible": "Visible",
+    "hiddenByExcluded": "Hidden by exclusion",
+    "nodeMissingHint": "The item is still in the library (the file may still be on disk); its directory has disappeared or was not scanned. Remount the matching root and scan to restore it",
+    "nodeMissing": "Rootless",
+    "restoreAll": "Restore all",
+    "restoreAllHint": "Restore all excluded directories to visible (node by node; directories that are not excluded are untouched)",
+    "hookOutsideProvide": "usePathManagement must be used within providePathManagement"
+  },
+  "display": {
+    "layout": {
+      "label": "Layout",
+      "masonry": "Masonry",
+      "grid": "Grid",
+      "list": "List"
+    },
+    "mediaType": {
+      "label": "Format"
+    },
+    "sort": {
+      "label": "Sort",
+      "createdAt": "Date added",
+      "title": "Name",
+      "sourceUri": "Source path",
+      "fieldHint": "Sort field",
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
+    "showTitles": {
+      "label": "Titles",
+      "show": "Show",
+      "hide": "Hide"
+    },
+    "untagged": {
+      "label": "Untagged",
+      "onlyUntagged": "Untagged only",
+      "allItems": "All items"
+    },
+    "workspaceInfo": {
+      "label": "Workspace info",
+      "roots": "Roots",
+      "declaredTags": "Declared tags"
+    }
+  },
+  "services": {
+    "confirm": {
+      "cancel": "Cancel",
+      "ok": "Confirm"
+    },
+    "batchTag": {
+      "selectFirst": "Select tags first",
+      "added": "Tagged {count} items with {n} tags",
+      "removed": "Removed {n} tags from {count} items",
+      "addTitle": "Batch tag ({count})",
+      "removeTitle": "Batch remove tags ({count})",
+      "noTags": "No tags in this workspace yet. Declare them in the Tags panel first.",
+      "busy": "Working…",
+      "apply": "Tag",
+      "remove": "Remove tags"
+    }
+  },
+  "drag": {
+    "cannotDrag": "Cannot drag out: {reason}",
+    "whyMissing": "File is missing (not found on disk)",
+    "whyNoSource": "No source file (work anchor)",
+    "whyNotInView": "Not in the current view",
+    "skippedMissing": "{n} with missing files",
+    "skippedNoSource": "{n} without a source file",
+    "skippedSome": "Skipped {skipped}; dragged out {n}"
+  },
+  "registry": {
+    "duplicateId": "Duplicate feature component id: {id}",
+    "feature": {
+      "paths": "Roots",
+      "tags": "Tags",
+      "display": "Display",
+      "files": "Files",
+      "info": "Media info",
+      "plugins": "Plugins",
+      "mediaTypeFilter": "Media type",
+      "untagged": "Untagged",
+      "sort": "Sort",
+      "layout": "Layout",
+      "workspaceInfo": "Workspace info",
+      "globalSearch": "Global search",
+      "showTitles": "Card titles",
+      "keyboardMouse": "Keyboard and mouse"
+    },
+    "settings": {
+      "mediaExtsLabel": "{type} extensions (comma-separated; leave empty to fall back to default)",
+      "layoutMode": "Grid layout",
+      "layoutMasonry": "Masonry",
+      "layoutGrid": "Grid",
+      "layoutList": "List",
+      "showTitlesLabel": "Show titles on grid cards",
+      "searchShortcut": "Ctrl+F search",
+      "shortcutTable": "Shortcut table (auto-generated from the registry)"
+    }
+  },
+  "commands": {
+    "duplicateId": "Duplicate command id: {id}",
+    "itemOpen": "Open",
+    "itemCopyPath": "Copy file path",
+    "itemsTagBatch": "Batch tag…",
+    "itemsUntagBatch": "Batch remove tags…",
+    "nodeOnlyThis": "Scope to this node (with subdirectories)",
+    "nodeShowSubtree": "Show all child items of this node",
+    "nodeHideSubtree": "Hide items of this node and its subdirectories",
+    "subtreeHidden": "Items of this node and its subdirectories are now hidden",
+    "subtreeShown": "Items of this node and its subdirectories are now visible",
+    "focusSearch": "Search",
+    "commandPalette": "Show all commands",
+    "selectAll": "Select all",
+    "clearSelection": "Clear selection",
+    "openHome": "Open home",
+    "openSettings": "Open settings",
+    "tabNext": "Next tab",
+    "tabPrev": "Previous tab",
+    "itemPrev": "Previous item",
+    "itemNext": "Next item",
+    "toggleEdit": "Toggle edit mode",
+    "quickTag": "Quick tag {n}",
+    "layoutReset": "Reset detail page layout"
+  },
+  "pluginsLoad": {
+    "manifestUnreadable": "Manifest unreadable",
+    "hostApiTooNew": "Plugin requires HostApi {required}; current host is {host}"
+  },
+  "hostApi": {
+    "itemNotFound": "Item not found ({id})"
+  },
+  "thumbnailer": {
+    "videoEventTimeout": "Video {event} timed out",
+    "videoLoadFailed": "Failed to load video",
+    "encodeFailed": "Failed to encode thumbnail",
+    "base64ReadFailed": "Failed to read base64",
+    "canvasUnavailable": "Canvas unavailable",
+    "videoSizeUnavailable": "Video size unavailable",
+    "imageSizeUnavailable": "Image size unavailable"
+  },
+  "mediaTypes": {
+    "image": "Image",
+    "video": "Video",
+    "audio": "Audio",
+    "document": "Document"
+  },
+  "tab": {
+    "home": "Home",
+    "settings": "Settings"
+  },
+  "tags": {
+    "title": "Tags",
+    "delete": "Delete",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "count": "{n}",
+    "countFiltered": "{shown} / {total}",
+    "newTagName": "New tag name",
+    "deleteTagTitle": "Delete tag",
+    "deleteTagAria": "Delete {name}",
+    "deleteTagConfirm": "Delete \"{name}\"? Its mounts and declarations will be deleted as well.",
+    "deleteTagBatchConfirm": "Delete selected tags ({n})? Their mounts and declarations will be deleted as well.",
+    "pool": {
+      "title": "Tag pool",
+      "searchPlaceholder": "Search tags",
+      "clearSearch": "Clear search",
+      "newTagPlaceholder": "New tag",
+      "newTag": "New tag",
+      "loadingTags": "Loading tags…",
+      "colName": "Name",
+      "colDesc": "Description",
+      "colMounted": "Mounted",
+      "colDeclared": "Declared",
+      "colActions": "Actions",
+      "descPlaceholder": "Description",
+      "addDescHint": "Click to add a description",
+      "editDesc": "Edit description",
+      "editDescAria": "Edit description of {name}",
+      "addDescAria": "Add description for {name}",
+      "selectTagAria": "Select {name}",
+      "noMatch": "No tags match \"{query}\"",
+      "empty": "The tag pool is empty — create the first tag above."
+    },
+    "selection": {
+      "selectedCount": "Selected {n}",
+      "hiddenHint": "{n} of them are not in the current results",
+      "selectVisibleAria": "Select all tags in the current list",
+      "batchAddGroupAria": "Batch add to group",
+      "declare": "Declare",
+      "declareHint": "Declare to the current workspace",
+      "declareNeedWs": "Open this page from a workspace to declare",
+      "undeclare": "Undeclare",
+      "undeclareHint": "Undeclare from the current workspace",
+      "undeclareNeedWs": "Open this page from a workspace to undeclare",
+      "needGroupFirst": "Create a group first",
+      "pickGroup": "Pick a group",
+      "joinGroup": "Join group…",
+      "join": "Join",
+      "deleteAction": "Delete…",
+      "clearSelection": "Clear selection",
+      "batchIncomplete": "{n} not completed: {error}",
+      "groupAddIncomplete": "{n} not joined: {error}"
+    },
+    "groups": {
+      "title": "Groups",
+      "newPlaceholder": "New group",
+      "newNameAria": "New group name",
+      "new": "New group",
+      "loading": "Loading groups…",
+      "empty": "No groups yet — create one and put related tags in it.",
+      "memberCount": "Tags: {n}",
+      "rename": "Rename",
+      "renameAria": "Rename group {name}",
+      "deleteTitle": "Delete group",
+      "deleteAria": "Delete group {name}",
+      "deleteConfirm": "Delete group \"{name}\"? Tags inside are unaffected; only this grouping is removed.",
+      "removeMember": "Remove from group",
+      "removeMemberAria": "Remove {name} from the group",
+      "emptyGroup": "Empty group",
+      "addTagAria": "Add tag to {name}",
+      "allAdded": "All added",
+      "addTag": "Add tag…"
+    },
+    "quickPin": {
+      "title": "Quick tag by number key",
+      "needWorkspace": "Applies per workspace; open this page from a workspace to configure.",
+      "loading": "Loading…",
+      "noDeclared": "No declared tags in this workspace yet.",
+      "digitAria": "Tag for number key {digit}",
+      "unassigned": "Unassigned"
+    },
+    "stats": {
+      "title": "Stats",
+      "kindAria": "Stats type",
+      "cooccur": "Often together",
+      "mutex": "Never together",
+      "needWorkspace": "Stats are scoped to workspace members; open this page from a workspace to use them.",
+      "calculating": "Calculating…",
+      "cooccurPairTitle": "Co-occurrence of {a} and {b}: {n}",
+      "mutexPairTitle": "{a} and {b} never co-occur; {aCount} / {bCount} respectively",
+      "mutexEach": "Each: {aCount} / {bCount}",
+      "noCooccur": "No co-occurring tag pairs yet",
+      "noMutex": "No mutually exclusive tag pairs"
+    },
+    "panel": {
+      "undeclareTitle": "Undeclare (existing mounts are unaffected)",
+      "empty": "No tags declared",
+      "createAndDeclareTitle": "Create and declare to this workspace",
+      "declareAvailable": "Available to declare"
+    }
+  },
+  "files": {
+    "title": "Files",
+    "emptyHint": "Select an item to rename, move or delete files here.",
+    "selectedCount": "Selected {n}",
+    "moreCount": "…and {n} more",
+    "delete": "Delete",
+    "deleteTitle": "Delete files",
+    "deleteConfirm": "Move {n} files to the system trash?\nThe corresponding items and tags will be deleted as well; the files themselves can be restored from the system trash.",
+    "rename": {
+      "label": "Rename",
+      "button": "Rename",
+      "title": "Rename"
+    },
+    "move": {
+      "label": "Move to",
+      "placeholder": "e.g. D:\\media\\archive",
+      "button": "Move",
+      "title": "Move"
+    }
+  },
+  "content": {
+    "searchPlaceholder": "Search item names globally…",
+    "searching": "Searching…",
+    "hits": "Found {n}",
+    "noHits": "No matching items."
+  },
+  "preview": {
+    "audioCannotPlay": "Audio cannot play inline",
+    "videoCannotPlay": "Video cannot play inline",
+    "text": {
+      "loading": "Reading…",
+      "truncated": "File exceeds 2 MiB; showing only the beginning",
+      "failed": "Failed to read text (the file may have been moved or is in use)"
+    }
+  },
+  "wb": {
+    "assertInside": "Workbench node components can only render inside DetailWorkbench",
+    "assertViewInside": "detailView views can only render inside the detail workbench",
+    "views": {
+      "preview": "Preview",
+      "info": "Info",
+      "filmstrip": "Filmstrip"
+    },
+    "addMenu": {
+      "addToSlot": "Add to this slot",
+      "noViews": "No views to add",
+      "splitNew": "Split into new slot",
+      "splitLeft": "Split left",
+      "splitRight": "Split right",
+      "splitUp": "Split up",
+      "splitDown": "Split down"
+    },
+    "tabstrip": {
+      "closeView": "Close {name}",
+      "add": "Add view / split into new slot"
+    },
+    "node": {
+      "emptySlot": "Empty slot",
+      "closeSlot": "Close this slot",
+      "resizeWidthAria": "Drag to resize slot width",
+      "resizeHeightAria": "Drag to resize slot height"
+    },
+    "preview": {
+      "prevTitle": "Previous: {name} (← / PgUp)",
+      "nextTitle": "Next: {name} (→ / PgDn)",
+      "isFirst": "Already the first item",
+      "isLast": "Already the last item",
+      "noPreview": "No inline preview for this type yet"
+    },
+    "info": {
+      "mediaInfoTitle": "Media info",
+      "tagsTitle": "Tags",
+      "editing": "Editing",
+      "exitEditingHint": "Exit edit mode",
+      "enterEditingHint": "Enter edit mode: click a tag to add or remove it",
+      "editingDone": "Done",
+      "editAction": "Edit",
+      "dblclickProfile": "Double-click to open the tag profile",
+      "searchTags": "Search tags",
+      "noWorkspaceHint": "Open from a workspace to tag",
+      "media": {
+        "image": "Image",
+        "video": "Video",
+        "audio": "Audio",
+        "document": "Document",
+        "other": "Other"
+      },
+      "status": {
+        "active": "OK",
+        "missing": "Missing"
+      },
+      "row": {
+        "type": "Type",
+        "ext": "Extension",
+        "dims": "Dimensions",
+        "fileSize": "Size",
+        "status": "Status",
+        "modified": "Modified",
+        "path": "Path",
+        "added": "Date added"
+      }
+    }
+  },
+  "pluginsPanel": {
+    "installBtn": "Install plugin",
+    "installBtnTitle": "Install a plugin from a zip",
+    "cancel": "Cancel",
+    "pending": {
+      "title": "Pending install: {name}",
+      "mountTitle": "Mount points to contribute",
+      "surfaceTitle": "Declared shell services; the permission surface is declaration-only, not enforced",
+      "conflictNote": "A plugin with the same id is installed — this install will overwrite and upgrade it.",
+      "confirm": "Confirm install",
+      "overwrite": "Overwrite install"
+    },
+    "devChip": "Dev directory",
+    "devChipTitle": "Repository dev directory: source compiled on the fly by vite, refreshing as you develop",
+    "openPage": "Open page",
+    "openPageTitle": "Open plugin page (new tab)",
+    "enable": "Enable",
+    "disable": "Disable",
+    "enabledOn": "Enabled",
+    "enabledOff": "Disabled",
+    "uninstallTitle": "Uninstall (deletes the install directory; can be reinstalled)",
+    "loadFailed": "Load failed: {error}",
+    "previewItem": "· Item preview",
+    "commandItem": "· Command \"{name}\"",
+    "noContributions": "No active contributions",
+    "surfaceChipTitle": "Declared shell services; until the permission surface lands via distribution, it is declaration-only, not enforced",
+    "emptyHint": "No plugins installed — click Install plugin above to import a zip.",
+    "uninstall": {
+      "title": "Uninstall plugin",
+      "message": "Uninstall plugin \"{name}\"? Its contributions (previews, commands, pages) will disappear; it can be reinstalled anytime.",
+      "confirm": "Uninstall"
+    }
+  },
+  "surface": {
+    "openFullPage": "Open \"{name}\" full-page view",
+    "contributedBadge": "Plugin",
+    "fullPageMissing": "Feature component \"{name}\" declares a full-page view, but no full-page implementation is bound.",
+    "noBinding": "{id} has no implementation bound for the {surface} surface."
+  },
+  "palette": {
+    "inputPlaceholder": "Type a command…",
+    "rowUnavailable": "{id}: unavailable in the current context",
+    "rowUnavailableShort": "Unavailable",
+    "noMatches": "No matching commands"
+  },
+  "boundary": {
+    "labelError": "{label}: {error}",
+    "retry": "Retry"
   }
 }

@@ -3,6 +3,7 @@
  * 与 context.ts（视图侧的事实与动作）分流——这是容器侧：布局变更、拖放、菜单、权重。
  */
 import { inject, provide, type InjectionKey, type Ref } from 'vue'
+import { i18n } from '../../i18n'
 import type { SplitDir, WorkbenchLayout } from './slots'
 
 /** 回添菜单锚点（叶 id + 触发按钮的屏幕坐标；fixed 定位，翻转防溢出）。 */
@@ -40,6 +41,6 @@ export function provideWorkbenchApi(api: WorkbenchApi): void {
 
 export function useWorkbenchApi(): WorkbenchApi {
   const api = inject(KEY)
-  if (api == null) throw new Error('工作台节点组件只能在 DetailWorkbench 内渲染')
+  if (api == null) throw new Error(i18n.global.t('wb.assertInside'))
   return api
 }

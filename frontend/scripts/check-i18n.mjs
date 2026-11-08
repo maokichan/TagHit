@@ -128,7 +128,11 @@ function scanResidue() {
   const entries = new Map() // key: relFile::text → { file, line, text }
   for (const file of walk(rendererSrc)) {
     const rel = relative(frontendDir, file).split(sep).join('/')
-    const lines = readFileSync(file, 'utf8').split('\n')
+    // 先剥块注释（/* */ 与 <!-- -->，跨行），再逐行扫——续行里的中文不是文案
+    const text = readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+      .replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, ' '))
+    const lines = text.split('\n')
     for (let i = 0; i < lines.length; i++) {
       for (const run of extractRuns(lines[i])) {
         const key = `${rel}::${run}`
@@ -190,6 +194,12 @@ function checkResidue() {
   }
 
   console.log(`中文残留：待抽取 ${pending} 处（基线内）· 新增 ${newHits.length} 处（基线外）`)
+  if (args.includes('--pending')) {
+    for (const k of [...baseline].filter((k) => current.has(k))) {
+      const e = current.get(k)
+      console.log(`  · ${e.file}:${e.line}  ${e.text}`)
+    }
+  }
   for (const k of newHits.slice(0, 20)) {
     const e = current.get(k)
     console.log(`  [!] ${e.file}:${e.line}  ${e.text}`)

@@ -154,8 +154,8 @@ function onResizeUp(e: PointerEvent): void {
       </FeatureBoundary>
     </div>
     <div v-else class="flex-1 min-h-0 flex flex-col items-center justify-center gap-2">
-      <span class="text-[12px] text-[var(--fg-dim)]">空槽</span>
-      <button class="btn" @click="api.closeLeaf(props.node.id)">关闭此槽</button>
+      <span class="text-[12px] text-[var(--fg-dim)]">{{ $t('wb.node.emptySlot') }}</span>
+      <button class="btn" @click="api.closeLeaf(props.node.id)">{{ $t('wb.node.closeSlot') }}</button>
     </div>
 
     <!-- 四缘落点区（仅拖拽中出现；拖到缘 = 分割，dragover.stop 防止误触叶体并入） -->
@@ -188,7 +188,7 @@ function onResizeUp(e: PointerEvent): void {
         class="wb-seam shrink-0"
         :class="split.dir === 'row' ? 'wb-seam--x' : 'wb-seam--y'"
         :data-drag="resizingIndex === i ? 'true' : 'false'"
-        :aria-label="split.dir === 'row' ? '拖动调整槽位宽度' : '拖动调整槽位高度'"
+        :aria-label="split.dir === 'row' ? $t('wb.node.resizeWidthAria') : $t('wb.node.resizeHeightAria')"
         @pointerdown="onResizeDown(i, $event)"
         @pointermove="onResizeMove"
         @pointerup="onResizeUp"

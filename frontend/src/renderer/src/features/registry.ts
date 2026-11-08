@@ -3,6 +3,7 @@ import { markRaw, watchEffect } from 'vue'
 import { FolderOpen, Info, Puzzle, SlidersHorizontal, Tags, FileCog } from 'lucide-vue-next'
 import type { FeatureManifest, FeatureSource, MountPoint } from '@shared/types/feature'
 import type { FeatureSurface } from './context'
+import { i18n } from '../i18n'
 import MediaTypeFeature from './display/mediaType/MediaTypeFeature.vue'
 import UntaggedFeature from './display/untagged/UntaggedFeature.vue'
 import ShowTitlesFeature from './display/showTitles/ShowTitlesFeature.vue'
@@ -73,7 +74,7 @@ const disposers = new Map<string, () => void>()
  */
 export function registerFeature(manifest: FeatureManifest, impl: FeatureImpl): void {
   if (registry.has(manifest.id)) {
-    throw new Error(`功能组件 id 重复：${manifest.id}`)
+    throw new Error(i18n.global.t('registry.duplicateId', { id: manifest.id }))
   }
   // 组件对象 markRaw：进注册表/壳的响应式容器时不做深度代理（Vue reactive 性能警告消除）
   if (impl.type === 'direct' && impl.component != null) {
@@ -219,29 +220,29 @@ export function registerBuiltinFeatures(): void {
   // mounts 同时声明 contentTab = 该功能组件提供**全页呈现面**：壳据此显示"打开全页"角标，
   // 全页外壳按 fullPage 绑定渲染（不套窄面板）。未声明的功能组件没有全页可开。
   official(
-    { id: 'paths', title: '来源根', mounts: ['activityBar:left', 'contentTab'] },
+    { id: 'paths', title: i18n.global.t('registry.feature.paths'), mounts: ['activityBar:left', 'contentTab'] },
     { icon: FolderOpen, component: PathsPanel, fullPage: PathsFullPage }
   )
   official(
-    { id: 'tags', title: '标签', mounts: ['activityBar:left', 'contentTab'] },
+    { id: 'tags', title: i18n.global.t('registry.feature.tags'), mounts: ['activityBar:left', 'contentTab'] },
     { icon: Tags, component: TagsPanel, fullPage: TagsFullPage }
   )
   official(
-    { id: 'display', title: '显示', mounts: ['activityBar:left'] },
+    { id: 'display', title: i18n.global.t('registry.feature.display'), mounts: ['activityBar:left'] },
     { icon: SlidersHorizontal, component: DisplayPanel }
   )
   official(
-    { id: 'files', title: '文件管理', mounts: ['activityBar:left'] },
+    { id: 'files', title: i18n.global.t('registry.feature.files'), mounts: ['activityBar:left'] },
     { icon: FileCog, component: FilesPanel }
   )
 
   // ── 媒体信息 / 插件（原右活动栏工具，右栏裁撤后迁左，D40） ──
   official(
-    { id: 'info', title: '媒体信息', mounts: ['activityBar:left'] },
+    { id: 'info', title: i18n.global.t('registry.feature.info'), mounts: ['activityBar:left'] },
     { icon: Info, component: InfoPanel }
   )
   official(
-    { id: 'plugins', title: '插件', mounts: ['activityBar:left', 'contentTab'] },
+    { id: 'plugins', title: i18n.global.t('registry.feature.plugins'), mounts: ['activityBar:left', 'contentTab'] },
     { icon: Puzzle, component: PluginsPanel, fullPage: PluginsFullPage }
   )
 
@@ -249,26 +250,26 @@ export function registerBuiltinFeatures(): void {
   official(
     {
       id: 'mediaTypeFilter',
-      title: '媒体类型',
+      title: i18n.global.t('registry.feature.mediaTypeFilter'),
       mounts: ['displayPanel', 'settings'],
       dataSource: 'fileFormatMap',
       settings: FILTERABLE_MEDIA_TYPES.map((t) => ({
         key: MEDIA_EXT_CONFIG_KEY[t],
         type: 'string' as const,
-        label: `${MEDIA_TYPE_LABEL[t]}扩展名（逗号分隔，留空回落默认）`,
+        label: i18n.global.t('registry.settings.mediaExtsLabel', { type: MEDIA_TYPE_LABEL[t] }),
         default: defaultExtText(t)
       }))
     },
     { component: MediaTypeFeature, setup: setupMediaTypeMap }
   )
   official(
-    { id: 'untagged', title: '无标签', mounts: ['displayPanel'] },
+    { id: 'untagged', title: i18n.global.t('registry.feature.untagged'), mounts: ['displayPanel'] },
     { component: UntaggedFeature }
   )
   official(
     {
       id: 'sort',
-      title: '排序',
+      title: i18n.global.t('registry.feature.sort'),
       mounts: ['displayPanel'],
       dataSource: 'sortKeys'
     },
@@ -277,17 +278,17 @@ export function registerBuiltinFeatures(): void {
   official(
     {
       id: 'layout',
-      title: '布局',
+      title: i18n.global.t('registry.feature.layout'),
       mounts: ['displayPanel', 'settings'],
       settings: [
         {
           key: 'layoutMode',
           type: 'enum',
-          label: '网格布局',
+          label: i18n.global.t('registry.settings.layoutMode'),
           options: [
-            { value: 'masonry', label: '瀑布流' },
-            { value: 'grid', label: '网格' },
-            { value: 'list', label: '列表' }
+            { value: 'masonry', label: i18n.global.t('registry.settings.layoutMasonry') },
+            { value: 'grid', label: i18n.global.t('registry.settings.layoutGrid') },
+            { value: 'list', label: i18n.global.t('registry.settings.layoutList') }
           ],
           default: 'masonry'
         }
@@ -298,7 +299,7 @@ export function registerBuiltinFeatures(): void {
   // 贡献点垂直切片：消费 HostApi（listRoots/declaredTags）的官方组件。
   // async 装载 = 同构验收桩：官方组件走 loader 后壳行为不变（ARCHITECTURE §3.1）。
   registerFeature(
-    { id: 'workspaceInfo', title: '工作区信息', source: 'official', mounts: ['displayPanel'] },
+    { id: 'workspaceInfo', title: i18n.global.t('registry.feature.workspaceInfo'), source: 'official', mounts: ['displayPanel'] },
     {
       type: 'async',
       load: async () => ({ component: (await import('./display/workspaceInfo/WorkspaceInfoFeature.vue')).default })
@@ -307,7 +308,7 @@ export function registerBuiltinFeatures(): void {
 
   // ── 内容区标签页（contentTab）：壳持标签项，组件自持内容状态 ──
   official(
-    { id: 'globalSearch', title: '全局搜索', mounts: ['contentTab'] },
+    { id: 'globalSearch', title: i18n.global.t('registry.feature.globalSearch'), mounts: ['contentTab'] },
     { component: GlobalSearchFeature }
   )
 
@@ -315,23 +316,23 @@ export function registerBuiltinFeatures(): void {
   official(
     {
       id: 'showTitles',
-      title: '卡片标题',
+      title: i18n.global.t('registry.feature.showTitles'),
       // 显示面板区块 + 设置页共享同一份 config；不占活动栏实例
       mounts: ['displayPanel', 'settings'],
-      settings: [{ key: 'showTitles', type: 'boolean', label: '网格卡片显示标题', default: true }]
+      settings: [{ key: 'showTitles', type: 'boolean', label: i18n.global.t('registry.settings.showTitlesLabel'), default: true }]
     },
     { component: ShowTitlesFeature }
   )
   official(
     {
       id: 'keyboardMouse',
-      title: '键鼠交互',
+      title: i18n.global.t('registry.feature.keyboardMouse'),
       mounts: ['settings'],
       settings: [
-        { key: 'enableSearchShortcut', type: 'boolean', label: 'Ctrl+F 搜索', default: true },
+        { key: 'enableSearchShortcut', type: 'boolean', label: i18n.global.t('registry.settings.searchShortcut'), default: true },
         // 只读键位表：**自动取自快捷键注册表**（D23：快捷键 = 命令注册表的视图）。
         // 手写的键位文档必然过期，这张表跟着注册表走：加一条绑定就多一行。
-        { key: 'shortcutTable', type: 'shortcuts', label: '键位表（随注册表自动生成）' }
+        { key: 'shortcutTable', type: 'shortcuts', label: i18n.global.t('registry.settings.shortcutTable') }
       ]
     },
     { setup: setupKeyboardMouse }

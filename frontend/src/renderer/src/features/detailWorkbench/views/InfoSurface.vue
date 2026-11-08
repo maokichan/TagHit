@@ -5,6 +5,7 @@
  * 打标/摘除走骨架的 toggleTag（改库 + 刷新当前条目，单源）；数据出自工作台上下文。
  */
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ChevronDown, Search } from 'lucide-vue-next'
 import { api } from '@shared/api'
 import type { Id } from '@shared/contract'
@@ -19,17 +20,20 @@ import { useDetailWorkbenchContext } from '../context'
 const ctx = useDetailWorkbenchContext()
 const config = useConfigStore()
 const tagStore = useTagStore()
+const { t } = useI18n()
 
 const workspaceId = computed(() => ctx.workspaceId)
 
 const MEDIA_LABEL: Record<string, string> = {
-  image: '图片',
-  video: '视频',
-  audio: '音频',
-  document: '文档',
-  other: '其他'
+  image: 'wb.info.media.image',
+  video: 'wb.info.media.video',
+  audio: 'wb.info.media.audio',
+  document: 'wb.info.media.document',
+  other: 'wb.info.media.other'
 }
-const STATUS_LABEL: Record<string, string> = { active: '正常', missing: '缺失' }
+const STATUS_LABEL: Record<string, string> = { active: 'wb.info.status.active', missing: 'wb.info.status.missing' }
+const mediaLabel = (type: string): string => (MEDIA_LABEL[type] != null ? t(MEDIA_LABEL[type]!) : type)
+const statusLabel = (status: string): string => (STATUS_LABEL[status] != null ? t(STATUS_LABEL[status]!) : status)
 
 /**
  * 节拍折叠：常显一行骨架（类型 · 尺寸 · 大小），长尾事实收进折叠节——
@@ -44,29 +48,33 @@ function toggleFacts(): void {
 const rows = computed(() => {
   const item = ctx.item
   return [
-    ['类型', MEDIA_LABEL[item.mediaType] ?? item.mediaType],
-    ['扩展名', item.extension ?? '-'],
+    [t('wb.info.row.type'), mediaLabel(item.mediaType)],
+    [t('wb.info.row.ext'), item.extension ?? '-'],
     [
-      '尺寸',
+      t('wb.info.row.dims'),
       item.width != null && item.height != null ? `${item.width} × ${item.height}` : '-'
     ],
-    ['大小', formatSize(item.size)],
-    ['状态', item.status == null ? '-' : STATUS_LABEL[item.status]],
-    ['修改时间', formatDate(item.fileModifiedAt)],
-    ['路径', item.sourceUri ?? '-'],
-    ['收录时间', formatDate(item.createdAt)]
+    [t('wb.info.row.fileSize'), formatSize(item.size)],
+    [t('wb.info.row.status'), item.status == null ? '-' : statusLabel(item.status)],
+    [t('wb.info.row.modified'), formatDate(item.fileModifiedAt)],
+    [t('wb.info.row.path'), item.sourceUri ?? '-'],
+    [t('wb.info.row.added'), formatDate(item.createdAt)]
   ] as Array<[string, string]>
 })
 const factSummary = computed(() => {
   const item = ctx.item
-  const parts = [MEDIA_LABEL[item.mediaType] ?? item.mediaType]
+  const parts = [mediaLabel(item.mediaType)]
   if (item.width != null && item.height != null) {
     parts.push(`${item.width} × ${item.height}`)
   }
   parts.push(formatSize(item.size))
   return parts.join(' · ')
 })
-const factRows = computed(() => rows.value.filter(([k]) => k !== '类型' && k !== '尺寸' && k !== '大小'))
+const factRows = computed(() =>
+  rows.value.filter(
+    ([k]) => k !== t('wb.info.row.type') && k !== t('wb.info.row.dims') && k !== t('wb.info.row.fileSize')
+  )
+)
 
 /**
  * 标签池与共现统计：**打开瞬间固化的顺序上下文里的工作区**（不是"当前活动工作区"）。
@@ -155,7 +163,7 @@ function openProfile(t: { id: Id; name: string }): void {
         @click="toggleFacts"
       >
         <ChevronDown :size="11" />
-        媒体信息
+        {{ $t('wb.info.mediaInfoTitle') }}
       </button>
       <div class="text-[12px] mt-1.5">{{ factSummary }}</div>
       <dl v-if="factsOpen" class="space-y-1 text-[12px] mt-2">
@@ -168,16 +176,16 @@ function openProfile(t: { id: Id; name: string }): void {
       <div class="divider my-3"></div>
 
       <div class="flex items-center gap-2 mb-2 min-h-5">
-        <div class="panel-label">标签</div>
+        <div class="panel-label">{{ $t('wb.info.tagsTitle') }}</div>
         <template v-if="workspaceId != null">
-          <span v-if="ctx.editing" class="text-[11px] text-[var(--accent)]">编辑中</span>
+          <span v-if="ctx.editing" class="text-[11px] text-[var(--accent)]">{{ $t('wb.info.editing') }}</span>
           <span
             class="kbd ml-auto"
-            :title="ctx.editing ? '退出编辑模式' : '进入编辑模式：点标签打上/摘除'"
+            :title="ctx.editing ? $t('wb.info.exitEditingHint') : $t('wb.info.enterEditingHint')"
           >
             Ctrl+E
           </span>
-          <span class="text-[11px] text-[var(--fg-dim)]">{{ ctx.editing ? '完成' : '编辑' }}</span>
+          <span class="text-[11px] text-[var(--fg-dim)]">{{ ctx.editing ? $t('wb.info.editingDone') : $t('wb.info.editAction') }}</span>
         </template>
       </div>
       <div class="flex flex-wrap gap-1.5">
@@ -206,7 +214,7 @@ function openProfile(t: { id: Id; name: string }): void {
             v-for="tag in ctx.item.tags"
             :key="tag.id"
             class="chip--text"
-            :title="'双击打开标签主页'"
+            :title="$t('wb.info.dblclickProfile')"
             @dblclick="openProfile(tag)"
           >
             {{ tag.name }}
@@ -220,12 +228,12 @@ function openProfile(t: { id: Id; name: string }): void {
         <input
           v-model="tagQuery"
           class="input w-full pl-7 py-1 text-[12px]"
-          placeholder="搜标签"
+          :placeholder="$t('wb.info.searchTags')"
           @keydown.enter.prevent="applyFirstMatch"
         />
       </div>
       <p v-if="workspaceId == null" class="text-[11px] text-[var(--fg-dim)] mt-2">
-        从工作区打开可打标
+        {{ $t('wb.info.noWorkspaceHint') }}
       </p>
     </div>
   </div>

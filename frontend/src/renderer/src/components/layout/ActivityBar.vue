@@ -81,7 +81,7 @@ function showIndicator(i: number): boolean {
         dragIndex === i ? 'opacity-40' : '',
         showIndicator(i) ? 'border-t-[var(--accent)]' : ''
       ]"
-      :title="`${tool.label}（拖拽调整顺序）`"
+      :title="$t('layout.activity.dragTitle', { name: tool.label })"
       @click="emit('toggle', tool.id)"
       @dragstart="onDragStart(i, $event)"
       @dragover="onDragOver(i, $event)"

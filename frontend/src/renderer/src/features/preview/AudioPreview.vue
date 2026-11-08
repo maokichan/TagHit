@@ -24,7 +24,7 @@ watch(
     </template>
     <div v-else class="flex flex-col items-center gap-2 text-[var(--fg-dim)]">
       <Music :size="48" />
-      <span class="text-sm">音频无法内嵌播放</span>
+      <span class="text-sm">{{ $t('preview.audioCannotPlay') }}</span>
     </div>
   </div>
 </template>

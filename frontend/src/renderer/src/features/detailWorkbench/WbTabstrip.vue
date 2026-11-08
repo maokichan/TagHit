@@ -24,28 +24,28 @@ const emit = defineEmits<{
 <template>
   <div class="wb-tabstrip">
     <div
-      v-for="t in tabs"
-      :key="t.entry.id"
+      v-for="opt in tabs"
+      :key="opt.entry.id"
       class="wb-tab group min-w-0"
-      :class="{ 'wb-tab--on': t.on, 'opacity-40': draggingId === t.entry.id }"
-      :title="t.entry.title"
+      :class="{ 'wb-tab--on': opt.on, 'opacity-40': draggingId === opt.entry.id }"
+      :title="opt.entry.title"
       draggable="true"
-      @click="emit('activate', t.entry.id)"
-      @dragstart="emit('dragstart', t.entry.id, $event)"
+      @click="emit('activate', opt.entry.id)"
+      @dragstart="emit('dragstart', opt.entry.id, $event)"
       @dragend="emit('dragend')"
     >
-      <span class="truncate">{{ t.entry.title }}</span>
+      <span class="truncate">{{ opt.entry.title }}</span>
       <button
         class="opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)] p-0.5 cursor-pointer shrink-0"
-        :title="`关闭 ${t.entry.title}`"
-        @click.stop="emit('close', t.entry.id)"
+        :title="$t('wb.tabstrip.closeView', { name: opt.entry.title })"
+        @click.stop="emit('close', opt.entry.id)"
       >
         <X :size="11" />
       </button>
     </div>
     <button
       class="ml-auto icon-btn h-5 w-5 shrink-0"
-      title="添加视图 / 分割新槽"
+      :title="$t('wb.tabstrip.add')"
       @click.stop="emit('add', $event)"
     >
       <Plus :size="12" />

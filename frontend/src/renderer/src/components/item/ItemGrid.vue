@@ -338,15 +338,15 @@ watch(
       v-if="loading && items.length === 0"
       class="flex-1 flex items-center justify-center text-[var(--fg-dim)]"
     >
-      加载中…
+      {{ $t('item.loading') }}
     </div>
     <div
       v-else-if="items.length === 0"
       class="flex-1 flex flex-col items-center justify-center gap-2 text-[var(--fg-dim)]"
     >
       <Inbox :size="36" class="opacity-40" />
-      <p class="text-sm">这里还没有内容</p>
-      <p class="text-[11px] opacity-70">在左侧「来源根」添加目录并扫描</p>
+      <p class="text-sm">{{ $t('item.emptyTitle') }}</p>
+      <p class="text-[11px] opacity-70">{{ $t('item.emptyHint') }}</p>
     </div>
 
     <!-- 滚动容器（虚拟化宿主） -->
@@ -378,7 +378,7 @@ watch(
           </div>
         </div>
         <div v-if="loading" class="flex justify-center py-2 text-[11px] text-[var(--fg-dim)]">
-          加载中…
+          {{ $t('item.loading') }}
         </div>
         <div ref="sentinel" class="h-1" />
       </template>
@@ -421,7 +421,7 @@ watch(
         </div>
         <div :style="{ height: rowSlice.bottomPad + 'px' }" />
         <div v-if="loading" class="flex justify-center py-2 text-[11px] text-[var(--fg-dim)]">
-          加载中…
+          {{ $t('item.loading') }}
         </div>
         <div ref="sentinel" class="h-1" />
       </template>

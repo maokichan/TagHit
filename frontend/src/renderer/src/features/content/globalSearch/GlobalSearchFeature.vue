@@ -71,13 +71,13 @@ function openItem(item: ItemView): void {
         <input
           v-model="query"
           class="input pl-9 w-full py-2"
-          placeholder="全局搜索条目名关键词…"
+          :placeholder="$t('content.searchPlaceholder')"
           data-shortcut="search"
         />
       </div>
 
       <div v-if="query.trim()" class="text-[11px] text-[var(--fg-dim)] mb-2">
-        {{ loading ? '搜索中…' : `命中 ${results.length} 项` }}
+        {{ loading ? $t('content.searching') : $t('content.hits', { n: results.length }) }}
       </div>
       <div
         v-if="query.trim() && results.length"
@@ -97,7 +97,7 @@ function openItem(item: ItemView): void {
         v-if="query.trim() && !loading && results.length === 0"
         class="text-[12px] text-[var(--fg-dim)]"
       >
-        没有命中的条目。
+        {{ $t('content.noHits') }}
       </p>
     </div>
   </div>

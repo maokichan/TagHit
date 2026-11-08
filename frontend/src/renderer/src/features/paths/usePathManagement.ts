@@ -16,6 +16,7 @@ import { useItemStore } from '../../stores/item'
 import { api } from '@shared/api'
 import { confirmDialog } from '../services/dialog'
 import { formatDate } from '../../lib/format'
+import { i18n } from '../../i18n'
 import type {
   NodeState,
   PathNode,
@@ -243,9 +244,9 @@ export function createPathManagement(workspaceId: string): PathManagement {
 
   async function removePath(root: WorkspaceRoot): Promise<void> {
     const ok = await confirmDialog({
-      title: '移除来源根',
-      message: `确定从工作区移除路径「${root.path}」？\n其下条目将脱离本工作区视图（条目/标签保留，可在「已卸载的来源根」里重新挂载或清理）。`,
-      confirmText: '移除',
+      title: i18n.global.t('paths.removeRootTitle'),
+      message: i18n.global.t('paths.removeRootMessage', { path: root.path }),
+      confirmText: i18n.global.t('paths.removeConfirm'),
       danger: true
     })
     if (!ok) return
@@ -281,9 +282,9 @@ export function createPathManagement(workspaceId: string): PathManagement {
     count: number
   ): Promise<void> {
     const ok = await confirmDialog({
-      title: '清理脱根条目',
-      message: `将删除「${label}」下 ${count} 条脱根条目及其标签挂载，**不可恢复**。\n这些文件在磁盘上不会被删除；仍在来源根下的条目不受影响。`,
-      confirmText: '删除条目',
+      title: i18n.global.t('paths.purgeTitle'),
+      message: i18n.global.t('paths.purgeMessage', { label, count }),
+      confirmText: i18n.global.t('paths.purgeConfirm'),
       danger: true
     })
     if (!ok) return
@@ -292,7 +293,7 @@ export function createPathManagement(workspaceId: string): PathManagement {
       bump()
       await itemStore.load(workspaceId)
       if (res.deleted === 0) {
-        error.value = '没有可清理的脱根条目（可能已被清理或已挂回来源根）'
+        error.value = i18n.global.t('paths.purgeNone')
       }
     })
   }
@@ -348,6 +349,6 @@ export function providePathManagement(workspaceId: string): PathManagement {
 
 export function usePathManagement(): PathManagement {
   const pm = inject(KEY, null)
-  if (pm == null) throw new Error('usePathManagement 必须在 providePathManagement 之内使用')
+  if (pm == null) throw new Error(i18n.global.t('paths.hookOutsideProvide'))
   return pm
 }

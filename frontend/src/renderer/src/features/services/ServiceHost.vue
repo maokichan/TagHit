@@ -4,10 +4,12 @@
  * 模态语义：Esc = 取消、Enter = 确认、遮罩点击 = 取消；danger 确认键红色警示。
  */
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { answerConfirm, showToast, usePendingConfirm, useToasts } from './dialog'
 import { closeBatchTagDialog, useBatchTagState, type BatchTagMode } from './batchTag'
 import { useTagStore } from '../../stores/tag'
 
+const { t } = useI18n()
 const pending = usePendingConfirm()
 const toasts = useToasts()
 const batchTag = useBatchTagState()
@@ -56,13 +58,17 @@ async function applyBatchTag(mode: BatchTagMode): Promise<void> {
   if (req == null || batchBusy.value) return
   const tagIds = batchChecked.value
   if (tagIds.length === 0) {
-    showToast('请先勾选标签', 'error')
+    showToast(t('services.batchTag.selectFirst'), 'error')
     return
   }
   batchBusy.value = true
   try {
     await req.onApply(mode, tagIds)
-    showToast(mode === 'add' ? `已为 ${req.count} 项打上 ${tagIds.length} 个标签` : `已从 ${req.count} 项移除 ${tagIds.length} 个标签`)
+    showToast(
+      mode === 'add'
+        ? t('services.batchTag.added', { count: req.count, n: tagIds.length })
+        : t('services.batchTag.removed', { count: req.count, n: tagIds.length })
+    )
     closeBatchTagDialog()
   } catch (e) {
     showToast(e instanceof Error ? e.message : String(e), 'error')
@@ -74,7 +80,9 @@ async function applyBatchTag(mode: BatchTagMode): Promise<void> {
 const batchTitle = (): string => {
   const req = batchTag.value
   if (req == null) return ''
-  return req.mode === 'add' ? `批量打标签（${req.count} 项）` : `批量移除标签（${req.count} 项）`
+  return req.mode === 'add'
+    ? t('services.batchTag.addTitle', { count: req.count })
+    : t('services.batchTag.removeTitle', { count: req.count })
 }
 </script>
 
@@ -95,14 +103,14 @@ const batchTitle = (): string => {
       </p>
       <div class="flex justify-end gap-2">
         <button class="btn text-[12px]" @click="answerConfirm(false)">
-          {{ pending.cancelText ?? '取消' }}
+          {{ pending.cancelText ?? $t('services.confirm.cancel') }}
         </button>
         <button
           class="btn text-[12px]"
           :class="pending.danger ? 'text-[var(--danger)] border-[var(--danger-border)]' : 'btn-primary'"
           @click="answerConfirm(true)"
         >
-          {{ pending.confirmText ?? '确认' }}
+          {{ pending.confirmText ?? $t('services.confirm.ok') }}
         </button>
       </div>
     </div>
@@ -121,7 +129,7 @@ const batchTitle = (): string => {
       <div class="text-sm font-medium mb-3">{{ batchTitle() }}</div>
 
       <div v-if="tagStore.tags.length === 0" class="text-[12px] text-[var(--fg-dim)] mb-3">
-        本工作区还没有标签，先在「标签」面板声明。
+        {{ $t('services.batchTag.noTags') }}
       </div>
       <div
         v-else
@@ -143,14 +151,14 @@ const batchTitle = (): string => {
       </div>
 
       <div class="flex justify-end gap-2">
-        <button class="btn text-[12px]" @click="closeBatchTagDialog()">取消</button>
+        <button class="btn text-[12px]" @click="closeBatchTagDialog()">{{ $t('services.confirm.cancel') }}</button>
         <button
           v-if="batchTag.mode === 'add'"
           class="btn btn-primary text-[12px] disabled:opacity-50"
           :disabled="batchBusy"
           @click="applyBatchTag('add')"
         >
-          {{ batchBusy ? '处理中…' : '打标签' }}
+          {{ batchBusy ? $t('services.batchTag.busy') : $t('services.batchTag.apply') }}
         </button>
         <button
           v-else
@@ -158,7 +166,7 @@ const batchTitle = (): string => {
           :disabled="batchBusy"
           @click="applyBatchTag('remove')"
         >
-          {{ batchBusy ? '处理中…' : '移除标签' }}
+          {{ batchBusy ? $t('services.batchTag.busy') : $t('services.batchTag.remove') }}
         </button>
       </div>
     </div>
@@ -167,12 +175,12 @@ const batchTitle = (): string => {
   <!-- 轻通知（右下角堆叠） -->
   <div class="fixed bottom-4 right-4 z-[60] space-y-2">
     <div
-      v-for="t in toasts"
-      :key="t.id"
+      v-for="opt in toasts"
+      :key="opt.id"
       class="px-3 py-2 border text-[12px] shadow-lg bg-[var(--bg-elev)]"
-      :class="t.kind === 'error' ? 'border-[var(--danger-border)] text-[var(--danger)]' : 'border-[var(--border)] text-[var(--fg)]'"
+      :class="opt.kind === 'error' ? 'border-[var(--danger-border)] text-[var(--danger)]' : 'border-[var(--border)] text-[var(--fg)]'"
     >
-      {{ t.text }}
+      {{ opt.text }}
     </div>
   </div>
 </template>

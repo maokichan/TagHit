@@ -27,7 +27,7 @@ const { roots, expanded, scopeDirPath } = pm
         >
           <button
             class="shrink-0 flex items-center justify-center w-4 h-4 cursor-pointer text-[var(--fg-dim)] hover:text-[var(--fg)]"
-            :title="expanded.has(r.path) ? '折叠' : '展开'"
+            :title="expanded.has(r.path) ? $t('paths.fold') : $t('paths.unfold')"
             @click="pm.toggleExpand(r.path)"
           >
             <ChevronRight :size="12" class="transition-transform" :class="{ 'rotate-90': expanded.has(r.path) }" />
@@ -36,8 +36,8 @@ const { roots, expanded, scopeDirPath } = pm
             class="shrink-0 cursor-pointer transition-colors"
             :class="pm.rootState(r.path) === 'included' ? 'text-[var(--accent)]' : 'text-[var(--fg-dim)] opacity-50'"
             :title="pm.rootState(r.path) === 'included'
-              ? '已包含：根目录直接条目可见（点击排除；Shift+点击 = 含全部子目录）'
-              : '已排除：根目录直接条目退出视图（点击包含；Shift+点击 = 含全部子目录）'"
+              ? $t('paths.rootIncludedHint')
+              : $t('paths.rootExcludedHint')"
             @click="pm.setState({ dirPath: r.path, state: pm.rootState(r.path) }, pm.rootState(r.path) === 'included' ? 'excluded' : 'included', $event.shiftKey)"
           >
             <Eye v-if="pm.rootState(r.path) === 'included'" :size="12" />
@@ -50,14 +50,14 @@ const { roots, expanded, scopeDirPath } = pm
           <button
             class="shrink-0 cursor-pointer transition-colors"
             :class="pm.isScope(r.path) ? 'text-[var(--accent)]' : 'text-[var(--fg-dim)] hover:text-[var(--accent)]'"
-            :title="pm.isScope(r.path) ? '退出范围（回到全部可见条目）' : '只看此节点（含其子目录；不改可见性）'"
+            :title="pm.isScope(r.path) ? $t('paths.exitScopeHint') : $t('paths.scopeHint')"
             @click.stop="pm.toggleScope(r.path)"
           >
             <Focus :size="12" />
           </button>
           <button
             class="text-[var(--fg-dim)] hover:text-[var(--danger)] cursor-pointer shrink-0"
-            title="移除来源根（条目保留，可在「已卸载」里处置）"
+            :title="$t('paths.removeRootHint')"
             @click.stop="pm.removePath(r)"
           >
             <Trash2 :size="12" />
@@ -78,7 +78,7 @@ const { roots, expanded, scopeDirPath } = pm
             <button
               v-if="row.node.children.length"
               class="shrink-0 flex items-center justify-center w-3.5 h-3.5 cursor-pointer text-[var(--fg-dim)] hover:text-[var(--fg)]"
-              :title="expanded.has(row.node.dirPath) ? '折叠' : '展开'"
+              :title="expanded.has(row.node.dirPath) ? $t('paths.fold') : $t('paths.unfold')"
               @click="pm.toggleExpand(row.node.dirPath)"
             >
               <ChevronRight
@@ -92,8 +92,8 @@ const { roots, expanded, scopeDirPath } = pm
               class="shrink-0 cursor-pointer transition-colors"
               :class="row.node.state === 'included' ? 'text-[var(--accent)]' : 'text-[var(--fg-dim)] opacity-50'"
               :title="row.node.state === 'included'
-                ? '已包含：直接条目可见（点击排除；Shift+点击 = 含全部子目录）'
-                : '已排除：直接条目退出视图（点击包含；Shift+点击 = 含全部子目录）'"
+                ? $t('paths.nodeIncludedHint')
+                : $t('paths.nodeExcludedHint')"
               @click="pm.setState(row.node, row.node.state === 'included' ? 'excluded' : 'included', $event.shiftKey)"
             >
               <Eye v-if="row.node.state === 'included'" :size="12" />
@@ -115,23 +115,23 @@ const { roots, expanded, scopeDirPath } = pm
               :class="scopeDirPath === row.node.dirPath
                 ? 'text-[var(--accent)]'
                 : 'text-[var(--fg-dim)] opacity-0 group-hover:opacity-100 hover:text-[var(--accent)]'"
-              :title="scopeDirPath === row.node.dirPath ? '退出范围（回到全部可见条目）' : '只看此节点（含其子目录；不改可见性）'"
+              :title="scopeDirPath === row.node.dirPath ? $t('paths.exitScopeHint') : $t('paths.scopeHint')"
               @click.stop="pm.toggleScope(row.node.dirPath)"
             >
               <Focus :size="11" />
             </button>
           </div>
           <div v-if="!pm.rowsFor(r.path).length" class="pl-6 pr-2 py-1 text-[11px] text-[var(--fg-dim)] opacity-70">
-            无子目录
+            {{ $t('paths.noChildren') }}
           </div>
         </div>
       </div>
     </div>
-    <div v-else class="text-[12px] text-[var(--fg-dim)] px-1 mb-1">尚未挂载来源根</div>
+    <div v-else class="text-[12px] text-[var(--fg-dim)] px-1 mb-1">{{ $t('paths.noRootsHint') }}</div>
 
-    <button class="btn text-[12px] w-full justify-center mt-2" title="打开系统目录选择器" @click="pm.pickRoot">
+    <button class="btn text-[12px] w-full justify-center mt-2" :title="$t('paths.pickHint')" @click="pm.pickRoot">
       <Plus :size="13" />
-      选择目录…
+      {{ $t('paths.pick') }}
     </button>
   </div>
 </template>

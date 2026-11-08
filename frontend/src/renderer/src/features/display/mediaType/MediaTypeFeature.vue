@@ -53,7 +53,7 @@ function isActive(t: FilterableMediaType): boolean {
 
 <template>
   <div>
-    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">格式</div>
+    <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">{{ $t('display.mediaType.label') }}</div>
     <div class="flex gap-1.5 flex-wrap">
       <button
         v-for="t in FILTERABLE_MEDIA_TYPES"

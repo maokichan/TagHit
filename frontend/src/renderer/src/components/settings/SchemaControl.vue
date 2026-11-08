@@ -5,6 +5,7 @@
  * 纯 UI 组件：值由父级（设置页）读写，这里只负责呈现与交互；键位表没有"值"。
  */
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { SettingSchema } from '@shared/types/feature'
 import { describe, listShortcuts } from '../../features/keyboardMouse/shortcuts'
 import { getCommand } from '../../features/commands'
@@ -15,6 +16,8 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{ (e: 'update:modelValue', value: unknown): void }>()
+
+const { t } = useI18n()
 
 function set(value: unknown): void {
   emit('update:modelValue', value)
@@ -29,7 +32,7 @@ const shortcutRows = computed(() =>
     const cmd = getCommand(b.commandId)
     return {
       key: describe(b),
-      command: cmd?.manifest.title ?? '⚠ 未注册命令',
+      command: cmd?.manifest.title ?? t('schema.shortcut.unregistered'),
       id: b.commandId,
       note: b.label ?? '',
       gated: b.gate != null,
@@ -49,7 +52,7 @@ const shortcutRows = computed(() =>
       :class="modelValue ? 'btn-primary' : ''"
       @click="set(!modelValue)"
     >
-      {{ modelValue ? '开' : '关' }}
+      {{ $t(modelValue ? 'schema.boolean.on' : 'schema.boolean.off') }}
     </button>
 
     <!-- enum：按钮组 -->
@@ -70,10 +73,10 @@ const shortcutRows = computed(() =>
       <table class="w-full text-[12px]">
         <thead class="bg-[var(--bg-elev)] text-[11px] text-[var(--fg-dim)]">
           <tr>
-            <th class="text-left font-normal px-3 py-1.5">组合键</th>
-            <th class="text-left font-normal px-3 py-1.5">功能</th>
-            <th class="text-left font-normal px-3 py-1.5">生效范围</th>
-            <th class="text-left font-normal px-3 py-1.5">命令</th>
+            <th class="text-left font-normal px-3 py-1.5">{{ $t('schema.shortcut.key') }}</th>
+            <th class="text-left font-normal px-3 py-1.5">{{ $t('schema.shortcut.action') }}</th>
+            <th class="text-left font-normal px-3 py-1.5">{{ $t('schema.shortcut.scope') }}</th>
+            <th class="text-left font-normal px-3 py-1.5">{{ $t('schema.shortcut.command') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -83,12 +86,12 @@ const shortcutRows = computed(() =>
             </td>
             <td class="px-3 py-1.5">{{ row.command }}</td>
             <td class="px-3 py-1.5 text-[var(--fg-dim)]">
-              {{ row.note !== '' ? row.note : '全局' }}{{ row.gated ? '（可在上方关闭）' : '' }}
+              {{ row.note !== '' ? row.note : $t('schema.shortcut.global') }}{{ row.gated ? $t('schema.shortcut.gatedHint') : '' }}
             </td>
             <td class="px-3 py-1.5 text-[11px] text-[var(--fg-dim)] whitespace-nowrap">{{ row.id }}</td>
           </tr>
           <tr v-if="shortcutRows.length === 0">
-            <td colspan="4" class="px-3 py-2 text-[var(--fg-dim)]">尚无绑定</td>
+            <td colspan="4" class="px-3 py-2 text-[var(--fg-dim)]">{{ $t('schema.shortcut.noBindings') }}</td>
           </tr>
         </tbody>
       </table>

@@ -15,6 +15,7 @@
  * 装载不了的条目（清单校验失败/激活失败/HostApi 超版）以错误卡如实呈现。
  */
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ExternalLink, PackageOpen, Trash2 } from 'lucide-vue-next'
 import { getFeature, declaresFullPage } from '../registry'
 import { listCommands } from '../commands'
@@ -36,6 +37,7 @@ import { i18n } from '../../i18n'
 import { localizeManifestTexts, resolveLocalized, type LocalizedManifest } from '../../lib/localized'
 
 const config = useConfigStore()
+const { t } = useI18n()
 
 const message = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
@@ -93,9 +95,9 @@ async function toggle(row: PluginRow, next: boolean): Promise<void> {
 async function uninstall(row: PluginRow): Promise<void> {
   if (busyId.value != null) return
   const ok = await confirmDialog({
-    title: '卸载插件',
-    message: `卸载插件「${row.title}」？其贡献面（预览/命令/页面）将随之消失，可随时重新安装。`,
-    confirmText: '卸载',
+    title: t('pluginsPanel.uninstall.title'),
+    message: t('pluginsPanel.uninstall.message', { name: row.title }),
+    confirmText: t('pluginsPanel.uninstall.confirm'),
     danger: true,
   })
   if (!ok) return
@@ -191,10 +193,10 @@ const hasAny = computed(() => rows.value.length > 0)
       <button
         class="btn h-8 px-3 text-[12px]"
         :disabled="busyId != null"
-        title="从 zip 包安装插件"
+        :title="$t('pluginsPanel.installBtnTitle')"
         @click="pickInstall"
       >
-        <PackageOpen :size="14" /> 安装插件
+        <PackageOpen :size="14" /> {{ $t('pluginsPanel.installBtn') }}
       </button>
     </div>
 
@@ -205,7 +207,7 @@ const hasAny = computed(() => rows.value.length > 0)
     <!-- 待安装卡：peek 读出的身份事实 + 贡献声明 + 冲突提示，用户拍板后才落位 -->
     <section v-if="pending" class="panel p-4 border-[var(--accent-border)]">
       <div class="flex items-center gap-2 mb-1">
-        <h2 class="text-[13px] font-medium flex-1 min-w-0 truncate">待安装：{{ pending.manifest.title }}</h2>
+        <h2 class="text-[13px] font-medium flex-1 min-w-0 truncate">{{ $t('pluginsPanel.pending.title', { name: pending.manifest.title }) }}</h2>
         <span class="text-[11px] text-[var(--fg-dim)] font-mono">v{{ pending.manifest.version }}</span>
       </div>
       <div class="text-[11px] text-[var(--fg-dim)] mb-2">
@@ -218,17 +220,17 @@ const hasAny = computed(() => rows.value.length > 0)
           v-for="m in pending.manifest.mounts ?? []"
           :key="m"
           class="chip"
-          title="将贡献的挂载点"
+          :title="$t('pluginsPanel.pending.mountTitle')"
         >{{ m }}</span>
         <span
           v-for="s in pending.manifest.surfaces ?? []"
           :key="s"
           class="chip"
-          title="声明的壳服务；权限面仅声明不校验"
+          :title="$t('pluginsPanel.pending.surfaceTitle')"
         >{{ s }}</span>
       </div>
       <div v-if="pending.conflict" class="text-[12px] mb-2 text-[var(--accent)]">
-        已安装同 id 插件——本次安装将覆盖升级。
+        {{ $t('pluginsPanel.pending.conflictNote') }}
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -236,14 +238,14 @@ const hasAny = computed(() => rows.value.length > 0)
           :disabled="busyId != null"
           @click="confirmInstall"
         >
-          {{ pending.conflict ? '覆盖安装' : '确认安装' }}
+          {{ pending.conflict ? $t('pluginsPanel.pending.overwrite') : $t('pluginsPanel.pending.confirm') }}
         </button>
         <button
           class="text-[11px] px-1.5 py-0.5 cursor-pointer bg-[var(--bg-hover)] text-[var(--fg-dim)]"
           :disabled="busyId != null"
           @click="pending = null"
         >
-          取消
+          {{ $t('pluginsPanel.cancel') }}
         </button>
       </div>
     </section>
@@ -262,32 +264,32 @@ const hasAny = computed(() => rows.value.length > 0)
           <span v-if="p.manifest?.version != null" class="text-[11px] text-[var(--fg-dim)] font-mono shrink-0">
             v{{ p.manifest.version }}
           </span>
-          <span v-if="p.form === 'dev-source'" class="chip shrink-0" title="仓库开发目录：源码经 vite 即时编译，随开发刷新">开发目录</span>
+          <span v-if="p.form === 'dev-source'" class="chip shrink-0" :title="$t('pluginsPanel.devChipTitle')">{{ $t('pluginsPanel.devChip') }}</span>
           <!-- 自开页入口：插件声明了 contentTab 才出现（D47） -->
           <button
             v-if="p.enabled && getFeature(p.id) != null && declaresFullPage(getFeature(p.id) ?? null)"
             class="btn h-7 px-2 text-[11px] shrink-0"
-            title="打开插件页面（新标签页）"
+            :title="$t('pluginsPanel.openPageTitle')"
             @click="openPluginPage(p.id, p.title)"
           >
-            <ExternalLink :size="12" /> 打开页面
+            <ExternalLink :size="12" /> {{ $t('pluginsPanel.openPage') }}
           </button>
           <button
             v-if="p.registered"
             type="button"
             class="text-[11px] px-1.5 py-0.5 cursor-pointer transition-colors shrink-0"
             :class="p.enabled ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'bg-[var(--bg-hover)] text-[var(--fg-dim)]'"
-            :title="p.enabled ? '停用' : '启用'"
+            :title="p.enabled ? $t('pluginsPanel.disable') : $t('pluginsPanel.enable')"
             :disabled="busyId != null"
             @click="toggle(p, !p.enabled)"
           >
-            {{ p.enabled ? '启用中' : '已停用' }}
+            {{ p.enabled ? $t('pluginsPanel.enabledOn') : $t('pluginsPanel.enabledOff') }}
           </button>
           <button
             v-if="p.form !== 'dev-source'"
             type="button"
             class="text-[11px] px-1 py-0.5 cursor-pointer shrink-0 text-[var(--fg-dim)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)]"
-            title="卸载（删除安装目录，可重装）"
+            :title="$t('pluginsPanel.uninstallTitle')"
             :disabled="busyId != null"
             @click="uninstall(p)"
           >
@@ -301,20 +303,20 @@ const hasAny = computed(() => rows.value.length > 0)
 
         <!-- 装载失败（清单校验/激活/HostApi 版本）：如实呈现，不静默吞 -->
         <div v-if="p.error" class="error-note mb-3" role="alert">
-          <span class="min-w-0 flex-1 break-words">装载失败：{{ p.error }}</span>
+          <span class="min-w-0 flex-1 break-words">{{ $t('pluginsPanel.loadFailed', { error: p.error }) }}</span>
         </div>
 
         <template v-if="p.registered">
           <!-- 贡献面清单 -->
           <div v-if="p.enabled && hasContributions(p.id)" class="space-y-0.5 mb-3">
             <div v-for="pid in previewsOf(p.id)" :key="pid" class="text-[12px]">
-              · 条目预览 <span class="text-[var(--fg-dim)] font-mono text-[11px]">{{ pid }}</span>
+              {{ $t('pluginsPanel.previewItem') }} <span class="text-[var(--fg-dim)] font-mono text-[11px]">{{ pid }}</span>
             </div>
             <div v-for="c in commandsOf(p.id)" :key="c.id" class="text-[12px]">
-              · 命令「{{ c.title }}」 <span class="text-[var(--fg-dim)] font-mono text-[11px]">{{ c.id }}</span>
+              {{ $t('pluginsPanel.commandItem', { name: c.title }) }} <span class="text-[var(--fg-dim)] font-mono text-[11px]">{{ c.id }}</span>
             </div>
           </div>
-          <div v-else-if="p.enabled" class="text-[12px] text-[var(--fg-dim)] mb-3">无活跃贡献</div>
+          <div v-else-if="p.enabled" class="text-[12px] text-[var(--fg-dim)] mb-3">{{ $t('pluginsPanel.noContributions') }}</div>
 
           <!-- 声明的服务（说明进 hover，不占版面） -->
           <div v-if="(p.manifest?.surfaces?.length ?? 0) > 0" class="flex flex-wrap gap-1 mb-3">
@@ -322,7 +324,7 @@ const hasAny = computed(() => rows.value.length > 0)
               v-for="s in p.manifest?.surfaces"
               :key="s"
               class="chip"
-              title="声明的壳服务；权限面随分发落地前仅声明不校验"
+              :title="$t('pluginsPanel.surfaceChipTitle')"
             >{{ s }}</span>
           </div>
 
@@ -340,6 +342,6 @@ const hasAny = computed(() => rows.value.length > 0)
       </section>
     </template>
 
-    <p v-else class="text-[12px] text-[var(--fg-dim)]">尚未安装插件——点上方「安装插件」导入 zip 包。</p>
+    <p v-else class="text-[12px] text-[var(--fg-dim)]">{{ $t('pluginsPanel.emptyHint') }}</p>
   </div>
 </template>

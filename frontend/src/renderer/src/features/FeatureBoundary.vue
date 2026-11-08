@@ -21,8 +21,8 @@ onErrorCaptured((err) => {
 
 <template>
   <div v-if="error != null" class="text-[12px] text-[var(--danger)] leading-relaxed">
-    <div>{{ label }}：{{ error }}</div>
-    <button class="text-[11px] underline cursor-pointer" @click="error = null">重试</button>
+    <div>{{ $t('boundary.labelError', { label, error }) }}</div>
+    <button class="text-[11px] underline cursor-pointer" @click="error = null">{{ $t('boundary.retry') }}</button>
   </div>
   <slot v-else />
 </template>

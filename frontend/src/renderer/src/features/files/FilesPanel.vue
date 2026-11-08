@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { FolderInput, PenLine, Trash2 } from 'lucide-vue-next'
 import { useItemStore } from '../../stores/item'
 import { api } from '@shared/api'
@@ -13,6 +14,7 @@ import { confirmDialog } from '../../features/services/dialog'
  */
 const props = defineProps<{ workspaceId: string; side?: 'left' | 'right' }>()
 const itemStore = useItemStore()
+const { t } = useI18n()
 
 const newName = ref('')
 const targetDir = ref('')
@@ -72,9 +74,9 @@ function trashAll(): void {
   if (paths.length === 0) return
   void (async () => {
     const ok = await confirmDialog({
-      title: '删除文件',
-      message: `把 ${paths.length} 个文件移入系统回收站？\n对应条目及标签将一并删除；文件本身可在系统回收站找回。`,
-      confirmText: '删除',
+      title: t('files.deleteTitle'),
+      message: t('files.deleteConfirm', { n: paths.length }),
+      confirmText: t('files.delete'),
       danger: true
     })
     if (!ok) return
@@ -87,16 +89,16 @@ function trashAll(): void {
 
 <template>
   <div class="px-3 py-3">
-    <div class="panel-label">文件管理</div>
+    <div class="panel-label">{{ $t('files.title') }}</div>
 
     <div v-if="selected.length === 0" class="text-[var(--fg-dim)]">
-      选中条目后，在此改名、移动或删除文件。
+      {{ $t('files.emptyHint') }}
     </div>
 
     <template v-else>
       <!-- 选中清单 -->
       <div class="bg-[var(--bg)] px-2 py-1.5">
-        <div class="text-[var(--fg-dim)] mb-1">已选 {{ selected.length }} 项</div>
+        <div class="text-[var(--fg-dim)] mb-1">{{ $t('files.selectedCount', { n: selected.length }) }}</div>
         <div
           v-for="i in selected.slice(0, 8)"
           :key="i.id"
@@ -106,7 +108,7 @@ function trashAll(): void {
           {{ i.sourceUri ?? i.title }}
         </div>
         <div v-if="selected.length > 8" class="text-[11px] text-[var(--fg-dim)] opacity-70">
-          …等 {{ selected.length }} 项
+          {{ $t('files.moreCount', { n: selected.length }) }}
         </div>
       </div>
 
@@ -114,7 +116,7 @@ function trashAll(): void {
       <div class="space-y-1">
         <div class="flex items-center gap-1.5 text-[var(--fg-dim)]">
           <PenLine :size="12" />
-          <span>重命名</span>
+          <span>{{ $t('files.rename.label') }}</span>
         </div>
         <div class="flex gap-1.5">
           <input
@@ -124,8 +126,8 @@ function trashAll(): void {
             :disabled="single == null || busy"
             @keyup.enter="rename"
           />
-          <button class="btn text-[11px]" :disabled="single == null || busy || !newName.trim()" title="重命名" @click="rename">
-            改名
+          <button class="btn text-[11px]" :disabled="single == null || busy || !newName.trim()" :title="$t('files.rename.title')" @click="rename">
+            {{ $t('files.rename.button') }}
           </button>
         </div>
       </div>
@@ -134,18 +136,18 @@ function trashAll(): void {
       <div class="space-y-1">
         <div class="flex items-center gap-1.5 text-[var(--fg-dim)]">
           <FolderInput :size="12" />
-          <span>移动到</span>
+          <span>{{ $t('files.move.label') }}</span>
         </div>
         <div class="flex gap-1.5">
           <input
             v-model="targetDir"
             class="input text-[12px] flex-1 min-w-0"
-            placeholder="如 D:\media\归档"
+            :placeholder="$t('files.move.placeholder')"
             :disabled="busy"
             @keyup.enter="moveAll"
           />
-          <button class="btn text-[11px]" :disabled="busy || !targetDir.trim()" title="移动" @click="moveAll">
-            移动
+          <button class="btn text-[11px]" :disabled="busy || !targetDir.trim()" :title="$t('files.move.title')" @click="moveAll">
+            {{ $t('files.move.button') }}
           </button>
         </div>
       </div>
@@ -158,7 +160,7 @@ function trashAll(): void {
         @click="trashAll"
       >
         <Trash2 :size="12" />
-        删除
+        {{ $t('files.delete') }}
       </button>
     </template>
 

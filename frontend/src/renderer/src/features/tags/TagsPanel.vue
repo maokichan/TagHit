@@ -36,7 +36,7 @@ async function createTag(): Promise<void> {
 
 <template>
   <div class="px-3 py-3">
-    <div class="panel-label mb-2">标签</div>
+    <div class="panel-label mb-2">{{ $t('tags.title') }}</div>
     <!-- 本面板只管声明；按标签筛选的入口在搜索框（输入即出候选） -->
     <div class="flex flex-wrap gap-1 mb-3">
       <span
@@ -48,14 +48,14 @@ async function createTag(): Promise<void> {
         {{ tag.name }}
         <span
           class="opacity-0 group-hover:opacity-100 cursor-pointer hover:text-[var(--danger)] inline-flex"
-          title="取消声明（不影响已有挂载）"
+          :title="$t('tags.panel.undeclareTitle')"
           @click.stop="tagStore.undeclare(props.workspaceId, tag.id)"
         >
           <Trash2 :size="11" />
         </span>
       </span>
       <span v-if="tagStore.tags.length === 0" class="text-[12px] text-[var(--fg-dim)] w-full">
-        未声明任何标签
+        {{ $t('tags.panel.empty') }}
       </span>
     </div>
 
@@ -64,10 +64,10 @@ async function createTag(): Promise<void> {
       <input
         v-model="newTagName"
         class="input text-[12px] flex-1 min-w-0"
-        placeholder="新标签名"
+        :placeholder="$t('tags.newTagName')"
         @keyup.enter="createTag"
       />
-      <button class="btn text-[12px]" title="创建并声明到本工作区" @click="createTag">
+      <button class="btn text-[12px]" :title="$t('tags.panel.createAndDeclareTitle')" @click="createTag">
         <Plus :size="13" />
       </button>
     </div>
@@ -75,7 +75,7 @@ async function createTag(): Promise<void> {
 
     <!-- 从全局池声明 -->
     <template v-if="undeclared.length">
-      <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">可声明</div>
+      <div class="text-[11px] text-[var(--fg-dim)] mb-1.5">{{ $t('tags.panel.declareAvailable') }}</div>
       <div class="flex flex-wrap gap-1">
         <button
           v-for="tag in undeclared"
