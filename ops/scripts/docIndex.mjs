@@ -7,6 +7,9 @@
  * commit 时提醒漂移（目录边按前缀命中）。目标须实际存在（对「文档所在目录 → 各级祖先 →
  * 仓库根」依次解析，取首个存在者）；解析失败的 token 忽略，但以已知根段开头而解析失败的
  * 视为**疑似失效路径引用**，check 模式给 notice（不拦截）——文档与现实的脱钩从这里显形。
+ * **点前缀兜底**：TOKEN_RE 首字符类不含 `.`，`.agents/`、`.githooks/` 开头的提及 token 化时
+ * 丢点（md 链接里的 `../.agents/...` 即此形态），解析必然失败且不匹配带点的已知根段 → 静默
+ * 漏检；故解析失败且匹配位置前一字符是 `.` 时并入重试。
  * **引用方向纪律只管 md 链接**（导航语义：禁止向上祖先、允许平级或子一级）；路径提及是
  * 跟踪边不是导航，不做方向校验。机制不保证同步、不校验语义；它只让"该看一眼"无处遁形。
  * 用法：`node ops/scripts/docIndex.mjs check`（全量体检）| `hook`（pre-commit 调用）。
@@ -85,7 +88,7 @@ const gitIgnored = (rel, dirForm = false) => {
 }
 
 /** 已知仓库根段：这些开头而解析失败的引用，大概率是文档与现实的脱钩 */
-const KNOWN_ROOTS = ['src/', 'frontend/', 'docs/', 'ops/', 'scripts/', 'plugins/', '.agents/']
+const KNOWN_ROOTS = ['src/', 'frontend/', 'docs/', 'ops/', 'scripts/', 'plugins/', '.agents/', '.githooks/']
 
 /** 无扩展名的 token 依次补这些扩展名再试（人写路径常省 .md/.ts） */
 const GUESS_EXTS = ['.md', '.ts', '.mjs']
@@ -159,12 +162,18 @@ const inspect = () => {
       if (!isPathLike(tok) || /^(https?:|mailto:)/i.test(tok) || tok.includes('://')) continue
       if (tok.includes('*')) continue // glob 模式（如 scripts/s3x-*-scenario.ts）不作为单一引用
       if (text[m.index + m[0].length] === '<' || text[m.index + m[0].length] === '*') continue // 模板/glob 截断
-      const rel = resolveToken(doc, tok)
+      // 点前缀兜底：首字符类不含 `.`，点前缀路径 token 化时丢点；解析失败且前一字符是 `.` 则并入重试
+      let probe = tok
+      let rel = resolveToken(doc, tok)
+      if (rel === null && text[m.index - 1] === '.') {
+        probe = '.' + tok
+        rel = resolveToken(doc, probe)
+      }
       if (rel && rel.includes('/')) {
         docSet.add(rel) // 单段路径（根层的 package.json、AGENTS.md 等泛指）不作边——不可行动的漂移面
-      } else if (rel === null && KNOWN_ROOTS.some((r) => tok.startsWith(r))) {
-        if (gitIgnored(tok) || gitIgnored(tok, true)) continue // gitignored 运行时路径（如 build/ 产物）非失效
-        const key = `${doc}：疑似失效路径引用 —— ${tok}`
+      } else if (rel === null && KNOWN_ROOTS.some((r) => probe.startsWith(r))) {
+        if (gitIgnored(probe) || gitIgnored(probe, true)) continue // gitignored 运行时路径（如 build/ 产物）非失效
+        const key = `${doc}：疑似失效路径引用 —— ${probe}`
         if (!notices.includes(key)) notices.push(key)
       }
     }
