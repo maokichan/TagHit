@@ -2,7 +2,7 @@
 
 > 强制入口 = 根 **AGENTS.md**（纪律红线 / 命令 / 文档地图）；本文件 = **进度与环境的活页**。
 > 架构见 `docs/ARCHITECTURE.md` · 词汇 `docs/GLOSSARY.md` · 裁决 `docs/DECISIONS.md` · 风格基线 `docs/STYLE.md` · 待办 TODO.md（唯一清单）。
-> 版本：0.3.1。
+> 版本：0.3.2。
 
 ## 一、一句话
 
