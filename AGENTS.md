@@ -34,17 +34,17 @@ node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuar
 | 文档 | 什么时候读 |
 |---|---|
 | 本文件 | 每次会话开始（红线 + 地图） |
-| `frontend/AGENTS.md` · `src/AGENTS.md` · `scripts/AGENTS.md` | 进入对应子系统工作之前（子树入口：域地图 + 增量红线） |
-| `docs/CONTEXT.md` | 接手进度、下一步、环境与运行细节（ABI 坑、沙箱边界） |
-| `docs/ARCHITECTURE.md` | 动架构、贡献点、渲染层词汇、字节闸门 |
-| `docs/GLOSSARY.md` | 命名、新概念入册 |
-| `docs/DECISIONS.md` | 裁决唯一来源；parked 清单在文末 |
-| `.agents/notes/README.md` | 写决策笔记之前（机制、生命周期、supersession 检查） |
-| `docs/STYLE.md` | 渲染层动任何样式之前 |
-| `TODO.md` | 排活（唯一待办清单） |
-| `plugins/AGENTS.md` | 写或改任何插件之前（插件上下文唯一入口） |
-| `plugins/<dir>/TODO.md` | 该插件的自持待办（如 `plugins/audio-cover-player/`） |
-| `ops/AGENTS.md` | 改治理守卫、新增入口文档、看路径/行数口径之前 |
+| [`frontend/AGENTS.md`](frontend/AGENTS.md) · [`src/AGENTS.md`](src/AGENTS.md) · [`scripts/AGENTS.md`](scripts/AGENTS.md) | 进入对应子系统工作之前（子树入口：域地图 + 增量红线） |
+| [`docs/CONTEXT.md`](docs/CONTEXT.md) | 接手进度、下一步、环境与运行细节（ABI 坑、沙箱边界） |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 动架构、贡献点、渲染层词汇、字节闸门 |
+| [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | 命名、新概念入册 |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | 裁决唯一来源；parked 清单在文末 |
+| [`.agents/notes/README.md`](.agents/notes/README.md) | 写决策笔记之前（机制、生命周期、supersession 检查） |
+| [`docs/STYLE.md`](docs/STYLE.md) | 渲染层动任何样式之前 |
+| [`TODO.md`](TODO.md) | 排活（唯一待办清单） |
+| [`plugins/AGENTS.md`](plugins/AGENTS.md) | 写或改任何插件之前（插件上下文唯一入口） |
+| `plugins/<dir>/TODO.md` | 该插件的自持待办（如 [`plugins/audio-cover-player/`](plugins/audio-cover-player/)） |
+| [`ops/AGENTS.md`](ops/AGENTS.md) | 改治理守卫、新增入口文档、看路径/行数口径之前 |
 
 ## 五、目录要点
 
