@@ -43,7 +43,7 @@
 ### 分层与落点
 
 ```
-frontend/   渲染 UI（Vue3 + Pinia + router + Tailwind；经 typed 窄桥取数）
+frontend/src/renderer/src/   渲染 UI（Vue3 + Pinia + router + Tailwind；经 typed 窄桥取数）
 src/host/   主进程装配：SQLite 存储 + 真时钟/UUID + 逐端点注册用例 + 媒体字节协议；隔离窗口
 契约单一事实源 = src/host/ipc.ts（渲染层仅 type-only 再导出，零运行时依赖）
 ```

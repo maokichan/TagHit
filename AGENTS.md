@@ -45,6 +45,7 @@ node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuar
 | `docs/ARCHITECTURE.md` | 动架构、贡献点、渲染层词汇、字节闸门 |
 | `docs/GLOSSARY.md` | 命名、新概念入册 |
 | `docs/DECISIONS.md` | 裁决唯一来源；parked 清单在文末 |
+| `.agents/notes/README.md` | 写决策笔记之前（机制、生命周期、supersession 检查） |
 | `docs/STYLE.md` | 渲染层动任何样式之前 |
 | `TODO.md` | 排活（唯一待办清单） |
 | `plugins/AGENTS.md` | 写或改任何插件之前（插件上下文唯一入口） |

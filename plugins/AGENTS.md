@@ -31,7 +31,7 @@ apiVersion/settings/surfaces/mounts，source 由装载方打 contributed）+ 入
 4. **产物归属判据（D42③）**：数据层产物跟宿主能力走（能力是原生的，产物就是原生的）；呈现层产物跟插件走（插件卸载即消失）。
 5. **样式**：走壳 token（`var(--*)`，与主题同语）；`.error-note` 等壳类可用（同一文档、同一 Vue 实例）；插件**不受壳机检**（check:style/check:templates 不扫 plugins/），但**入类型检查**（tsconfig.web include）与**产物构建**（check:build）——提交前这两样必须过。
 6. **设置声明制（D46）**：可配置项只在 manifest `settings` 声明（SettingSchema），**插件永不自绘设置 UI**——宿主按样式规范渲染（插件详情页），值落 config 仓 `featureId:key`，插件经 HostApi config **只读**。
-7. **插件自持待办**记 `<dir>/TODO.md`（惯例样例：`plugins/audio-cover-player/`）；影响壳与契约的事项归根 TODO.md。
+7. **插件自持待办**记 `<dir>/TODO.md`（样例：`plugins/audio-cover-player/TODO.md`）；影响壳与契约的事项归根 TODO.md。
 
 ## 三、能力面（冻结契约）
 

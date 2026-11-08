@@ -14,7 +14,7 @@
 
 ## 门控链（pre-commit；clone 后一次性激活 `git config core.hooksPath .githooks`）
 
-`set -e` 串联：docIndex hook → repoGuard → docGuard，任一失败即中止提交；push 前另有
+`set -e` 串联（`.githooks/pre-commit`）：docIndex hook → repoGuard → docGuard，任一失败即中止提交；push 前另有
 `npm run ci` 全链（`.githooks/pre-push`）。`--no-verify` 是人类的绕行特权，agent 不用——
 门控为纪律而设，不是安全机制。体检：`docIndex check`、各 Guard `--report`，只打印不挡。
 **文件级豁免单点登记 [`exemptions.json`](exemptions.json)**（path + guards + reason）——

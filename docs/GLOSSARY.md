@@ -1,6 +1,6 @@
 # TagHit 词表（GLOSSARY）
 
-业务词汇的单一事实源。分层见 `docs/DECISIONS.md`。
+业务词汇的单一事实源。分层见 `docs/DECISIONS.md`；界面文案英译术语另立一套 = `frontend/src/renderer/src/i18n/TERMS.md`（本表管开发侧一词一义，翻译认 TERMS 不认本表）。
 
 ## 实体
 
