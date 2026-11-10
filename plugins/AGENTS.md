@@ -1,7 +1,7 @@
 # AGENTS — 插件开发上下文（plugins/ 唯一入口）
 
-> 写或改任何插件之前必读。本文件只放插件侧的**纪律红线与能力面**；机制在
-> [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) §二/§三，论证笔记在 [.agents/notes/](../.agents/notes)——需要时按此下探，不在此复制。
+> 写或改任何插件之前必读。本文件 = **纪律红线与能力面速查**；机制与规范详述在
+> [mechanism.md](mechanism.md)（贡献点/呈现面/HostApi/能力归属铁律/选型理由），论证笔记在 [.agents/notes/](../.agents/notes)。
 
 ## 一、插件是什么
 

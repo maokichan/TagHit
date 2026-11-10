@@ -1,6 +1,6 @@
 # frontend/ —— 渲染层子树入口
 
-> 渲染层 = Vue3 + Pinia + router + Tailwind，经 typed 窄桥取数。架构与渲染层词汇权威 = [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) §二/§三，
+> 渲染层 = Vue3 + Pinia + router + Tailwind，经 typed 窄桥取数。架构与渲染层词汇权威 = [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) §二，
 > 风格基线 = [docs/STYLE.md](../docs/STYLE.md)（动任何样式之前必读）；全局红线与跨域命令在根层入口文档，不在此复读。
 
 ## 目录地图
