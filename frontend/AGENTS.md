@@ -13,6 +13,16 @@
 - 落点纪律：标准功能组件归 `features/`；`frontend/src/renderer/src/components/workspace/` 是历史并存落点，
   组件翻新时迁入 features（TODO 登记）。
 
+## 组件事实文档（feature 文档，动对应组件之前读）
+
+| 文档 | 什么时候读 |
+|---|---|
+| [`docs/paths.md`](docs/paths.md) | 动来源根组件（树交互/退役根/脱根条目）之前 |
+| [`docs/files.md`](docs/files.md) | 动文件管理（直改库/闸门）之前 |
+| [`docs/tags.md`](docs/tags.md) | 动标签能力（TagProfile/主页/编辑模式/检索语法/全页）之前 |
+| [`docs/item-detail.md`](docs/item-detail.md) | 动条目详情（顺序窗口/翻页/兜底链/预览细节）之前 |
+| [`docs/browse.md`](docs/browse.md) | 动浏览视图（格式筛选/框选细节/浏览手感）之前 |
+
 ## 验证链（渲染层改动过哪些门）
 
 ```bash
@@ -27,6 +37,8 @@ npm --prefix frontend run check:i18n:strict  # 文案机检门控（键对账 + 
 ## 增量红线
 
 - 样式走标准样式表（组件类 + token），禁区机检零命中才绿；版式词汇（底板/卡片/全直角/版心）以 `docs/STYLE.md` 与 `docs/ARCHITECTURE.md` §二为准。
+- **纯规则单列纯函数**（路由映射、窗口算术、框选几何、本地化解析）：纯模块不 import router 与
+  组件图，Vitest 直跑；router 副作用与 DOM 归组件侧模块。
 - 过桥入参必须是纯数据（store/reactive 的 Proxy 结构化克隆会抛错）——经 `frontend/src/shared/api.ts` 门面，调用点不得绕过。
 - i18n：UI 文案入语言包（zh+en 键同构，残留基线只收不涨）；英译认 `frontend/src/renderer/src/i18n/TERMS.md`；功能组件 title/命令 title/设置 label = 注册时取 i18n 快照，切语言重启刷新。
 - 插件契约面的渲染层实现（contribution/hostApi/装载器）变动须过 `plugins/AGENTS.md` 的契约纪律。
