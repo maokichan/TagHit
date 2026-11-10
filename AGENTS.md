@@ -35,7 +35,7 @@ npm run ci                 # 全链 CI 门：五层 typecheck + 八份校准 + �
 npm run dev                # 真机：bundle:host → vite dev → Electron（开发库 build/taghit-dev.db）
 npm run calibrate          # 八份校准（memory+sqlite 双跑，场景形状见 scripts/AGENTS.md）
 npm run pack               # 便携 zip 装配（产物 release/，gitignore；版本归口根 package.json）
-node ops/scripts/docIndex.mjs check     # 治理守卫体检（repoGuard/docGuard 用 --report；pre-commit 自动跑，口径见 ops/AGENTS.md）
+node ops/scripts/docIndex.mjs check && node ops/scripts/codefact.mjs check     # 治理守卫体检 + 代码事实同步（--report/gen 子命令见 ops/AGENTS.md；pre-commit 自动跑）
 ```
 
 ## 四、文档地图（渐进披露，按需读）

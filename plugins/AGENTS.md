@@ -34,13 +34,66 @@ apiVersion/settings/surfaces/mounts，source 由装载方打 contributed）+ 入
 
 ## 三、能力面（冻结契约）
 
-- **HostApi `0.2.4`**（additive 升级同样要升版本号）：
-  `workspaces`（list/listRoots/declaredTags/browse）· `tags`（search/create/declare/undeclare）·
-  `media.fileUrl`（taghit-file URL 唯一合法构造入口）· `ui`（confirm/toast）·
-  `items`（query/tag/untag/readText/**readAudioMeta**——标签+封面+歌词/**open**——打开条目详情/
-  **get**——条目视图模型，投影转换归宿主）·
-  `config`（**只读**：value 快照 / ref 响应式——读 manifest.settings 声明项的值，写入面归宿主 UI）·
-  `playback`（play/toggle/pause/seek/setVolume/setLoop/snapshot/onChange——**快照回调订阅式**，全局播放引擎的冻结子集）。
+- **HostApi 冻结面**（additive 升级同样要升版本号；域清单与签名的形状事实由生成器托管）：
+<!-- codefact:begin hostapi -->
+
+<!-- 生成物（codefact:hostapi）：勿手改 · 源 = frontend/src/renderer/src/features/hostApi.ts · 语义与约束读源码注释 · 重生成 npm run gen:codefact -->
+- 版本：`HOST_API_VERSION = '0.2.4'`（additive 也要升版本号，破坏性变更升 major）
+- `hostApi` 域与方法：
+  - `workspaces`：
+    - `list` → `api.workspaces.list`（窄桥/内部转发）
+    - `listRoots` → `api.workspaces.listRoots`（窄桥/内部转发）
+    - `declaredTags` → `api.workspaces.declaredTags`（窄桥/内部转发）
+    - `browse` → `api.workspaces.browse`（窄桥/内部转发）
+  - `items`：
+    - `query` → `api.items.query`（窄桥/内部转发）
+    - `tag` → `api.items.tag`（窄桥/内部转发）
+    - `untag` → `api.items.untag`（窄桥/内部转发）
+    - `readText` → `api.items.readText`（窄桥/内部转发）
+    - `readAudioMeta` → `api.items.readAudioMeta`（窄桥/内部转发）
+    - `open(itemId: string): Promise<void>`
+    - `get(itemId: string): Promise<ItemView | null>`
+  - `media`：
+    - `fileUrl` → `taghitFileUrl`（窄桥/内部转发）
+  - `tags`：
+    - `search` → `api.tags.search`（窄桥/内部转发）
+    - `create` → `api.tags.create`（窄桥/内部转发）
+    - `declare` → `api.tags.declare`（窄桥/内部转发）
+    - `undeclare` → `api.tags.undeclare`（窄桥/内部转发）
+  - `config`：
+    - `value(featureId: string, key: string, fallback: T): T`
+    - `ref(featureId: string, key: string, fallback: T): Ref<T>`
+  - `ui`：
+    - `confirm(opts: { title: LocalizedText message: LocalizedText confirmText?: LocalizedText cancelText?: LocalizedText danger?: boolean }): Promise<boolean>`
+    - `toast(text: LocalizedText, kind: 'info' | 'error' = 'info'): void`
+  - `playback`：
+    - `play` → `playbackPlay`（窄桥/内部转发）
+    - `toggle` → `playbackToggle`（窄桥/内部转发）
+    - `pause` → `playbackPause`（窄桥/内部转发）
+    - `seek` → `playbackSeek`（窄桥/内部转发）
+    - `setVolume` → `playbackSetVolume`（窄桥/内部转发）
+    - `setLoop` → `playbackSetLoop`（窄桥/内部转发）
+    - `snapshot` → `playbackSnapshot`（窄桥/内部转发）
+    - `onChange` → `playbackSubscribe`（窄桥/内部转发）
+
+<!-- codefact:end -->
+- **ContributionContext 形状**（规则见下）：
+<!-- codefact:begin ctx -->
+
+<!-- 生成物（codefact:ctx）：勿手改 · 源 = frontend/src/renderer/src/features/contribution.ts · 语义与约束读源码注释 · 重生成 npm run gen:codefact -->
+- `interface ContributionPreviews`：
+  - `register(provider: DetailPreviewProvider): void`
+  - `unregister(id: string): void`
+- `interface ContributionCommands`：
+  - `register(manifest: Omit<CommandManifest, 'source' | 'title'> & { title: LocalizedText }, run: CommandHandler): void`
+  - `unregister(id: string): void`
+- `interface ContributionContext`：
+  - `hostApi: typeof hostApi`
+  - `previews: ContributionPreviews`
+  - `commands: ContributionCommands`
+- `export type PluginActivate = (ctx: ContributionContext) => void | (() => void)`
+
+<!-- codefact:end -->
 - **ContributionContext** = `{ hostApi, previews, commands }`：
   - `previews` = detailPreview 认领注册，id 约定 `<featureId>:<form>`，后注册覆盖先注册；
   - `commands` = 命令注册表贡献：id **强制** `<featureId>.` 前缀，自动打 contributed，

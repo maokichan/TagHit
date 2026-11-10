@@ -18,6 +18,146 @@
 - 依赖只向内。行为在应用层；存储/IO 实现位于领域层之外；核心对渲染层/插件无知。
 - 存储契约全局约定：异步；实体写严格（NOT_FOUND/CONFLICT/INVALID）；关系写幂等；读宽松；
   事务 = 边界原子性（不支持嵌套）、一致性编排在用例。取回条目返回其全部标签。
+  端口与查询条件的形状事实（生成器托管）：
+<!-- codefact:begin store -->
+
+<!-- 生成物（codefact:store）：勿手改 · 源 = src/ports/store.ts · 语义与约束读源码注释 · 重生成 npm run gen:codefact -->
+- `interface TagsQuery`（查询条件对象）：
+  - `ids?: Id[]`
+  - `nameContains?: string`
+- `interface ItemsQuery`（查询条件对象）：
+  - `ids?: Id[]`
+  - `kinds?: Item['kind'][]`
+  - `status?: ItemStatus`
+  - `titleContains?: string`
+  - `underDirPath?: string`
+  - `notUnderAnyDir?: string[]`
+  - `underAnyDir?: string[]`
+  - `extensions?: string[]`
+  - `directNodeStateIn?: { workspaceId: Id; state: NodeState }`
+  - `contentHash?: string`
+  - `withAnyTag?: Id[]`
+  - `withAllTags?: Id[]`
+  - `withoutAnyTag?: Id[]`
+  - `withoutTags?: boolean`
+  - `order?: ItemOrderField`
+  - `orderDir?: 'asc' | 'desc'`
+  - `limit?: number`
+  - `offset?: number`
+- `interface ItemWindowQuery`（查询条件对象）：
+  - `scope: ItemsQuery`
+  - `anchorId: Id`
+  - `radius: number`
+- `interface NewTag`：
+  - `id: Id`
+  - `name: string`
+  - `description?: string | null`
+  - `createdAt: string`
+- `interface NewWorkspace`：
+  - `id: Id`
+  - `name: string`
+  - `createdAt: string`
+- `interface NewCollection`：
+  - `id: Id`
+  - `name: string`
+  - `anchorItemId: Id`
+  - `createdAt: string`
+- `interface NewGroup`：
+  - `id: Id`
+  - `name: string`
+  - `createdAt: string`
+- `interface Store`（端口动词清单；全局约定 = 异步、实体写严格/关系写幂等/读宽松、事务不嵌套）：
+  - `transaction<T>(fn: (tx: Store) => Promise<T>): Promise<T>`
+  - `createTag(input: NewTag): Promise<Tag>`
+  - `updateTag(id: Id, patch: { description?: string | null }): Promise<void>`
+  - `deleteTag(id: Id): Promise<void>`
+  - `getTag(id: Id): Promise<Tag | null>`
+  - `queryTags(q?: TagsQuery): Promise<Tag[]>`
+  - `tagStats(): Promise<TagStat[]>`
+  - `tagPairStats(q: { workspaceId: Id; kind: 'cooccur' | 'mutex'; limit: number }): Promise<TagPairStat[]>`
+  - `getTagProfile(id: Id): Promise<TagProfile | null>`
+  - `setTagProfile(id: Id, profile: TagProfile | null): Promise<void>`
+  - `createItem(item: Item): Promise<Item>`
+  - `updateItem( id: Id, patch: { title?: string status?: ItemStatus sourceUri?: string contentHash?: string | null size?: number | null fileModifiedAt?: string | null width?: number | null height?: number | null previewUri?: string | null } ): Promise<void>`
+  - `deleteItem(id: Id): Promise<void>`
+  - `getItem(id: Id): Promise<Item | null>`
+  - `queryItems(q: ItemsQuery): Promise<ItemHit[]>`
+  - `countItems(q: ItemsQuery): Promise<number>`
+  - `itemWindow(q: ItemWindowQuery): Promise<ItemWindow>`
+  - `attachTag(itemId: Id, tagId: Id): Promise<void>`
+  - `detachTag(itemId: Id, tagId: Id): Promise<void>`
+  - `listAttachments(opts?: { itemId?: Id; tagId?: Id }): Promise<ItemAttach[]>`
+  - `linkTag(fromId: Id, toId: Id): Promise<void>`
+  - `unlinkTag(fromId: Id, toId: Id): Promise<void>`
+  - `listTagLinks(opts?: { from?: Id; to?: Id }): Promise<TagLink[]>`
+  - `declareTag(workspaceId: Id, tagId: Id): Promise<void>`
+  - `undeclareTag(workspaceId: Id, tagId: Id): Promise<void>`
+  - `listDeclarations(opts?: { workspaceId?: Id; tagId?: Id }): Promise<Declaration[]>`
+  - `createWorkspace(input: NewWorkspace): Promise<Workspace>`
+  - `deleteWorkspace(id: Id): Promise<void>`
+  - `getWorkspace(id: Id): Promise<Workspace | null>`
+  - `listWorkspaces(): Promise<Workspace[]>`
+  - `addWorkspaceRoot(workspaceId: Id, path: string): Promise<void>`
+  - `removeWorkspaceRoot(workspaceId: Id, path: string): Promise<void>`
+  - `listWorkspaceRoots(workspaceId: Id): Promise<WorkspaceRoot[]>`
+  - `ensurePathNode(workspaceId: Id, dirPath: string, state?: NodeState): Promise<void>`
+  - `deletePathNode(workspaceId: Id, dirPath: string): Promise<void>`
+  - `setPathNodeState(workspaceId: Id, dirPath: string, state: NodeState): Promise<void>`
+  - `listPathNodes(opts?: { workspaceId?: Id; dirPrefix?: string }): Promise<PathNode[]>`
+  - `addRetiredRoot(row: RetiredRoot): Promise<void>`
+  - `listRetiredRoots(opts?: { workspaceId?: Id }): Promise<RetiredRoot[]>`
+  - `removeRetiredRoot(workspaceId: Id, path: string): Promise<void>`
+  - `createCollection(input: NewCollection): Promise<Collection>`
+  - `renameCollection(id: Id, name: string): Promise<void>`
+  - `deleteCollection(id: Id): Promise<void>`
+  - `getCollection(id: Id): Promise<Collection | null>`
+  - `listCollections(): Promise<Collection[]>`
+  - `appendCollectionMember(collectionId: Id, itemId: Id): Promise<void>`
+  - `removeCollectionMember(collectionId: Id, itemId: Id): Promise<void>`
+  - `reorderCollectionMembers(collectionId: Id, orderedItemIds: Id[]): Promise<void>`
+  - `listCollectionMemberships(opts?: { collectionId?: Id; itemId?: Id }): Promise<CollectionMember[]>`
+  - `createGroup(input: NewGroup): Promise<Group>`
+  - `renameGroup(id: Id, name: string): Promise<void>`
+  - `deleteGroup(id: Id): Promise<void>`
+  - `getGroup(id: Id): Promise<Group | null>`
+  - `listGroups(): Promise<Group[]>`
+  - `addGroupMember(groupId: Id, tagId: Id): Promise<void>`
+  - `removeGroupMember(groupId: Id, tagId: Id): Promise<void>`
+  - `listGroupMemberships(opts?: { groupId?: Id; tagId?: Id }): Promise<GroupMember[]>`
+
+<!-- codefact:end -->
+  领域实体形状（生成器托管）：
+<!-- codefact:begin entities -->
+
+<!-- 生成物（codefact:entities）：勿手改 · 源 = src/domain/errors.ts , src/domain/types.ts · 语义与约束读源码注释 · 重生成 npm run gen:codefact -->
+- `export type DomainErrorCode = 'NOT_FOUND' | 'CONFLICT' | 'INVALID'`
+- `export type Id = string`
+- `export type ItemStatus = 'active' | 'missing'`
+- `export type Item = FileItem | AnchorItem`
+- `interface Workspace`：
+  - `id: Id`
+  - `name: string`
+  - `createdAt: string`
+- `interface Tag`：
+  - `id: Id`
+  - `name: string`
+  - `description: string | null`
+  - `createdAt: string`
+- `interface Collection`：
+  - `id: Id`
+  - `name: string`
+  - `anchorItemId: Id`
+  - `createdAt: string`
+- `interface Group`：
+  - `id: Id`
+  - `name: string`
+  - `createdAt: string`
+- `interface PathNode`：
+  - `workspaceId: Id`
+  - `dirPath: string`
+  - `state: NodeState`
+
+<!-- codefact:end -->
 - 校准文化：无测试设施（code-first 校准理解）；memory 与 sqlite 跑同一场景，契约一致才绿。
 - **存储与领域规格**（词的定义见 [GLOSSARY](GLOSSARY.md)，行的行为规格在此）：
   - 跨工作区去重是扫描行为（同内容签名认领，见下）；组内的标签可多属（一个标签挂多个组）；
@@ -69,7 +209,76 @@
 ```
 frontend/src/renderer/src/   渲染 UI（Vue3 + Pinia + router + Tailwind；经 typed 窄桥取数）
 src/host/   主进程装配：SQLite 存储 + 真时钟/UUID + 逐端点注册用例 + 媒体字节协议；隔离窗口
-契约单一事实源 = src/host/ipc.ts（渲染层仅 type-only 再导出，零运行时依赖）
+契约单一事实源 = src/host/ipc.ts（渲染层仅 type-only 再导出，零运行时依赖）。
+  端点清单形状事实（生成器托管）：
+<!-- codefact:begin ipc -->
+
+<!-- 生成物（codefact:ipc）：勿手改 · 源 = src/host/ipc.ts · 语义与约束读源码注释 · 重生成 npm run gen:codefact -->
+- 请求/响应端点（`kind ← args → result`；信封 = `Result<T>` = Ok | Err）：
+  - `ping` ← ([]) → `{ version: string }`
+  - `'tags.search'` ← ([text: string]) → `Tag[]`
+  - `'tags.create'` ← ([input: { name: string; description?: string | null }]) → `Tag`
+  - `'tags.delete'` ← ([tagId: Id]) → `null`
+  - `'tags.declare'` ← ([{ workspaceId: Id; tagId: Id }]) → `null`
+  - `'tags.undeclare'` ← ([{ workspaceId: Id; tagId: Id }]) → `null`
+  - `'tags.update'` ← ([tagId: Id, patch: { description?: string | null }]) → `null`
+  - `'tags.getProfile'` ← ([tagId: Id]) → `TagProfile | null`
+  - `'tags.setProfile'` ← ([tagId: Id, profile: TagProfile | null]) → `null`
+  - `'tags.stats'` ← ([]) → `TagStat[]`
+  - `'tags.pairStats'` ← (?) → `TagPairStat[]`
+  - `'items.query'` ← ([query: ItemsQuery]) → `ItemHit[]`
+  - `'item.window'` ← ([{ anchorId: Id; context: ItemContext }]) → `ItemWindowResult`
+  - `'item.tag'` ← ([{ itemId: Id; tagIds: Id[] }]) → `null`
+  - `'item.untag'` ← ([{ itemId: Id; tagIds: Id[] }]) → `null`
+  - `'items.tag'` ← ([{ itemIds: Id[]; tagIds: Id[] }]) → `null`
+  - `'items.untag'` ← ([{ itemIds: Id[]; tagIds: Id[] }]) → `null`
+  - `'items.delete'` ← ([itemId: Id]) → `null`
+  - `'item.readText'` ← ([itemId: Id, maxBytes?: number]) → `{ text: string; truncated: boolean } | null`
+  - `'item.readAudioMeta'` ← (?) → `{ tags: { title: string | null; artist: string | null; album: string | null } previewUri: string | null lyrics: string | null } | null`
+  - `'thumbnail.save'` ← (?) → `{ previewUri: string }`
+  - `'nodes.list'` ← ([workspaceId: Id]) → `PathNode[]`
+  - `'node.setState'` ← ([{ workspaceId: Id; dirPath: string; state: NodeState }]) → `null`
+  - `'node.setSubtreeState'` ← ([{ workspaceId: Id; dirPath: string; state: NodeState }]) → `null`
+  - `'fs.move'` ← (?) → `{ to: string }`
+  - `'fs.trash'` ← ([{ workspaceId: Id; path: string }]) → `null`
+  - `'dialog.pickDirectory'` ← ([]) → `string | null`
+  - `'dialog.pickZip'` ← ([]) → `string | null`
+  - `'plugins.list'` ← ([]) → `{ installs: PluginInstallEntry[] }`
+  - `'plugins.peek'` ← ([zipPath: string]) → `{ manifest: PluginManifestFile; conflict: boolean }`
+  - `'plugins.install'` ← ([zipPath: string]) → `{ manifest: PluginManifestFile; replaced: boolean }`
+  - `'plugins.uninstall'` ← ([id: string]) → `null`
+  - `'workspace.create'` ← ([name: string]) → `Workspace`
+  - `'workspace.list'` ← ([]) → `Workspace[]`
+  - `'workspace.get'` ← ([workspaceId: Id]) → `Workspace | null`
+  - `'workspace.browse'` ← ([workspaceId: Id, query?: ItemsQuery]) → `BrowseResult`
+  - `'workspace.visibility'` ← ([workspaceId: Id]) → `VisibilitySummary`
+  - `'workspace.declaredTags'` ← ([workspaceId: Id]) → `Id[]`
+  - `'workspace.mountRoot'` ← ([{ workspaceId: Id; path: string }]) → `null`
+  - `'workspace.unmountRoot'` ← ([{ workspaceId: Id; path: string }]) → `null`
+  - `'workspace.listRoots'` ← ([workspaceId: Id]) → `WorkspaceRoot[]`
+  - `'workspace.delete'` ← ([workspaceId: Id]) → `null`
+  - `'workspace.rootManagement'` ← ([workspaceId: Id]) → `RootManagementView`
+  - `'workspace.cleanupDetached'` ← (?) → `{ deleted: number }`
+  - `'scan.run'` ← ([workspaceId: Id, options?: ScanOptions]) → `ScanSummary`
+  - `'collection.create'` ← ([name: string]) → `Collection`
+  - `'collection.rename'` ← ([{ collectionId: Id; name: string }]) → `null`
+  - `'collection.appendMember'` ← ([{ collectionId: Id; itemId: Id }]) → `null`
+  - `'collection.removeMember'` ← ([{ collectionId: Id; itemId: Id }]) → `null`
+  - `'collection.reorderMembers'` ← ([{ collectionId: Id; orderedItemIds: Id[] }]) → `null`
+  - `'collection.delete'` ← ([collectionId: Id]) → `null`
+  - `'group.create'` ← ([name: string]) → `Group`
+  - `'group.rename'` ← ([{ groupId: Id; name: string }]) → `null`
+  - `'group.addMember'` ← ([{ groupId: Id; tagId: Id }]) → `null`
+  - `'group.removeMember'` ← ([{ groupId: Id; tagId: Id }]) → `null`
+  - `'group.delete'` ← ([groupId: Id]) → `null`
+  - `'group.list'` ← ([]) → `Group[]`
+  - `'group.members'` ← ([]) → `GroupMember[]`
+  - `'window.control'` ← ([action: WindowAction]) → `null`
+  - `'window.isMaximized'` ← ([]) → `boolean`
+- 单向端点（无回程，调用前渲染层预检）：
+  - `'drag.start'` ← (?)
+
+<!-- codefact:end -->
 ```
 
 - **边界纪律**：渲染层只认 uri，拿不到存储与裸 Node——一切走窄桥用例。错误信封：宿主出

@@ -26,7 +26,9 @@
     "doctor": "node scripts/doctor.ts",
     "pack": "node scripts/pack.mjs",
     "style": "npm --prefix frontend run style",
-    "ci": "npm run typecheck:domain && npm run typecheck:ports && npm run typecheck:adapters && npm run typecheck:application && npm run typecheck:host && npm run calibrate && npm run calibrate:sqlite && npm run calibrate:scan && npm run calibrate:boundary && npm run calibrate:view && npm run calibrate:roots && npm run calibrate:window && npm run calibrate:fileops && npm --prefix frontend run typecheck:web && npm --prefix frontend run check:templates && npm --prefix frontend run check:i18n:strict && npm --prefix frontend run check:style && npm --prefix frontend run test && npm --prefix frontend run check:build && npm run doctor"
+    "ci": "npm run typecheck:domain && npm run typecheck:ports && npm run typecheck:adapters && npm run typecheck:application && npm run typecheck:host && npm run calibrate && npm run calibrate:sqlite && npm run calibrate:scan && npm run calibrate:boundary && npm run calibrate:view && npm run calibrate:roots && npm run calibrate:window && npm run calibrate:fileops && npm --prefix frontend run typecheck:web && npm --prefix frontend run check:templates && npm --prefix frontend run check:i18n:strict && npm --prefix frontend run check:style && npm --prefix frontend run test && npm --prefix frontend run check:build && npm run check:codefact && npm run doctor",
+    "gen:codefact": "node ops/scripts/codefact.mjs gen",
+    "check:codefact": "node ops/scripts/codefact.mjs check"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",

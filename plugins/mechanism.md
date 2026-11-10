@@ -1,9 +1,9 @@
 # 插件机制与规范（mechanism）
 
-> 插件机制的唯一详述：壳与插件的分工、贡献点与呈现面、注册表、HostApi 概念、能力归属铁律、
-> 选型理由。红线与能力面速查在 [AGENTS.md](AGENTS.md)（入口）；壳级渲染机器（标准容器/命令注册表/
-> 调用面装配）是官方与插件共用的架构机制，详述在[架构活体文档](../docs/ARCHITECTURE.md) §二——
-> 本文件只写插件视角的契约；论证笔记在 [.agents/notes/](../.agents/notes)。
+> 插件机制的唯一详述。三层分工：**代码 = 唯一事实**（契约的形状事实由生成器从 AST 抽取进
+> `codefact` 块，块头标注源文件——语义与约束读源码注释）；**本文件 = 判定与意图**（为什么这样
+> 设计、插件侧的义务边界）；**红线与速查 = [AGENTS.md](AGENTS.md)**。论证与放弃项在
+> [.agents/notes/](../.agents/notes)。形状与本文冲突时以生成块/代码为准并报给开发者。
 
 ## 一、壳与插件的分工
 
@@ -28,17 +28,50 @@
   设置分区（settings）· 详细页预览（detailPreview，按条目认领渲染）· 详情页工作台视图
   （detailView，声明常驻）· 命令（commands，进命令面板）。回答"哪里可以插、插进来壳按什么
   规则渲染/排序/显隐"。槽是壳的权力清单——**不做任意跨区停靠（完整 dock）**就是这条清单的红线。
-  官方组件居左活动栏；三方左活动栏，displayPanel 内可贡献块。
-- **功能组件** = 贡献侧的**插头**：可序列化声明（id/名称/来源/挂载哪些槽/设置项/所需服务）+
-  实现绑定（可分别绑停靠面与全页面）。回答"我声明自己是什么、挂哪些槽、有哪些配置项"。
+  挂载点的合法取值以 `MountPoint` 类型为准（下方 manifest 事实块）；statusBar / grid 是 v2 预留。
+- **功能组件** = 贡献侧的**插头**：可序列化声明 + 实现绑定（可分别绑停靠面与全页面）。
+  回答"我声明自己是什么、挂哪些槽、有哪些配置项"。**声明的形状 = `FeatureManifest` /
+  `SettingSchema`（生成块）**——字段语义与约束读源码注释；三方磁盘 manifest.json 即此形状
+  去 `source`（装载方打 contributed）。
 - **官方组件没有任何特权路径**：与三方走同一注册表，槽只问注册表"这里有什么"，不 import 具体
   组件。真正的设计差异在三个**分层**维度（不在机制上）：注册来源（官方 = 构建期直连 + 代码注册；
   三方 = 目录发现 + 磁盘声明 + 运行期装载）；信任与权限（官方全信；三方要权限门）；生命周期
   （官方与版本同生共死；三方有安装/启停/卸载）。
 
-**注册表 = 声明表**：可序列化声明（功能组件清单的形状，三方为磁盘 JSON）+ 实现绑定（构建期
-直连或运行期 loader，**与来源正交**；实现可**按呈现面**分别绑定：停靠面/全页面）。重复 id：
-官方抛错（开发期暴露），contributed 拒绝并报告，**不炸注册表**。
+manifest 契约形状（生成器托管，源 = [frontend/src/shared/types/feature.ts](../frontend/src/shared/types/feature.ts)）：
+
+<!-- codefact:begin manifest -->
+
+<!-- 生成物（codefact:manifest）：勿手改 · 源 = frontend/src/shared/types/feature.ts · 语义与约束读源码注释 · 重生成 npm run gen:codefact -->
+- `export type MountPoint = | 'activityBar:left' // 左活动栏工具（一个工具 = 一个面板；右活动栏已裁撤，D40） | 'displayPanel' // 显示面板内的区块 | 'settings' // 设置页分区（按功能组件分类渲染） | 'contentTab' // 内容区标签页（壳持标签项，组件自持内容状态，DECISIONS 2026-09-07） | 'detailView' // 详情页工作台视图（"条目的一个侧面"，D39：声明常驻不按条目认领，认领是 detailPreview 的事） | 'statusBar' // v2 预留 | 'grid'`
+- `export type FeatureSource = 'official' | 'contributed'`
+- `interface SettingOption`：
+  - `value: string`
+  - `label: string`
+- `interface SettingSchema`：
+  - `key: string`
+  - `type: 'boolean' | 'enum' | 'string' | 'number' | 'shortcuts'`
+  - `label: string`
+  - `options?: SettingOption[]`
+  - `default?: unknown`
+- `interface FeatureManifest`：
+  - `id: string`
+  - `title: string`
+  - `description?: string`
+  - `source: FeatureSource`
+  - `mounts: MountPoint[]`
+  - `settings?: SettingSchema[]`
+  - `surfaces?: Array<'dialog' | 'toast'>`
+  - `dataSource?: 'fileFormatMap' | 'metadataSchema' | 'sortKeys' | null`
+  - `version?: string`
+  - `author?: string`
+  - `apiVersion?: string`
+
+<!-- codefact:end -->
+
+**注册表 = 声明表**：可序列化声明 + 实现绑定（构建期直连或运行期 loader，**与来源正交**）。
+壳只查表渲染，不 import 具体组件。重复 id：官方抛错（开发期暴露），contributed 拒绝并报告，
+**不炸注册表**。
 
 **错误隔离双线 + 生命周期**：注册期（setup 抛错只废掉自己）+ 渲染期（槽级边界捕获）；
 官方组件走同一道边界。生命周期按条目配对（setup/dispose）。
@@ -66,11 +99,17 @@
 - **服务面**：确认框/提示由壳统一渲染，组件不自起弹层；manifest 的 surfaces 声明所需服务
   （v0 只声明不校验——执行层是远期项）。
 
-## 四、HostApi：冻结面
+## 四、HostApi：冻结面与激活上下文
 
 - HostApi = 窄桥的**冻结子集视图** + 独立版本号（additive 演进同样升版本号，破坏性变更升
   major）；官方可用全量窄桥（同版本发布），contributed **只经 HostApi**；命令与权限清单以此为底座。
-- 域清单与当前版本号的唯一速查 = [AGENTS.md](AGENTS.md) §三（能力面）。
+- **域清单与方法签名的形状事实托管于 [AGENTS.md](AGENTS.md) §三的 `codefact` 块**
+  （源 = [frontend/src/renderer/src/features/hostApi.ts](../frontend/src/renderer/src/features/hostApi.ts)）——
+  转发成员的请求/响应形状由端点表承载（架构活体文档 §一的 `codefact:ipc` 块）。
+- **激活上下文**：`activate(ctx)` 收到的 `ContributionContext` = hostApi + 贡献注册面
+  （previews / commands）；`ctx` 按插件独立创建，commands 槽 id 强制 `<featureId>.` 前缀 +
+  owner 记账（停用按 owner 清扫——"不能悄悄接管"）。形状事实同在 [AGENTS.md](AGENTS.md) §三
+  （源 = [frontend/src/renderer/src/features/contribution.ts](../frontend/src/renderer/src/features/contribution.ts)）。
 
 ## 五、应用层不驻插件（单向铁律）
 

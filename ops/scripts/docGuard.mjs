@@ -9,7 +9,8 @@
  *
  * ── 用途 ──
  * 扫描 git 追踪的全部 Markdown（文件级豁免统一登记 ops/exemptions.json），两道门：
- * ① 行数 vs 上限表（入口族硬上限，其余默认 300）；② 单行可见宽度 vs 200 字符。
+ * ① 行数 vs 上限表（入口族硬上限，其余默认 300；代码事实块 codefact 计 1 行——机器产物
+ *    不占散文预算，块的正确性由 codefact check 守卫）；② 单行可见宽度 vs 200 字符。
  * 任一超限即挡。`node ops/scripts/docGuard.mjs` = 门控（hook 调的就是它）；`--report` = 体检报告，只打印不挡。
  *
  * ── 目的 ──
@@ -77,10 +78,23 @@ const visibleText = (l) =>
 const scan = (p) => {
   const raw = readFileSync(p, 'utf8').split('\n')
   let inFence = false
-  const lines = raw.length - (raw[raw.length - 1] === '' ? 1 : 0) // wc -l 口径
+  let inFact = false
+  let lines = 0
   const wide = []
   raw.forEach((l, i) => {
-    if (l.trim().startsWith('```')) {
+    const t = l.trim()
+    // 代码事实块（codefact 生成物）计 1 行：机器产物不占散文行数预算（口径见头注）
+    if (t.startsWith('<!--') && t.includes('codefact:begin')) {
+      inFact = true
+      lines += 1
+      return
+    }
+    if (inFact) {
+      if (t.startsWith('<!--') && t.includes('codefact:end')) inFact = false
+      return
+    }
+    if (!(i === raw.length - 1 && l === '')) lines += 1 // wc -l 口径
+    if (t.startsWith('```')) {
       inFence = !inFence
       return
     }

@@ -137,10 +137,26 @@ const resolveToken = (doc, raw) => {
   return null
 }
 
-/** 探针散文掩码：围栏、既有链接整体、多词行内码（命令串/示例）→ 非散文；
+/** 代码事实块区域掩码：codefact 生成物整块移出一切探针——块的正确性由 codefact check
+ *  守卫（重新生成比对），路径跟踪与提及探针都不看它（跟踪边会随生成刷新成漂移噪声）。 */
+const maskFactBlocks = (text) => {
+  const chars = new Array(text.length).fill(true)
+  let pos = 0
+  let inFact = false
+  for (const l of text.split('\n')) {
+    const t = l.trim()
+    if (t.startsWith('<!--') && t.includes('codefact:begin')) inFact = true
+    if (inFact) for (let i = pos; i < pos + l.length; i++) chars[i] = false
+    if (inFact && t.startsWith('<!--') && t.includes('codefact:end')) inFact = false
+    pos += l.length + 1
+  }
+  return chars
+}
+
+/** 探针散文掩码：事实块、围栏、既有链接整体、多词行内码（命令串/示例）→ 非散文；
  *  单 token 行内码保留——反引号壳里的实质引用正是要抓的对象（豁免口径见 ops/AGENTS.md）。 */
 const proseMask = (text) => {
-  const chars = new Array(text.length).fill(true)
+  const chars = maskFactBlocks(text)
   let pos = 0
   let inFence = false
   for (const l of text.split('\n')) {
@@ -179,8 +195,10 @@ const inspect = () => {
     }
     const docSet = new Set()
     edges.set(doc, docSet)
-    // md 链接：方向纪律（导航语义）
+    const fact = maskFactBlocks(text)
+    // md 链接：方向纪律（导航语义；事实块内不查——生成物由 codefact check 承担）
     for (const m of text.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
+      if (!fact[m.index]) continue
       const target = m[1]
       if (/^(https?:|mailto:|#)/.test(target)) continue
       const rel = relative(ROOT, resolve(ROOT, dirOf(doc), target.split('#')[0])).split(sep).join('/')
@@ -188,9 +206,9 @@ const inspect = () => {
       else if (isAboveDoc(effectiveTargetDir(rel), doc))
         errors.push(`${doc}：引用方向向上（祖先）—— ${target}（下层不回指上层，改中文替称；跨子树兄弟合法）`)
     }
-    // 路径 token（全文含链接目标与代码块）：引用即跟踪
-    const seen = new Set()
+    // 路径 token（含链接目标与代码块；事实块除外）：引用即跟踪
     for (const m of text.matchAll(TOKEN_RE)) {
+      if (!fact[m.index]) continue
       const tok = stripEdgePunct(m[0])
       if (!isPathLike(tok) || /^(https?:|mailto:)/i.test(tok) || tok.includes('://')) continue
       if (tok.includes('*')) continue // glob 模式（如 scripts/s3x-*-scenario.ts）不作为单一引用
@@ -209,7 +227,6 @@ const inspect = () => {
         const key = `${doc}：疑似失效路径引用 —— ${probe}`
         if (!notices.includes(key)) notices.push(key)
       }
-      seen.add(m.index)
     }
     // 提及既引用探针：只在散文（掩码后）上找"解析到实物却不是链接"的提及
     const mask = proseMask(text)
@@ -235,18 +252,25 @@ const inspect = () => {
     // 码内链接探针：反引号壳里的链接按码跨度渲染、不可点（码优先于链接语法），是违规形态——
     // 整壳包裹与命令串内嵌链接都算（命令串本身是引用豁免对象，其中的路径不该被转换）
     let inFence = false
+    let pos = 0
     for (const l of text.split('\n')) {
       if (l.trim().startsWith('```')) {
         inFence = !inFence
+        pos += l.length + 1
         continue
       }
-      if (inFence) continue
+      if (inFence) {
+        pos += l.length + 1
+        continue
+      }
       for (const m of l.matchAll(/`[^`\n]+`/g)) {
+        if (!fact[pos + m.index]) continue
         if (/\]\([^()]*\)/.test(m[0].slice(1, -1))) {
           const key = `${doc}：码内链接（反引号壳须剥；命令串整体豁免不转换）—— ${m[0]}`
           if (!violations.includes(key)) violations.push(key)
         }
       }
+      pos += l.length + 1
     }
   }
   return { errors, notices, violations, edges }

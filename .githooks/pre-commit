@@ -7,3 +7,5 @@ node "$(git rev-parse --show-toplevel)/ops/scripts/docIndex.mjs" hook
 node "$(git rev-parse --show-toplevel)/ops/scripts/repoGuard.mjs"
 # 文档行数门控：超限=拦截。
 node "$(git rev-parse --show-toplevel)/ops/scripts/docGuard.mjs"
+# 代码事实门控：契约事实块与代码不同步=拦截（npm run gen:codefact 重新生成后重试）。
+node "$(git rev-parse --show-toplevel)/ops/scripts/codefact.mjs" hook
