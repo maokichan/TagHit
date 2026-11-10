@@ -1,17 +1,22 @@
 /**
- * docIndex —— 路径即跟踪（挂在 git pre-commit，见 .githooks/）
+ * docIndex —— 路径即跟踪 + 提及既引用（挂在 git pre-commit，见 .githooks/）
  *
  * ── 机制 ──
  * **有路径就算跟踪**（字面落法）：文档内任何路径形 token——md 链接目标、反引号路径、裸路径——
  * 都是对该文件/目录的跟踪边，无需任何显式语法。被引用文件进了暂存区而引用它的文档没动，
  * commit 时提醒漂移（目录边按前缀命中）。目标须实际存在（对「文档所在目录 → 各级祖先 →
  * 仓库根」依次解析，取首个存在者）；解析失败的 token 忽略，但以已知根段开头而解析失败的
- * 视为**疑似失效路径引用**，check 模式给 notice（不拦截）——文档与现实的脱钩从这里显形。
+ * 视为**疑似失效路径引用**，给 notice（不拦截）——文档与现实的脱钩从这里显形。
+ * **提及既引用**（引用治理操典 §1 法条）：凡解析到仓库实物的提及，一律 md `[]()` 链接形态；
+ * 反引号壳、裸路径、裸文档名都是违规形态（豁免：围栏代码块、链接目标本身、模板/占位符、
+ * glob、gitignored）。门控形态分两步：check 模式先 notice 全量报出，转换批清零后 hook 翻为拦截。
  * **点前缀兜底**：TOKEN_RE 首字符类不含 `.`，`.agents/`、`.githooks/` 开头的提及 token 化时
  * 丢点（md 链接里的 `../.agents/...` 即此形态），解析必然失败且不匹配带点的已知根段 → 静默
  * 漏检；故解析失败且匹配位置前一字符是 `.` 时并入重试。
- * **引用方向纪律只管 md 链接**（导航语义：禁止向上祖先——根层单件也不例外、允许平级或子一级）；路径提及是
- * 跟踪边不是导航，不做方向校验。机制不保证同步、不校验语义；它只让"该看一眼"无处遁形。
+ * **引用方向纪律只管 md 链接**（引用治理操典 §1.2 口径）：**向上一概非法**——目标解析到引用
+ * 文档的祖先目录（含仓库根与根层单件）即拦；竖直导航由入口链承担，下层不回指上层，改写为
+ * 不含路径 token 的中文替称。跨子树（兄弟目录）链接合法。机制不保证同步、不校验语义；
+ * 它只让"该看一眼"无处遁形。
  * 用法：`node ops/scripts/docIndex.mjs check`（全量体检）| `hook`（pre-commit 调用）。
  * 运行环境：零依赖 Node ESM（node >= 20）；路径一律 / 分隔（git ls-files 口径）。
  */
@@ -27,6 +32,9 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const EXEMPT = JSON.parse(readFileSync(join(ROOT, 'ops', 'exemptions.json'), 'utf8'))
   .exemptions.filter((e) => e.guards.includes('docIndex')).map((e) => e.path)
 const isExempt = (p) => EXEMPT.some((pre) => (pre.endsWith('/') ? p.startsWith(pre) : p === pre))
+
+/** 提及既引用：check 模式 notice（观测期）；转换批清零后把 MENTIONS_BLOCKING 翻 true，hook 拦截。 */
+const MENTIONS_BLOCKING = false
 
 const isTTY = process.stdout.isTTY
 const paint = (s, c) => (isTTY ? `\x1b[${c}m${s}\x1b[0m` : s)
@@ -55,10 +63,11 @@ const effectiveTargetDir = (rel) => {
   return dirOf(rel)
 }
 
-const isAncestorDir = (effDir, docRel) => {
+/** 引用方向：目标目录在引用文档祖先链上（含仓库根本身）= 向上，非法；跨子树兄弟合法（操典口径） */
+const isAboveDoc = (effDir, docRel) => {
   const d = dirOf(docRel)
+  if (effDir === '') return d !== '' // 根层单件（AGENTS/README/TODO）对所有子树都是祖先；根层文档互链是平级，合法
   if (effDir === d) return false // 平级
-  if (effDir === '') return d !== '' // 根层单件也在祖先链上：向上的指针一概非法（含指回根 AGENTS）
   return d.startsWith(effDir + '/')
 }
 
@@ -128,13 +137,30 @@ const resolveToken = (doc, raw) => {
   return null
 }
 
+/** 供探针用的净化副本：剥围栏代码块与 md 链接整体（链接目标与显示文本都不是"未成链接的提及"） */
+const proseOnly = (text) => {
+  const lines = []
+  let inFence = false
+  for (const l of text.split('\n')) {
+    if (l.trim().startsWith('```')) {
+      inFence = !inFence
+      lines.push('')
+      continue
+    }
+    lines.push(inFence ? '' : l.replace(/\[[^\]]*\]\([^()]*\)/g, ' '))
+  }
+  return lines.join('\n')
+}
+
 /**
- * 全量扫描。返回 { errors, notices, edges: Map<文档, Set<路径>> }
- * edges = 路径即跟踪的边集（含 md 链接目标——超集，无需单列）。
+ * 全量扫描。返回 { errors, notices, violations, edges: Map<文档, Set<路径>> }
+ * edges = 路径即跟踪的边集（含 md 链接目标——超集，无需单列）；
+ * violations = 提及既引用违规（可解析的非链接形态提及）。
  */
 const inspect = () => {
   const errors = []
   const notices = []
+  const violations = []
   const edges = new Map()
   const docs = trackedMd()
 
@@ -153,10 +179,11 @@ const inspect = () => {
       if (/^(https?:|mailto:|#)/.test(target)) continue
       const rel = relative(ROOT, resolve(ROOT, dirOf(doc), target.split('#')[0])).split(sep).join('/')
       if (rel.startsWith('..')) errors.push(`${doc}：引用越出仓库 —— ${target}`)
-      else if (isAncestorDir(effectiveTargetDir(rel), doc))
-        errors.push(`${doc}：引用方向向上（祖先）—— ${target}（只允许平级或子一级）`)
+      else if (isAboveDoc(effectiveTargetDir(rel), doc))
+        errors.push(`${doc}：引用方向向上（祖先）—— ${target}（下层不回指上层，改中文替称；跨子树兄弟合法）`)
     }
-    // 路径 token：引用即跟踪
+    // 路径 token（全文含链接目标与代码块）：引用即跟踪
+    const seen = new Set()
     for (const m of text.matchAll(TOKEN_RE)) {
       const tok = stripEdgePunct(m[0])
       if (!isPathLike(tok) || /^(https?:|mailto:)/i.test(tok) || tok.includes('://')) continue
@@ -176,30 +203,57 @@ const inspect = () => {
         const key = `${doc}：疑似失效路径引用 —— ${probe}`
         if (!notices.includes(key)) notices.push(key)
       }
+      seen.add(m.index)
+    }
+    // 提及既引用探针：只在散文（剥围栏与链接后）上找"解析到实物却不是链接"的提及
+    const prose = proseOnly(text)
+    for (const m of prose.matchAll(TOKEN_RE)) {
+      const tok = stripEdgePunct(m[0])
+      if (!isPathLike(tok) || /^(https?:|mailto:)/i.test(tok) || tok.includes('://')) continue
+      if (tok.includes('*')) continue
+      if (prose[m.index + m[0].length] === '<' || prose[m.index + m[0].length] === '*') continue
+      let probe = tok
+      let rel = resolveToken(doc, tok)
+      if (rel === null && prose[m.index - 1] === '.') {
+        probe = '.' + tok
+        rel = resolveToken(doc, probe)
+      }
+      if (rel && rel.includes('/')) {
+        if (gitIgnored(rel) || gitIgnored(rel, true)) continue // gitignored 运行时路径不是仓库实物引用
+        const key = `${doc}：提及未成链接 —— ${probe}（→ ${rel}；写 []() 链接，向上则改中文替称）`
+        if (!violations.includes(key)) violations.push(key)
+      }
     }
   }
-  return { errors, notices, edges }
+  return { errors, notices, violations, edges }
 }
 
 const cmd = process.argv[2]
 
 if (cmd === 'check') {
-  const { errors, notices, edges } = inspect()
+  const { errors, notices, violations, edges } = inspect()
+  for (const v of violations) console.log(yellow(`▣ ${v}`))
   for (const n of notices) console.log(yellow(`△ ${n}`))
   if (errors.length > 0) {
     console.error(red('doc-index check：存在错误。\n'))
     for (const e of errors) console.error(`  ${e}`)
     process.exit(1)
   }
-  console.log(green(`doc-index check：${edges.size} 个文档的路径引用全部合规。`))
+  console.log(
+    green(
+      `doc-index check：${edges.size} 个文档的路径引用全部合规。` +
+        (violations.length > 0 ? `（另有 ${violations.length} 条「提及未成链接」违规待转换批清零）` : '')
+    )
+  )
   process.exit(0)
 }
 
 if (cmd === 'hook') {
-  const { errors, edges } = inspect()
-  if (errors.length > 0) {
+  const { errors, violations, edges } = inspect()
+  const blocking = MENTIONS_BLOCKING ? errors.concat(violations) : errors
+  if (blocking.length > 0) {
     console.error(red('doc-index 拦截\n'))
-    for (const e of errors) console.error(`  ${e}`)
+    for (const e of blocking) console.error(`  ${e}`)
     console.error(`\n（修正引用或更新对应文档后重试；--no-verify 是人类的绕行特权——AGENTS.md）`)
     process.exit(1)
   }
