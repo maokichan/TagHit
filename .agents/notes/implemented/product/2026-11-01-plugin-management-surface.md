@@ -12,7 +12,7 @@ Status: implemented
 按**插件职能 = 管理与装载**组织（开发者定调），四则：
 
 **① 管理界面分工**：窄面板卡片 = 扫视面，只留名称 + 启停开关（id/简介进 hover）；点击卡片进插件详情页（全页，词条式分区：重心 = 贡献面清单（provider id 前缀推导；机制更换归主线 1）、次级 = 身份事实 → 声明面（manifest.surfaces 如实标注"仅声明未校验"）→ 设置 → 启停动作；版心 64rem 全页 token）。
-此形态后被 D47 修订——宿主词条页撤除、呈现权分离，现状以 `.agents/notes/implemented/product/2026-11-01-plugin-page-split.md` 为准。
+此形态后被 D47 修订——宿主词条页撤除、呈现权分离，现状以 [.agents/notes/implemented/product/2026-11-01-plugin-page-split.md](2026-11-01-plugin-page-split.md) 为准。
 
 **② 可配置项声明制**：manifest 增 `settings`（SettingSchema 复用，装载接线）与 `description`（additive，不触碰贡献面声明/激活条件结构）；插件永不自绘设置 UI——声明 schema、宿主经 SchemaControl 按样式规范渲染，值落 config 仓 `featureId:key`；
 HostApi 0.2.3 additive 增 config 只读域（value 快照 + ref 响应式，写入面只归宿主 UI）。首个真实消费方 = audio-cover-player 歌词字号。

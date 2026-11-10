@@ -1,7 +1,7 @@
 # AGENTS — 插件开发上下文（plugins/ 唯一入口）
 
 > 写或改任何插件之前必读。本文件只放插件侧的**纪律红线与能力面**；机制在
-> `docs/ARCHITECTURE.md` §二/§三，论证笔记在 `.agents/notes/`——需要时按此下探，不在此复制。
+> [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) §二/§三，论证笔记在 [.agents/notes/](../.agents/notes)——需要时按此下探，不在此复制。
 
 ## 一、插件是什么
 
@@ -30,7 +30,7 @@ apiVersion/settings/surfaces/mounts，source 由装载方打 contributed）+ 入
 4. **产物归属判据**：数据层产物跟宿主能力走（能力是原生的，产物就是原生的）；呈现层产物跟插件走（插件卸载即消失）。
 5. **样式**：走壳 token（`var(--*)`，与主题同语）；`.error-note` 等壳类可用（同一文档、同一 Vue 实例）；插件**不受壳机检**（check:style/check:templates 不扫 plugins/），但**入类型检查**（tsconfig.web include）与**产物构建**（check:build）——提交前这两样必须过。
 6. **设置声明制**：可配置项只在 manifest `settings` 声明（SettingSchema），**插件永不自绘设置 UI**——宿主按样式规范渲染（插件详情页），值落 config 仓 `featureId:key`，插件经 HostApi config **只读**。
-7. **插件自持待办**记 `<dir>/TODO.md`（样例：`plugins/audio-cover-player/TODO.md`）；影响壳与契约的事项归根 TODO.md。
+7. **插件自持待办**记 `<dir>/TODO.md`（样例：[plugins/audio-cover-player/TODO.md](audio-cover-player/TODO.md)）；影响壳与契约的事项归根 TODO.md。
 
 ## 三、能力面（冻结契约）
 
@@ -68,13 +68,13 @@ apiVersion/settings/surfaces/mounts，source 由装载方打 contributed）+ 入
 
 | 文件 | 职责 |
 |---|---|
-| `frontend/src/renderer/src/features/contribution.ts` | 契约模块（插件 API 包的雏形；previews/commands owner 记账与清扫） |
-| `frontend/src/renderer/src/features/hostApi.ts` | HostApi 冻结面 + 版本号 |
-| `frontend/src/renderer/src/features/contributedPlugins.ts` | 运行时装载（宿主清单驱动、形态分派、启停/卸载/重装、loadErrors） |
-| `frontend/src/renderer/src/features/registry.ts` | 功能组件注册表 |
-| `frontend/src/renderer/src/features/plugins/PluginsFullPage.vue` | 插件管理页（安装/卸载/启停/设置/错误呈现） |
-| `frontend/src/renderer/src/features/detailPreview.ts` · `preview/builtinPreviews.ts` | detailPreview 认领解析（纯注册表）· 内置四类预览出厂注册（.vue 不进契约链） |
-| `src/host/plugins.ts` | 安装位纯逻辑（zip 校验/安装/卸载/清单；宿主 = 装载事实权威） |
-| `src/host/pluginProtocol.ts` | `taghit-plugin://` 模块协议（bundle 装载通道 + `__vendor/vue` 共享模块） |
-| `scripts/pack-plugin.mjs` | 插件 zip 打包（参考实现） |
-| `plugins/audio-cover-player/` | 首插件样例（黑胶播放器，行为规格见其 `README.md`；已可 zip 分发） |
+| [frontend/src/renderer/src/features/contribution.ts](../frontend/src/renderer/src/features/contribution.ts) | 契约模块（插件 API 包的雏形；previews/commands owner 记账与清扫） |
+| [frontend/src/renderer/src/features/hostApi.ts](../frontend/src/renderer/src/features/hostApi.ts) | HostApi 冻结面 + 版本号 |
+| [frontend/src/renderer/src/features/contributedPlugins.ts](../frontend/src/renderer/src/features/contributedPlugins.ts) | 运行时装载（宿主清单驱动、形态分派、启停/卸载/重装、loadErrors） |
+| [frontend/src/renderer/src/features/registry.ts](../frontend/src/renderer/src/features/registry.ts) | 功能组件注册表 |
+| [frontend/src/renderer/src/features/plugins/PluginsFullPage.vue](../frontend/src/renderer/src/features/plugins/PluginsFullPage.vue) | 插件管理页（安装/卸载/启停/设置/错误呈现） |
+| [frontend/src/renderer/src/features/detailPreview.ts](../frontend/src/renderer/src/features/detailPreview.ts) · `preview/builtinPreviews.ts` | detailPreview 认领解析（纯注册表）· 内置四类预览出厂注册（.vue 不进契约链） |
+| [src/host/plugins.ts](../src/host/plugins.ts) | 安装位纯逻辑（zip 校验/安装/卸载/清单；宿主 = 装载事实权威） |
+| [src/host/pluginProtocol.ts](../src/host/pluginProtocol.ts) | `taghit-plugin://` 模块协议（bundle 装载通道 + `__vendor/vue` 共享模块） |
+| [scripts/pack-plugin.mjs](../scripts/pack-plugin.mjs) | 插件 zip 打包（参考实现） |
+| [plugins/audio-cover-player/](audio-cover-player) | 首插件样例（黑胶播放器，行为规格见其 `README.md`；已可 zip 分发） |

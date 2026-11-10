@@ -1,21 +1,21 @@
 # docs/ —— 项目级文档（agent 子树入口）
 
-> 本目录 = 三件套（ARCHITECTURE / GLOSSARY / STYLE）。**文档地图在根 AGENTS.md §四**（主线，
+> 本目录 = 三件套（ARCHITECTURE / GLOSSARY / STYLE）。**文档地图在根层入口文档 §四**（主线，
 > 不在此复读）；本文件托管**文档维护法**——写或改任何文档之前先读这里。
 
 ## 归属（什么事实住哪）
 
 - 红线（不留轮次记录、不带历史叙事与日期；进度/待办/裁决各有唯一归属）在根 AGENTS §二.3，不在此复读。
-  本文件管**事实的住址映射**：架构与机制事实 → `ARCHITECTURE.md`，领域词 → `GLOSSARY.md`，
-  渲染层视觉 → `STYLE.md`，组件行为规格 → **所属 feature 文档**（`frontend/docs/` 五篇、
+  本文件管**事实的住址映射**：架构与机制事实 → [ARCHITECTURE.md](ARCHITECTURE.md)，领域词 → [GLOSSARY.md](GLOSSARY.md)，
+  渲染层视觉 → [STYLE.md](STYLE.md)，组件行为规格 → **所属 feature 文档**（[frontend/docs/](../frontend/docs) 五篇、
   `plugins/<dir>/`），装配与上手事实 → `README.md`。
 - **进度不设全局页**：状态随代码——改了代码就更新那篇能力文档，"项目到哪了"由各能力文档的
-  现状拼出；论证与放弃项进决策笔记（`.agents/notes/`），现行规范事实不进笔记。
+  现状拼出；论证与放弃项进决策笔记（[.agents/notes/](../.agents/notes)），现行规范事实不进笔记。
 - 两路读者：下一个 agent 要指针与事实，人要整体与关系——技术细节留代码与小节，不淹没正文。
 
 ## 结构（渐进式披露）
 
-- 入口文档只放指针、红线与命令速查；细节按小节下沉。**新文档动笔前先到 `ops/scripts/docGuard.mjs`
+- 入口文档只放指针、红线与命令速查；细节按小节下沉。**新文档动笔前先到 [ops/scripts/docGuard.mjs](../ops/scripts/docGuard.mjs)
   上限表登记级别**（入口族硬上限 80，其余默认 300）。
 - 事实增厚 = **增设专项小文档**（量走篇数，不走单篇行数），索引进其所属子树入口或本文件——
   **根地图只承载主线，不随 feature 增行**。
@@ -28,6 +28,6 @@
 - **slop 清单**（洗时逐项排查）：重复规则（搜特征句留一处）· 层外历史 · 实现状态注记
   （"已实现！/future:"——状态归代码与所属能力文档）· 手抄目录/清单（源或生成器权威时）·
   推理过程转写 · 比喻性生造词 · 段落墙 · 强调通胀。
-- 修代码必对表：接口形状 → `ARCHITECTURE.md`，命名 → `GLOSSARY.md`，视觉 → `STYLE.md`，
-  组件行为 → 所属 feature 文档，裁决论证 → `.agents/notes/`（写前先查旧笔记）；
+- 修代码必对表：接口形状 → [ARCHITECTURE.md](ARCHITECTURE.md)，命名 → [GLOSSARY.md](GLOSSARY.md)，视觉 → [STYLE.md](STYLE.md)，
+  组件行为 → 所属 feature 文档，裁决论证 → [.agents/notes/](../.agents/notes)（写前先查旧笔记）；
   文档与代码不一致要主动报给开发者。

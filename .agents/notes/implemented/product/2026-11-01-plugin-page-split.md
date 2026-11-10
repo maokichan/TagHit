@@ -5,7 +5,7 @@ Status: implemented
 ## Problem
 
 D46 的"插件详情页"（宿主渲染的词条式全页）落地后暴露呈现权归属问题：插件的详细页本质是插件自己的内容面，宿主渲染等于为每个插件维护一套词条 UI，与首插件裁决"呈现层产物跟插件走"的归属判据相悖；同时部分插件（正在播放这类常驻控制面）需要自己的全页，通路却不存在——contentTab 槽只在功能组件侧有先例，三方怎么进、入口在哪、停用怎么收，都未裁。
-"插件详细页"一词混着两层东西，要拆开。修订裁决在 决策基线 D47 行，被修订的前案见 `.agents/notes/implemented/product/2026-11-01-plugin-management-surface.md`（其 ① 的全页词条形状由本篇取代）。
+"插件详细页"一词混着两层东西，要拆开。修订裁决在 决策基线 D47 行，被修订的前案见 [.agents/notes/implemented/product/2026-11-01-plugin-management-surface.md](2026-11-01-plugin-management-surface.md)（其 ① 的全页词条形状由本篇取代）。
 
 ## Decision
 

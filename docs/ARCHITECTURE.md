@@ -1,7 +1,7 @@
 # TagHit 架构与宿主（ARCHITECTURE）
 
 > 架构活体文档：讲"东西放哪、为什么"。本文件不含状态；能力事实住各能力文档（渲染层见
-> `frontend/AGENTS.md` 的文档地图，插件见 `plugins/AGENTS.md`），裁决论证见 `.agents/notes/`。
+> [frontend/AGENTS.md](../frontend/AGENTS.md) 的文档地图，插件见 [plugins/AGENTS.md](../plugins/AGENTS.md)），裁决论证见 [.agents/notes/](../.agents/notes)。
 > §一 是后端核心，§二 渲染层与宿主，§三 插件方向——读后端时可跳过 §二 之后。
 
 ## 一、后端核心（核心对渲染层/插件一无所知）
@@ -74,9 +74,9 @@ src/host/   主进程装配：SQLite 存储 + 真时钟/UUID + 逐端点注册�
 - **边界纪律**：渲染层只认 uri，拿不到存储与裸 Node——一切走窄桥用例。错误信封：宿主出
   code + 产生侧 message，文案由应用层用例/适配器产出、领域只出 code，渲染层按 code 取当前
   语言短句、message 作细节附后。**过桥入参必须是纯数据**：store/`reactive` 里的值是 Proxy，
-  结构化克隆会抛 `DataCloneError`，故 `frontend/src/shared/api.ts` 的门面统一把入参转纯
+  结构化克隆会抛 `DataCloneError`，故 [frontend/src/shared/api.ts](../frontend/src/shared/api.ts) 的门面统一把入参转纯
   （`bridge()` 包装），调用点不必各自记得。
-- **SQLite 驱动注入**：适配层只认最小同步接口（`SyncSqlite`，接口与 ABI 恢复配方见 `src/AGENTS.md`）；
+- **SQLite 驱动注入**：适配层只认最小同步接口（`SyncSqlite`，接口与 ABI 恢复配方见 [src/AGENTS.md](../src/AGENTS.md)）；
   校准用 Node 内置驱动（node:sqlite，仅 Node ≥ 23.4），Electron 主进程注入 better-sqlite3
   （ABI 匹配），内置驱动不进打包产物。
 - **字节闸门**：媒体字节不进 IPC——经特权协议直取（白名单 = 各工作区来源根 + userData，
@@ -90,7 +90,7 @@ src/host/   主进程装配：SQLite 存储 + 真时钟/UUID + 逐端点注册�
   瀑布流比例**只取实测值**并钳制 [1/2.2, 2.2]，缺失给中性 4:3 占位（内容哈希派生的是假比例，
   会让视频先按错比例出框再被裁切），媒体元素 `object-contain` 宁留边不裁画面。
   音频歌词走同端点交付原文（.lrc 伴生优先、内嵌次之——解析呈现归插件，不进文本白名单）。
-  **白名单只有一份实现**（`src/host/pathGate.ts`）：字节读取与**拖出交付**共用，不各写一份。
+  **白名单只有一份实现**（[src/host/pathGate.ts](../src/host/pathGate.ts)）：字节读取与**拖出交付**共用，不各写一份。
 - **拖出应用（术语）**：「**拖出**」= 把条目的**真实文件路径**交给系统拖放（区别于网页把
   `<img>` 当图片拖的默认行为）。由主进程 `webContents.startDrag` 发起，渲染层只表达意图——
   故契约里有**两类通道**：请求/响应（信封，绝大多数端点）与**单向**（`ipcRenderer.send`/
@@ -98,7 +98,7 @@ src/host/   主进程装配：SQLite 存储 + 真时钟/UUID + 逐端点注册�
   预检并提示**，而不是等一个不会到来的错误。「**框选**」= 在空白处按下拖出矩形以成批选择条目，
   坐标用视口坐标（不重算布局），意图在按下瞬间定型。
 - **宿主诊断面（术语「诊断快照」）**：渲染层没加载时宿主是唯一活着的部分——自诊断事实归宿主。
-  快照（纯模块 `src/host/diagnostics.ts` 可直验）= 版本/平台/打包态/路径族（含 rendererTarget
+  快照（纯模块 [src/host/diagnostics.ts](../src/host/diagnostics.ts) 可直验）= 版本/平台/打包态/路径族（含 rendererTarget
   及其存在性）/加载状态机/事件环形缓冲（≤50 条：app-ready、load-ok/fail、renderer-gone、
   child-process-gone、渲染层 warning 以上 console），**只含路径与状态、不含用户内容**；
   落盘 `userData/diagnostics.json`（事件触发 + 节流覆盖写）。`--diagnose` argv 分支在单实例锁
@@ -178,7 +178,7 @@ src/host/   主进程装配：SQLite 存储 + 真时钟/UUID + 逐端点注册�
 - **配置仓**：按「功能组件 id + 键」持有并持久化（现为 localStorage，迁移宿主后键形状不变）；
   设置页直接读声明里的默认值。
 - **HostApi 冻结面**：窄桥的冻结子集视图 + 独立版本号；三方只经此面。
-- **全局播放引擎**：播放是"能力"归壳（渲染层应用级单例，`frontend/src/renderer/src/features/playback/`）——
+- **全局播放引擎**：播放是"能力"归壳（渲染层应用级单例，[frontend/src/renderer/src/features/playback/](../frontend/src/renderer/src/features/playback)）——
   唯一 HTMLAudioElement 不入 DOM，keyed router-view 整树卸载（切标签页/翻页/返回网格）不停播；
   页面组件只是遥控器，翻页与播放解耦（翻页改"看什么"、播放改"听什么"）。链路一次成型：
   audio → EQ 8 段（默认平坦，机制口）→ AnalyserNode（频谱机制口）→ destination；
@@ -259,7 +259,7 @@ src/host/   主进程装配：SQLite 存储 + 真时钟/UUID + 逐端点注册�
 | 调用面 invoked | 右键菜单、命令面板、快捷键、拖拽 | **多贡献者，调用瞬间按上下文现场聚合** |
 
 右键菜单是调用面的样板，也是贡献点机制里第一个要求"声明式条件"的槽（停靠槽常驻，
-无"何时出现"语义）。标准化四要件（机制细节见 §二 命令注册表条目，裁决论证见 `.agents/notes/`）：
+无"何时出现"语义）。标准化四要件（机制细节见 §二 命令注册表条目，裁决论证见 [.agents/notes/](../.agents/notes)）：
 
 1. **原子 = 命令**：菜单项不是容器成员，是命令 + 摆放元数据；命令面板/快捷键都是命令注册表的
    视图——一套注册表，不做三套平行系统。命令执行只经 HostApi 门面（改意图 → 窄桥 → 失效重查），
@@ -275,4 +275,4 @@ src/host/   主进程装配：SQLite 存储 + 真时钟/UUID + 逐端点注册�
    可注入插件项、Esc/失焦关闭），不用原生。
 
 三类呈现面的机制已全部落地；三方插件的发现/分发已随插件分发 v1 落地（装载与装卸语义见
-`plugins/AGENTS.md`）。
+[plugins/AGENTS.md](../plugins/AGENTS.md)）。

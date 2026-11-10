@@ -45,4 +45,4 @@ TagHit 正在朝**插件生态**演进（VS Code / Obsidian 式）：核心保�
 - [`AGENTS.md`](AGENTS.md) — 开发上下文入口（纪律红线、命令、文档地图；**AI 会话与贡献代码从这里开始**）
 - [`TODO.md`](TODO.md) — 待办唯一清单
 
-架构、词汇、样式基线三件套在 `docs/`；各能力的组件事实文档住其子树（`frontend/docs/`、`plugins/`），索引在对应子树入口。全局地图见 AGENTS.md §四。历史版本存档于 `../freeze/`。
+架构、词汇、样式基线三件套在 `docs/`；各能力的组件事实文档住其子树（[frontend/docs/](frontend/docs)、`plugins/`），索引在对应子树入口。全局地图见 AGENTS.md §四。历史版本存档于 `../freeze/`。

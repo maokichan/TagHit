@@ -12,18 +12,18 @@ Electron 宿主只做装配与安全边界），正朝**插件生态**演进。
 ## 二、纪律红线（违反即返工）
 
 1. **层纪律**：领域纯类型+规则（零依赖）；流程在应用层；存储/IO 在适配器；宿主只装配与边界；端口不做业务判定。
-2. **术语纪律**：只用 `docs/GLOSSARY.md`（领域词）/ `docs/ARCHITECTURE.md`（架构与渲染层词）已定义的词；**禁自造语义词**、**一词一义**；组件名取领域对象名（ARCHITECTURE 名录是单点）。
+2. **术语纪律**：只用 [docs/GLOSSARY.md](docs/GLOSSARY.md)（领域词）/ [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)（架构与渲染层词）已定义的词；**禁自造语义词**、**一词一义**；组件名取领域对象名（ARCHITECTURE 名录是单点）。
 3. **文档纪律**：维护 GLOSSARY / ARCHITECTURE / STYLE / docs 子树入口（维护法）/ 本文件 / README.md /
    TODO.md 与各子树入口、能力文档；**不留轮次记录、不带历史叙事与日期**；
-   **进度不设全局页**——状态随代码，能力事实住所属能力文档（机制入 `docs/ARCHITECTURE.md`，
-   组件行为入 `frontend/docs/`，插件入 `plugins/`），改了代码就同步那篇文档；
-   **待办只记 TODO.md**（完成即删条目）；**影响项目的决定写决策笔记**（`.agents/notes/`，
+   **进度不设全局页**——状态随代码，能力事实住所属能力文档（机制入 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，
+   组件行为入 [frontend/docs/](frontend/docs)，插件入 `plugins/`），改了代码就同步那篇文档；
+   **待办只记 TODO.md**（完成即删条目）；**影响项目的决定写决策笔记**（[.agents/notes/](.agents/notes)，
    三态生命周期，写前先查旧笔记；现行规范事实住能力文档，论证与放弃项进笔记）；
    表与状态文件只记事实；文档不写可推断的内部标识符与文件清单。
 4. **界面文案纪律**：交互自身可理解的不加说明文字；说明性文案取最少必要；说明进 hover，死路才给最短行动句。
 5. **不预建模**：`TODO.md` 远期区的 parked 项不进代码；待办细化进 TODO.md。
 6. **提交前**：所改层 `tsc -p tsconfig.<层>.json` 通过；动契约/适配器跑**八份校准**；动契约面跑
-   check:templates（vue-tsc 漏报标签不闭合）；动过 `frontend/src/renderer/src/styles/globals.css`
+   check:templates（vue-tsc 漏报标签不闭合）；动过 [frontend/src/renderer/src/styles/globals.css](frontend/src/renderer/src/styles/globals.css)
    必跑 check:build；语义变更即同步所属文档。**文档门控链**（pre-commit 三守卫，ops/）提交时自动跑，
    拦截按报错自带修法处理。
 7. **git**：本地提交积极做；**版本号只在开发者明示时升（AI 不得自升）**，升版本必打 tag；非版本类 tag 打前确认；**push（含 tag）由真人执行**。
@@ -68,7 +68,7 @@ docs/           三件套 ARCHITECTURE / GLOSSARY / STYLE（见 §四）· build
 ## 六、环境红线速记
 
 - 根 node_modules = Electron ABI 陷阱（**勿让 node v24 直接加载**；`npm install` 必带 `--ignore-scripts`）；
-  恢复配方与 ambient 声明策略见 `src/AGENTS.md`；根 `.npmrc` 勿删。
+  恢复配方与 ambient 声明策略见 [src/AGENTS.md](src/AGENTS.md)；根 `.npmrc` 勿删。
 - 受限沙箱已知边界：Vitest 的 esbuild spawn 会失败（环境问题非代码）；Windows ACL 异常按下方处置
   （先取证再改权限，别手工编辑 ACL）。
 - **工作区文件权限（Windows ACL）**：症状 = 会话内 shell 命令启动即失败
@@ -77,4 +77,4 @@ docs/           三件套 ARCHITECTURE / GLOSSARY / STYLE（见 §四）· build
   授权。处置 = 跑内置诊断脚本 `diagnose-windows-sandbox-acl`（一次调用：先取证、给当前用户补完全
   控制项、复核；**受限态会把自己的限制误报成缺权限**，须放行一次再跑）；复核后重复原操作确认恢复。
   这不是应用问题（代码与数据无关），再遇按专题修。
-- 渲染层验证形态、校准场景形状、开发库位置：`frontend/AGENTS.md`、`scripts/AGENTS.md`，不在此复制。
+- 渲染层验证形态、校准场景形状、开发库位置：[frontend/AGENTS.md](frontend/AGENTS.md)、[scripts/AGENTS.md](scripts/AGENTS.md)，不在此复制。

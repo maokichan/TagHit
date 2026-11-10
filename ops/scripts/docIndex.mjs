@@ -34,7 +34,7 @@ const EXEMPT = JSON.parse(readFileSync(join(ROOT, 'ops', 'exemptions.json'), 'ut
 const isExempt = (p) => EXEMPT.some((pre) => (pre.endsWith('/') ? p.startsWith(pre) : p === pre))
 
 /** 提及既引用：check 模式 notice（观测期）；转换批清零后把 MENTIONS_BLOCKING 翻 true，hook 拦截。 */
-const MENTIONS_BLOCKING = false
+const MENTIONS_BLOCKING = true
 
 const isTTY = process.stdout.isTTY
 const paint = (s, c) => (isTTY ? `\x1b[${c}m${s}\x1b[0m` : s)
@@ -137,19 +137,25 @@ const resolveToken = (doc, raw) => {
   return null
 }
 
-/** 供探针用的净化副本：剥围栏代码块与 md 链接整体（链接目标与显示文本都不是"未成链接的提及"） */
-const proseOnly = (text) => {
-  const lines = []
+/** 探针散文掩码：围栏、既有链接整体、多词行内码（命令串/示例）→ 非散文；
+ *  单 token 行内码保留——反引号壳里的实质引用正是要抓的对象（豁免口径见 ops/AGENTS.md）。 */
+const proseMask = (text) => {
+  const chars = new Array(text.length).fill(true)
+  let pos = 0
   let inFence = false
   for (const l of text.split('\n')) {
-    if (l.trim().startsWith('```')) {
-      inFence = !inFence
-      lines.push('')
-      continue
-    }
-    lines.push(inFence ? '' : l.replace(/\[[^\]]*\]\([^()]*\)/g, ' '))
+    if (l.trim().startsWith('```')) inFence = !inFence
+    if (inFence) for (let i = pos; i < pos + l.length; i++) chars[i] = false
+    pos += l.length + 1
   }
-  return lines.join('\n')
+  const maskSpan = (m) => {
+    for (let i = m.index; i < m.index + m[0].length; i++) chars[i] = false
+  }
+  for (const m of text.matchAll(/\[[^\]]*\]\([^()]*\)/g)) maskSpan(m)
+  for (const m of text.matchAll(/`[^`\n]+`/g)) {
+    if (/\s/.test(m[0].slice(1, -1))) maskSpan(m)
+  }
+  return chars
 }
 
 /**
@@ -205,16 +211,18 @@ const inspect = () => {
       }
       seen.add(m.index)
     }
-    // 提及既引用探针：只在散文（剥围栏与链接后）上找"解析到实物却不是链接"的提及
-    const prose = proseOnly(text)
-    for (const m of prose.matchAll(TOKEN_RE)) {
+    // 提及既引用探针：只在散文（掩码后）上找"解析到实物却不是链接"的提及
+    const mask = proseMask(text)
+    for (const m of text.matchAll(TOKEN_RE)) {
+      if (!mask[m.index]) continue
+      const end = m.index + m[0].length
       const tok = stripEdgePunct(m[0])
       if (!isPathLike(tok) || /^(https?:|mailto:)/i.test(tok) || tok.includes('://')) continue
       if (tok.includes('*')) continue
-      if (prose[m.index + m[0].length] === '<' || prose[m.index + m[0].length] === '*') continue
+      if (text[end] === '<' || text[end] === '*') continue
       let probe = tok
       let rel = resolveToken(doc, tok)
-      if (rel === null && prose[m.index - 1] === '.') {
+      if (rel === null && text[m.index - 1] === '.') {
         probe = '.' + tok
         rel = resolveToken(doc, probe)
       }
@@ -222,6 +230,22 @@ const inspect = () => {
         if (gitIgnored(rel) || gitIgnored(rel, true)) continue // gitignored 运行时路径不是仓库实物引用
         const key = `${doc}：提及未成链接 —— ${probe}（→ ${rel}；写 []() 链接，向上则改中文替称）`
         if (!violations.includes(key)) violations.push(key)
+      }
+    }
+    // 码内链接探针：反引号壳里的链接按码跨度渲染、不可点（码优先于链接语法），是违规形态——
+    // 整壳包裹与命令串内嵌链接都算（命令串本身是引用豁免对象，其中的路径不该被转换）
+    let inFence = false
+    for (const l of text.split('\n')) {
+      if (l.trim().startsWith('```')) {
+        inFence = !inFence
+        continue
+      }
+      if (inFence) continue
+      for (const m of l.matchAll(/`[^`\n]+`/g)) {
+        if (/\]\([^()]*\)/.test(m[0].slice(1, -1))) {
+          const key = `${doc}：码内链接（反引号壳须剥；命令串整体豁免不转换）—— ${m[0]}`
+          if (!violations.includes(key)) violations.push(key)
+        }
       }
     }
   }

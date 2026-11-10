@@ -1,7 +1,7 @@
 # 来源根组件（paths）
 
-> 渲染层侧行为规格；领域模型与派生语义见词表（`docs/GLOSSARY.md`），宿主与扫描事实见
-> `docs/ARCHITECTURE.md` §一。全页/窄面板分工（批量与去留处置归全页）是名录级通则，不在此复读。
+> 渲染层侧行为规格；领域模型与派生语义见词表（[docs/GLOSSARY.md](../../docs/GLOSSARY.md)），宿主与扫描事实见
+> [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) §一。全页/窄面板分工（批量与去留处置归全页）是名录级通则，不在此复读。
 
 ## 树交互
 

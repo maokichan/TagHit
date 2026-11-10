@@ -1,6 +1,6 @@
 # 浏览与网格（browse & grid）
 
-> 数据面机制（可见性下沉/计数可信/小图通道）见 `docs/ARCHITECTURE.md` 与 `docs/GLOSSARY.md`；
+> 数据面机制（可见性下沉/计数可信/小图通道）见 [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) 与 [docs/GLOSSARY.md](../../docs/GLOSSARY.md)；
 > 框选/拖出的调用面契约见 ARCHITECTURE §二「四个调用面视图」。本文收筛选语义与交互细节。
 
 ## 格式筛选（媒体类别：mediaTypeFilter 块）
@@ -21,7 +21,7 @@
 
 ## 无标签筛选（untagged 块）
 
-- 语义即 `withoutAnyTag`（排除语法见 `docs/tags.md`「检索语法」）；呈现与格式筛选同款
+- 语义即 `withoutAnyTag`（排除语法见 [docs/tags.md](tags.md)「检索语法」）；呈现与格式筛选同款
   （只列真实存在者、归零保持可见）。
 
 ## 浏览手感

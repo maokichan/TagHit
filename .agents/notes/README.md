@@ -5,8 +5,8 @@
 
 ## 与裁决事实的分工（TagHit 口径）
 
-- **裁决的现行规范事实住所属能力文档**：机制类入 `docs/ARCHITECTURE.md`，组件行为类入各
-  feature 文档（`frontend/docs/`、`plugins/`），插件契约入 `plugins/AGENTS.md`——事实随代码更新。
+- **裁决的现行规范事实住所属能力文档**：机制类入 [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)，组件行为类入各
+  feature 文档（[frontend/docs/](../../frontend/docs)、`plugins/`），插件契约入 [plugins/AGENTS.md](../../plugins/AGENTS.md)——事实随代码更新。
 - 笔记 = **论证层**：Problem / Alternatives / Consequences——"为什么这样做、放弃了什么"。
   笔记中涉及现行事实的表述以能力文档为准（笔记限事实层同步：路径、名称、结构；决策本身不改写）。
 - **历史行号标签**：笔记里的 D 编号 = 已退役决策基线（存 trash/ 存档，git 史可查）的行号，
@@ -19,7 +19,7 @@
 
 - **生命周期**（顶层目录）即状态，笔记随状态在目录间移动：
   - `proposed/` — 提案，未决或未落地；
-  - `implemented/` — 已落地。文件随现实保持更新（限事实层面：路径、名称、结构），决策本身不改写；
+  - [implemented/](implemented) — 已落地。文件随现实保持更新（限事实层面：路径、名称、结构），决策本身不改写；
   - `rejected/` — 已否决，Status 行带一句否决理由。仅当其理由还能防止一次有诱惑的错误时保留，否则整篇删除；
   - `archived/`（启用后）— 有历史决策价值但不再指导未来的 implemented 笔记，冻结不修改、不作现状权威。
 - **类别**（子目录）为闭集：
@@ -27,7 +27,7 @@
   - `arch/` — 架构、契约、数据模型的多方案裁决（结论仍回写 DECISIONS / ARCHITECTURE 权威行）；
   - `product/` — 方向条款、组件形态定夺、批次立项与放弃、发行形态。
 
-  加类别 = 先改本文件与同目录 AGENTS.md，再开目录。
+  加类别 = 先改本文件与同目录 [AGENTS.md](AGENTS.md)，再开目录。
 
 文件名日期 = 主题**首次提出**之日，其余时间线由 git 承载，正文不写日期。笔记间互链一律用
 相对 markdown 链接（可机械检查、移动不断链）。不设 INDEX.md：路径就是元数据，集中索引只会
@@ -52,7 +52,7 @@ Status: proposed
 正文骨架：
 
 - `proposed/`：`## Problem` → `## Proposal` → `## Alternatives considered` → `## Acceptance criteria` → `## Risks`
-- `implemented/`：`## Problem` → `## Decision`（现在时，写已发生的现实）→ `## Alternatives considered` → `## Consequences`（代价与所得）
+- [implemented/](implemented)：`## Problem` → `## Decision`（现在时，写已发生的现实）→ `## Alternatives considered` → `## Consequences`（代价与所得）
 - `rejected/`：提案原样冻结，裁决只写在 Status 行
 
 **Alternatives considered 强制**：记录决策而不记录它战胜了什么，等于邀请重新翻案。
@@ -65,4 +65,4 @@ Status: proposed
 - 方向条款裁定、组件形态定夺、批次立项与放弃（product）。
 
 更新既有笔记所拥有的决定 = 满足规则，不另开新篇；**笔记永不改写成另一个决定**——
-另起一篇，新旧互链。写前先查旧笔记（supersession，见同目录 AGENTS.md）。
+另起一篇，新旧互链。写前先查旧笔记（supersession，见同目录 [AGENTS.md](AGENTS.md)）。

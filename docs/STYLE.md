@@ -1,8 +1,8 @@
 # 渲染层风格基线（STYLE）
 
-> 归属：**frontend 专属**（渲染层）。权威范围：`frontend/src/renderer/**` + `frontend/src/renderer/src/styles/globals.css`。
+> 归属：**frontend 专属**（渲染层）。权威范围：`frontend/src/renderer/**` + [frontend/src/renderer/src/styles/globals.css](../frontend/src/renderer/src/styles/globals.css)。
 > **不约束**后端核心（领域/端口/应用/适配器）——风格是渲染层的事。
-> 本文是渲染层开发的**准则**：新组件先读本文，再动代码。冲突裁决顺序：本文 > `docs/ARCHITECTURE.md` > 组件内注释。
+> 本文是渲染层开发的**准则**：新组件先读本文，再动代码。冲突裁决顺序：本文 > [docs/ARCHITECTURE.md](ARCHITECTURE.md) > 组件内注释。
 > 方法取自 TuRead 项目的同名样式实践：**标准样式表 + 组件只挂类名 + 禁区机器可断言**。
 
 ## 1. 风格定性
@@ -107,7 +107,7 @@ TagHit 是**内容管理工具**：界面是内容的容器，视觉为浏览与
 5. 静态内联 `style="`——几何走 `:style`。
 6. `rounded-*` 圆角类——全直角（§3），机检已启用（D44 落地时存量 44 处一并清零）。
 
-新增禁区：先改本文，再去 `frontend/scripts/check-style.mjs` 加一条。
+新增禁区：先改本文，再去 [frontend/scripts/check-style.mjs](../frontend/scripts/check-style.mjs) 加一条。
 
 ## 7. 新组件检查表（8 条）
 

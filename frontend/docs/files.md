@@ -1,7 +1,7 @@
 # 文件管理组件（files）
 
-> 渲染层侧行为规格；操作闸门与路径段匹配的机制同源性见 `docs/ARCHITECTURE.md`（字节闸门条），
-> 领域重定基规则见 `src/AGENTS.md`。
+> 渲染层侧行为规格；操作闸门与路径段匹配的机制同源性见 [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)（字节闸门条），
+> 领域重定基规则见 [src/AGENTS.md](../../src/AGENTS.md)。
 
 ## 应用内操作直改库（免扫）
 

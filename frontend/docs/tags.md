@@ -1,7 +1,7 @@
 # 标签能力（tags）
 
-> 渲染层侧行为规格；领域词（挂载/声明/组/退役根）见 `docs/GLOSSARY.md`，标签比较键等
-> 领域判定纪律见 `src/AGENTS.md`。
+> 渲染层侧行为规格；领域词（挂载/声明/组/退役根）见 [docs/GLOSSARY.md](../../docs/GLOSSARY.md)，标签比较键等
+> 领域判定纪律见 [src/AGENTS.md](../../src/AGENTS.md)。
 
 ## TagProfile：有类型的主页文档
 
