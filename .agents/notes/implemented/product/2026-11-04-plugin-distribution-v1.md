@@ -5,7 +5,7 @@ Status: implemented
 ## Problem
 
 首插件起，装载一直是 dev 接线（硬编码清单）：三方形态被验证了，但"一个陌生人拿到一个插件怎么装上"没有答案——发现、分发、安装、卸载、装载校验全部缺席；dev 与用户走两条装载路意味着分发链路从未被真实走过，机制的欠账只在 dev 一侧被偿还；HostApi additive 演进没有兼容策略——旧插件遇新宿主会发生什么无人定义。分发 v1 要把这条链补上。
-整套裁决在 决策基线 D48 行压成了一行结论，论证层由本篇承载。
+整套裁决的现行事实住[插件子树入口](../../../../plugins/AGENTS.md)，论证层由本篇承载。
 
 ## Decision
 
@@ -15,7 +15,7 @@ Status: implemented
 装卸语义：安装 = 宿主收 zip 路径 → 解包校验（manifest 在场且形状合法；id 字符集门拒 `__vendor`、mounts/surfaces 白名单、zip 分发必填 version+apiVersion）→ 落位 `{userData}/plugins/<manifest.id>/`（**应用级安装位**：插件随应用走、内容数据随库走，与库文件无关）；
 更新 = 同 id 覆盖安装（版本对比归 UI 呈现，重装安全 = 先完整摘除 unregisterFeature 再注册）；卸载 = 删安装目录（可重装，不做回收站）+ 贡献清扫（复用停用语义）+ 清启用态。
 
-装载链路：启动期读安装位清单 → 声明注册（面板可见、停用态保底，D43 语义不变）→ 启用者激活；装载前校验 manifest 声明的**最低 HostApi 版本**（apiVersion 段比较，超版拒绝激活并明示）。
+装载链路：启动期读安装位清单 → 声明注册（面板可见、停用态保底，启停语义不变）→ 启用者激活；装载前校验 manifest 声明的**最低 HostApi 版本**（apiVersion 段比较，超版拒绝激活并明示）。
 manifest additive 扩面：+version / +author / +apiVersion——zip 分发没有仓库上下文，身份事实必须自带（安装确认页与详情页展示）。
 
 实现形状：zip 解包 = extract-zip（纯 JS，`--ignore-scripts` 防 ABI 打回；其 optionalDependencies 连带劫持 node: 前缀解析，根 `.npmrc` omit=optional 根治），红线 = 根 node_modules 不新增原生依赖；

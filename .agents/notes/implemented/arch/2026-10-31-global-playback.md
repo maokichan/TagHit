@@ -5,7 +5,7 @@ Status: implemented
 ## Problem
 
 首插件（音频封面 + 播放器，见 [.agents/notes/implemented/arch/2026-10-31-plugin-first-practice.md](2026-10-31-plugin-first-practice.md)）落地后暴露一类新问题：音频是条目的持续伴生能力，而渲染层组件树是会话式的——keyed router-view 在切标签页/翻页/返回网格时整树卸载，组件自持的 audio 元素随之销毁，音乐放着放着就停。
-播放器的呈现形态、歌词的来源、插件能力的启停也都要一个归属：播放归谁、活多久、以什么面呈现、三方能不能摆布它，需要一次裁决。整套裁决在 决策基线 D43 行压成了一行结论，论证层由本篇承载。
+播放器的呈现形态、歌词的来源、插件能力的启停也都要一个归属：播放归谁、活多久、以什么面呈现、三方能不能摆布它，需要一次裁决。整套裁决的现行事实住[架构活体文档](../../../../docs/ARCHITECTURE.md) §二（全局播放引擎）与[首插件规格](../../../../plugins/audio-cover-player/README.md)，论证层由本篇承载。
 
 ## Decision
 
