@@ -4,15 +4,20 @@ Status: implemented
 
 ## Problem
 
-首插件（音频封面 + 播放器，见 `.agents/notes/implemented/arch/2026-10-31-plugin-first-practice.md`）落地后暴露一类新问题：音频是条目的持续伴生能力，而渲染层组件树是会话式的——keyed router-view 在切标签页/翻页/返回网格时整树卸载，组件自持的 audio 元素随之销毁，音乐放着放着就停。播放器的呈现形态、歌词的来源、插件能力的启停也都要一个归属：播放归谁、活多久、以什么面呈现、三方能不能摆布它，需要一次裁决。整套裁决在 `docs/DECISIONS.md` D43 行压成了一行结论，论证层由本篇承载。
+首插件（音频封面 + 播放器，见 `.agents/notes/implemented/arch/2026-10-31-plugin-first-practice.md`）落地后暴露一类新问题：音频是条目的持续伴生能力，而渲染层组件树是会话式的——keyed router-view 在切标签页/翻页/返回网格时整树卸载，组件自持的 audio 元素随之销毁，音乐放着放着就停。
+播放器的呈现形态、歌词的来源、插件能力的启停也都要一个归属：播放归谁、活多久、以什么面呈现、三方能不能摆布它，需要一次裁决。整套裁决在 决策基线 D43 行压成了一行结论，论证层由本篇承载。
 
 ## Decision
 
-**播放是"能力"，归壳**（首插件产物归属判据的延伸：与 readAudioMeta 同族的程序自有能力）。引擎 = 渲染层应用级单例（`frontend/src/renderer/src/features/playback/playback.ts`，模块级单例；非宿主主进程——主进程没有音频输出面）。唯一 HTMLAudioElement 不入 DOM，keyed router-view 整树卸载不再停播；页面组件只是遥控器（订阅快照 + 发命令），换曲 = 对新条目点播放。引擎挂 globalThis 符号键保 HMR 幂等（MediaElementSource 对单元素只能建一次，热更重执行不重建）。链路一次成型：audio → EQ 8 段 peaking（默认 0dB 平坦，机制口）→ AnalyserNode（频谱机制口）→ destination；元素 crossOrigin=anonymous（taghit-file 协议对页面 origin 是跨源，MediaElementSource 的 CORS 净化要求；协议 ACAO:* 已备）。
+**播放是"能力"，归壳**（首插件产物归属判据的延伸：与 readAudioMeta 同族的程序自有能力）。引擎 = 渲染层应用级单例（`frontend/src/renderer/src/features/playback/playback.ts`，模块级单例；非宿主主进程——主进程没有音频输出面）。
+唯一 HTMLAudioElement 不入 DOM，keyed router-view 整树卸载不再停播；页面组件只是遥控器（订阅快照 + 发命令），换曲 = 对新条目点播放。引擎挂 globalThis 符号键保 HMR 幂等（MediaElementSource 对单元素只能建一次，热更重执行不重建）。
+链路一次成型：audio → EQ 8 段 peaking（默认 0dB 平坦，机制口）→ AnalyserNode（频谱机制口）→ destination；元素 crossOrigin=anonymous（taghit-file 协议对页面 origin 是跨源，MediaElementSource 的 CORS 净化要求；协议 ACAO:* 已备）。
 
-HostApi additive：新域 playback 于 0.2.1 首发（play/toggle/pause/seek/setVolume/setLoop/snapshot/onChange，快照回调订阅式，不向三方暴露响应式对象）；items.readAudioMeta 返回 +lyrics（0.2.2）——歌词/播放面/循环一并入冻结面。歌词只读文件事实：同名 .lrc 伴生优先、内嵌歌词标签次之（readAudioMeta 通道，不进 TEXT_EXTS 双表）；解析与呈现归插件——数据层产物跟宿主走、呈现层跟插件走的同款判据。
+HostApi additive：新域 playback 于 0.2.1 首发（play/toggle/pause/seek/setVolume/setLoop/snapshot/onChange，快照回调订阅式，不向三方暴露响应式对象）；items.readAudioMeta 返回 +lyrics（0.2.2）——歌词/播放面/循环一并入冻结面。
+歌词只读文件事实：同名 .lrc 伴生优先、内嵌歌词标签次之（readAudioMeta 通道，不进 TEXT_EXTS 双表）；解析与呈现归插件——数据层产物跟宿主走、呈现层跟插件走的同款判据。
 
-播放器 = 单页左右分区（左黑胶 + 传输控制、右歌词；专辑播放列表等 Collection 落地后并入右列；槽宽不足经 container query 上下堆叠）。插件内容集中一页自组织：插件一般提供一个页面，槽的多页面是槽的 tab 栈的事，插件不得自造第二套页签。黑胶盘尺寸在 [180px, 420px] clamp。传输控制：±15s 快退/快进 · 播放/暂停 · 单曲循环 · 静音+音量条。
+播放器 = 单页左右分区（左黑胶 + 传输控制、右歌词；专辑播放列表等 Collection 落地后并入右列；槽宽不足经 container query 上下堆叠）。插件内容集中一页自组织：插件一般提供一个页面，槽的多页面是槽的 tab 栈的事，插件不得自造第二套页签。黑胶盘尺寸在 [180px, 420px] clamp。
+传输控制：±15s 快退/快进 · 播放/暂停 · 单曲循环 · 静音+音量条。
 
 播放生命周期（标签页与资源挂钩）：切标签页/返回网格不停播（全局播放）；本标签的资源被替换（翻页/预览条点选）或关闭正在播放其音频的标签 = 停播——标签是资源的会话容器，资源变了会话即终结（引擎暂停、进度保留）。
 
