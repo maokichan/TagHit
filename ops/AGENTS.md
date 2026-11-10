@@ -4,13 +4,14 @@
 > 文档膨胀、文档与事实脱钩。业务与校准脚本在 `scripts/`（校准场景、dev 一键、自验），两者分治。
 > 红线全表在根 `AGENTS.md` §二；文档地图与洗文口径见 §四 与 docGuard 头注。
 
-## 脚本（三件套，`<域><动作>.mjs`；Guard 族挡提交，报错自带修法）
+## 脚本（Guard 族挡提交报错自带修法；对账类只体检不挡）
 
 | 脚本 | 拦什么 |
 |---|---|
 | [`docIndex`](scripts/docIndex.mjs) | md 链接向上（祖先）或出仓 = 拦；已知根段开头而解析失败的提及 = check 模式 notice；被引用事实变了而引用它的文档没动 = 提醒不拦 |
 | [`repoGuard`](scripts/repoGuard.mjs) | 绝对路径（三形态，只扫文档/配置扩展）与 API key（八类，扫全部文本源）= 拦；密钥命中不回显；`<占位符>` 豁免 |
 | [`docGuard`](scripts/docGuard.mjs) | Markdown 行数超上限 = 拦（入口类硬上限 80、其余 300；上限表见其头注，新增入口文档先登记） |
+| [`refdiff`](scripts/refdiff.mjs) | 不挡——引用对账钓竿：链接形态转换批后对基线跑链接计数差，钓「基线有而工作树缺失」；计数法有同数错挂盲区，完整性以入口面人工目检兜底（口径见脚本头注） |
 
 ## 门控链（pre-commit；clone 后一次性激活 `git config core.hooksPath .githooks`）
 
